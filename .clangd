@@ -1,0 +1,2 @@
+CompileFlags:
+	Add: [ -I/usr/include/efi, -ffreestanding, -fshort-wchar, -g, -fstack-protector ]

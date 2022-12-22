@@ -1,0 +1,5 @@
+If:                               # Apply this config conditionally
+	PathMatch: .*efi\.h
+
+CompileFlags:
+        Add: [ -I/usr/include/efi ]
