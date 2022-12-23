@@ -1,7 +1,8 @@
 #include "globals.h"
 #include "graphics/text_renderer.h"
 
-uint64_t bitmap_size;
+bitmap* bm;
+void* mem_base = NULL;
 
 void init_globals() {
 	

@@ -6,14 +6,11 @@
 
 uint32_t color_stack, current_color = 0xd8d8d8d8;
 
-static const char xdigits[16] = {
+const char xdigits[16] = {
 	"0123456789ABCDEF"
 };
 
-static char* fmt_x(uintmax_t x, char *s, int lower) {
-	for (; x; x>>=4) *--s = xdigits[(x&15)]|lower;
-	return s;
-}
+const char* fmt_x(char* str, uint64_t value, uint8_t length);
 
 void render_char(char c) {
     char* fontPtr = (char*)graphics->psf1_Font->glyphBuffer + (c * graphics->psf1_Font->psf1_Header->charsize);
@@ -72,6 +69,12 @@ void printk(char *restrict fmt, ...) {
 				case 's':
 					printk(va_arg(arg_list, char*));
 					break;
+				case 'p': {
+						char testbuf[13];
+						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 11);
+						render_string(testbuf);
+					}
+					break;
             }
         } else if(*fmt == '\n') {
 			cursor_y += 16;
@@ -102,4 +105,19 @@ void text_color_push(uint32_t color) {
 
 void text_color_reset() {
 	current_color = 0xd8d8d8d8;
+}
+
+const char* fmt_x(char* str, uint64_t value, uint8_t length) {
+    uint64_t* valPtr = &value;
+    uint8_t* ptr;
+    uint8_t tmp;
+    for (uint8_t i = 0; i < length; i++){
+        ptr = ((uint8_t*)valPtr + i);
+        tmp = ((*ptr & 0xF0) >> 4);
+        str[length - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
+        tmp = ((*ptr & 0x0F));
+        str[length - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+    }
+    str[length + 1] = '\0';
+    return str;
 }

@@ -1,4 +1,4 @@
-const char* EFI_MEMORY_TYPES[100] = {
+const char* EFI_MEMORY_TYPES[14] = {
 	"EfiReservedMemoryType",
     "EfiLoaderCode",
     "EfiLoaderData",

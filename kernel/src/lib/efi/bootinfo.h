@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-extern const char* EFI_MEMORY_TYPES[100];
+extern const char* EFI_MEMORY_TYPES[14];
 
 typedef struct {
 	void* BaseAddress;

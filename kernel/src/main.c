@@ -11,19 +11,6 @@
 BootInfo* graphics;
 uint16_t cursor_x = 0, cursor_y = 0;
 
-extern void* KSTART;
-extern void* KEND;
-
-void teszt(uint64_t address, uint64_t count) {
-	uint64_t page_i = (uint64_t) address / 4096; // melyik page (hanyadik)
-	uint64_t byte_i = page_i / 8;
-	uint64_t bit_i = page_i % 8;
-	//bitmap[byte_i] &= 1 << (bit_i);
-	printk("page_i: %ud\nbyte_i: %ud\nbit_i: %ud\n", page_i, byte_i, bit_i);
-	printk(byte_i > sizeof(bitmap) ? "byte_i nagyobb mint sizeof(bitmap)??\n" : "Minden rendben\n");
-	printk("sizeof(bitmap): %ud vs %ud\n", bitmap_size, num_pages / 8);
-}
-
 uint8_t kmain(BootInfo *restrict _graphics) {
     graphics = _graphics;
 
@@ -39,11 +26,14 @@ uint8_t kmain(BootInfo *restrict _graphics) {
 	init_globals();
 
 	map_memory();
-	uint8_t _bitmap[(num_pages % 8 == 0) ? num_pages / 8 : (num_pages / 8) + 1];
-	init_bitmap(_bitmap, sizeof(_bitmap));
+	init_bitmap(bm);
+
+	void* test_obj = request_page();
+	void* test_obj_two = request_page();
+	printk("Address of test_obj: \t\t%p\n", test_obj);
+	printk("Address of test_obj_two: \t%p\n", test_obj_two);
 	
-	uint8_t i = 0;
-	teszt((uint64_t) &i, 1);
+	//printk("Hex testtttt: %p\n", &test_obj);
 
 	printk("Total mem: %ud MiB or %ud GiB (%ud pages)\n", total_mem / 1024 / 1024, total_mem / 1024 / 1024 / 1024, num_pages);
 
