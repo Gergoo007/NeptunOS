@@ -14,6 +14,4 @@ extern void* mem_base;
 extern void* KSTART;
 extern void* KEND;
 
-void init_globals();
-
-void __stack_chk_fail();
+extern void __stack_chk_fail();

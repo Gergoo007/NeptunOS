@@ -26,6 +26,28 @@ typedef struct {
 	void* glyphBuffer;
 } PSF1_FONT;
 
+void* malloc(UINTN pool_size) {
+    EFI_STATUS status;
+    void* handle;
+    status = uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, pool_size, &handle);
+
+    if(status == EFI_OUT_OF_RESOURCES)
+    {
+        Print(L"out of resources for pool\n");
+        return 0;
+    }
+    else if(status == EFI_INVALID_PARAMETER)
+    {
+        Print(L"invalid pool type\n");
+        return 0;
+    }
+    else
+    {
+        Print(L"memory pool successfully allocated\n");
+        return handle;
+    }
+}
+
 Framebuffer framebuffer;
 Framebuffer* InitializeGOP() {
 	EFI_GUID gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
@@ -190,22 +212,28 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	uint64_t map_size, map_key;
 	uint64_t desc_size;
 	uint32_t desc_version;
+
+	// Get data about the map (size, desc size, desc key etc.)
 	SystemTable->BootServices->GetMemoryMap(&map_size, map, &map_key, &desc_size, &desc_version);
-	SystemTable->BootServices->AllocatePool(EfiLoaderData, map_size, (void**) &map);
+	
+	// Make room for the map
+	map = (EFI_MEMORY_DESCRIPTOR*) malloc(map_size);
+	
+	// Get the actual map and load it in '*map'
 	SystemTable->BootServices->GetMemoryMap(&map_size, map, &map_key, &desc_size, &desc_version);
 
 	uint8_t (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) uint8_t (*)(BootInfo*) ) header.e_entry);
 
-	BootInfo bootInfo;
-	bootInfo.framebuffer = newBuffer;
-	bootInfo.psf1_Font = newFont;
-	bootInfo.mMap = map;
-	bootInfo.mMapSize = map_size;
-	bootInfo.mMapDescSize = desc_size;
+	BootInfo* bootInfo = (BootInfo*) malloc(sizeof(BootInfo));
+	bootInfo->framebuffer = newBuffer;
+	bootInfo->psf1_Font = newFont;
+	bootInfo->mMap = map;
+	bootInfo->mMapSize = map_size;
+	bootInfo->mMapDescSize = desc_size;
 
 	SystemTable->BootServices->ExitBootServices(ImageHandle, map_key);
 
-	KernelStart(&bootInfo);
+	KernelStart(bootInfo);
 
 	return EFI_SUCCESS; // Exit the UEFI application
 }

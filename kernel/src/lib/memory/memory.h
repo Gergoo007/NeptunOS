@@ -25,6 +25,8 @@ uint8_t bm_get(uint64_t page);
 
 void bm_set(uint64_t page, uint8_t val);
 
+void* malloc(uint64_t size_in_bytes);
+
 extern uint64_t total_mem;
 extern uint64_t free_mem;
 extern uint64_t used_mem;
@@ -32,4 +34,5 @@ extern uint64_t num_pages;
 
 extern void* biggest_conv_mem;
 extern uint64_t biggest_conv_mem_size;
-
+extern uint64_t esp;
+extern uint64_t ebp;

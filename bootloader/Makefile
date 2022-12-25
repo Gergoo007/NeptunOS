@@ -1,7 +1,7 @@
 all: kernel gnuefi clean iso run
 
 kernel:
-	make -C ../kernel kernel
+	make -C ../kernel all
 
 gnuefi:
 	make -C gnu-efi bootloader
@@ -27,7 +27,7 @@ iso: img
 run:
 	qemu-system-x86_64 -drive file=deps/OVMF_CODE.fd,if=pflash,readonly=true,format=raw,unit=0 \
 	-drive file=deps/OVMF_VARS.fd,if=pflash,readonly=false,format=raw \
-	-smp 2 -m 12G -net none -cdrom cdimage.iso
+	-smp 2 -m 8G -net none -cdrom cdimage.iso
 
 clean:
 	rm -rf out/exe/*

@@ -11,22 +11,34 @@ uint64_t num_pages;
 
 void* biggest_conv_mem = NULL;
 uint64_t biggest_conv_mem_size = 0;
+uint64_t esp, ebp;
+uint64_t stack_size = 8 * 1024 * 1024; // 8 MiB
 
 void map_memory() {
 	num_pages = total_mem = 0;
-	
+	asm("mov %%rsp, %0" : "=r"(esp));
+	asm("mov %%rbp, %0" : "=r"(ebp));
+	uint64_t stack_top = ebp - stack_size; // Because the stack grows downwards, this is actually the bottom
+	uint64_t stack_pages = (stack_size / 0x1000) + 1;
+
 	for (uint64_t i = 0; i < graphics->mMapSize / graphics->mMapDescSize; i++) {
+		uint8_t match = 0;
 		EFI_MEMORY_DESCRIPTOR* desc = 
 			(EFI_MEMORY_DESCRIPTOR*)((uint64_t)graphics->mMap + (i * graphics->mMapDescSize));
+		
 		total_mem += desc->numPages * 4096;
 		num_pages += desc->numPages;
-
+		
+		//printk("aaaa: %p\n", desc->physAddr);
+		
 		// Check for memory type
 		if (desc->type == 7 && ((desc->numPages * 4096) > biggest_conv_mem_size)) {
 			biggest_conv_mem = desc->physAddr;
 			biggest_conv_mem_size = desc->numPages * 4096;
 		}
 	}
+	
+	//reserve_page((void*)stack_top, stack_pages);
 }
 
 void init_bitmap(bitmap* bm) {
@@ -131,4 +143,19 @@ void bm_set(uint64_t page, uint8_t val) {
     	((uint8_t*)bm->address)[byteIndex] |= bitIndexer;
 	else
 		((uint8_t*)bm->address)[byteIndex] &= ~bitIndexer;
+}
+
+void* malloc(uint64_t size_in_bytes) {
+	if(size_in_bytes == 0)
+		return NULL;
+
+	uint64_t pages = size_in_bytes / 0x1000;
+	register void* ret = request_page();
+	pages--;
+	if(size_in_bytes == 0)
+		return NULL;
+	for (; pages > 0; pages--) {
+		request_page();
+	}
+	return ret;
 }

@@ -1,0 +1,14 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+		{
+			"label": "qemu",
+			"type": "shell",
+			//"command": "/mnt/et_cetera/projects/SymbiOSys/qemu_debug.sh",
+			"linux": {
+				"command": "st bash /mnt/et_cetera/projects/SymbiOSys/qemu_debug.sh",
+				"args": []
+			},
+		}
+	]
+}

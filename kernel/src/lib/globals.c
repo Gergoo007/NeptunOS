@@ -4,10 +4,8 @@
 bitmap* bm;
 void* mem_base = NULL;
 
-void init_globals() {
-	
-}
-
 void __stack_chk_fail() {
-	printk("!! Stack smashing detected !!");
+	text_color_push(0x00ff0000);
+	printk("!! Stack smashing detected !!\n");
+	text_color_pop();
 }
