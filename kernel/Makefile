@@ -21,7 +21,10 @@ clean:
 
 objdir: clean
 	rsync -a -f"+ */" -f"- *" src/ out/obj/
-	
+
+out/obj/lib/tables/interrupts.c.o: src/lib/tables/interrupts.c
+	$(CC) -ffreestanding -g -fstack-protector-all -mno-red-zone -mgeneral-regs-only -c $^ -o $@
+
 out/obj/%.c.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 

@@ -40,7 +40,7 @@ void render_string(char *restrict str) {
 	}
 }
 
-void printk(char *restrict fmt, ...) {
+/*__attribute__((no_caller_saved_registers))*/ void printk(char *restrict fmt, ...) {
     va_list arg_list;
     int16_t length = 0;
 
