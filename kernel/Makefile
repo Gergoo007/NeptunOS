@@ -10,20 +10,23 @@ CC := gcc
 AS := nasm
 LD := ld
 
-CFLAGS += -ffreestanding -fshort-wchar -g -fstack-protector-all
+CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector
 NASMFLAGS += -f elf64
-LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib
+LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -n -z max-page-size=0x1000 -Ttext=0x01000000
 
-all: clean objdir $(COBJ) $(SOBJ) kernel
+kernel_all: clean objdir $(COBJ) $(SOBJ) kernel
 
 clean:
 	rm -rf out/*
 
-objdir: clean
+objdir:
 	rsync -a -f"+ */" -f"- *" src/ out/obj/
 
+out/obj/font.o:
+	$(LD) -r -b binary -o $@ font.psf
+
 out/obj/lib/tables/interrupts.c.o: src/lib/tables/interrupts.c
-	$(CC) -ffreestanding -g -fstack-protector-all -mno-red-zone -mgeneral-regs-only -c $^ -o $@
+	$(CC) -ffreestanding -g -fno-stack-protector -mno-red-zone -mgeneral-regs-only -c $^ -o $@
 
 out/obj/%.c.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@
@@ -31,7 +34,7 @@ out/obj/%.c.o: src/%.c
 out/obj/%.s.o: src/%.s
 	$(AS) $(NASMFLAGS) $^ -o $@
 
-kernel: $(COBJ) $(SOBJ)
-	$(LD) $(LDFLAGS) $^ -o ../bootloader/kernel
+kernel: $(COBJ) $(SOBJ) out/obj/font.o
+	$(LD) $(LDFLAGS) $^ -o out/kernel
 
 .PHONY: kernel all objdir clean

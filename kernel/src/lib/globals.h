@@ -1,12 +1,13 @@
 #pragma once
 
-#include "efi/bootinfo.h"
+#include "efi/boot_env.h"
 #include "memory/memory.h"
+#include <stddef.h>
 
 extern uint16_t cursor_x;
 extern uint16_t cursor_y;
 
-extern BootInfo* graphics;
+extern system_info* info;
 
 extern bitmap* bm;
 extern void* mem_base;

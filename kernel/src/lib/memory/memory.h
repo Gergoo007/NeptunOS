@@ -29,6 +29,7 @@ void* malloc(uint64_t size_in_bytes);
 
 extern uint64_t total_mem;
 extern uint64_t free_mem;
+extern uint64_t reserved_mem;
 extern uint64_t used_mem;
 extern uint64_t num_pages;
 

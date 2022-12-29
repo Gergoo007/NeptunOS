@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../../lib/efi/bootinfo.h"
-
 #include "graphics.h"
 
 #include <stdint.h>
@@ -20,3 +18,5 @@ extern void text_color_pop();
 extern void text_color_push(uint32_t color);
 
 extern void text_color_reset();
+
+extern const char* fmt_x(char* str, uint64_t value, uint8_t length);

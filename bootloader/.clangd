@@ -1,5 +1,2 @@
-If:                               # Apply this config conditionally
-	PathMatch: .*efi\.h
-
 CompileFlags:
-        Add: [ -I/usr/include/efi ]
+        Add: [ -I/usr/include/efi, -I/mnt/et_cetera/projects/c/posix-uefi-test/uefi, -pedantic, -Wall, -Wextra, -Werror, --ansi, -fshort-wchar, -fno-strict-aliasing, -ffreestanding, -fno-stack-protector, -fno-stack-check ]
