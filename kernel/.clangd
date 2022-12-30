@@ -1,0 +1,2 @@
+CompileFlags:
+	Add: [ -I/mnt/et_cetera/projects/NeptunOS/kernel/src, -nostdlib, -nostdinc ]

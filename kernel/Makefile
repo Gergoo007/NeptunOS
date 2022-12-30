@@ -1,16 +1,16 @@
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-CSRC := $(call rwildcard, src, *.c)
-SSRC := $(call rwildcard, src, *.s)
+CSRC := $(call rwildcard, src/neptunos, *.c)
+SSRC := $(call rwildcard, src/neptunos, *.s)
 
-COBJ := $(patsubst src/%.c, out/obj/%.c.o, $(CSRC))
-SOBJ := $(patsubst src/%.s, out/obj/%.s.o, $(SSRC))
+COBJ := $(patsubst src/neptunos/%.c, out/obj/neptunos/%.c.o, $(CSRC))
+SOBJ := $(patsubst src/neptunos/%.s, out/obj/neptunos/%.s.o, $(SSRC))
 
 CC := gcc
 AS := nasm
 LD := ld
 
-CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector
+CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc
 NASMFLAGS += -f elf64
 LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -n -z max-page-size=0x1000 -Ttext=0x01000000
 
@@ -20,13 +20,13 @@ clean:
 	rm -rf out/*
 
 objdir:
-	rsync -a -f"+ */" -f"- *" src/ out/obj/
+	rsync -a -f"+ */" -f"- *" src/neptunos out/obj/
 
 out/obj/font.o:
 	$(LD) -r -b binary -o $@ font.psf
 
-out/obj/lib/tables/interrupts.c.o: src/lib/tables/interrupts.c
-	$(CC) -ffreestanding -g -fno-stack-protector -mno-red-zone -mgeneral-regs-only -c $^ -o $@
+out/obj/neptunos/tables/interrupts.c.o: src/neptunos/tables/interrupts.c
+	$(CC) -ffreestanding -g -fno-stack-protector -mno-red-zone -mgeneral-regs-only -I/mnt/et_cetera/projects/NeptunOS/kernel/src -c $^ -o $@
 
 out/obj/%.c.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@
