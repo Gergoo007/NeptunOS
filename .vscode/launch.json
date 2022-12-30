@@ -4,7 +4,7 @@
 			"name": "Launch with GDB",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "/mnt/et_cetera/projects/SymbiOSys/bootloader/kernel",
+			"program": "/mnt/et_cetera/projects/SymbiOSys/kernel/out/kernel",
 			"cwd": "${workspaceFolder}",
 			"args": [],
 			// "sourceFileMap": {
@@ -27,7 +27,7 @@
 					"ignoreFailures": true
 				},
 				{
-					"text": "file /mnt/et_cetera/projects/SymbiOSys/bootloader/kernel",
+					"text": "file /mnt/et_cetera/projects/SymbiOSys/kernel/out/kernel",
 					"description": "Load binary."
 				},
 			],

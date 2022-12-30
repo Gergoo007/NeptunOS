@@ -10,6 +10,7 @@
 #include "libk/string.h"
 
 #include "memory/memory.h"
+#include "memory/efi_memory.h"
 #include "memory/paging.h"
 
 #include "tables/gdt.h"

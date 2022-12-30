@@ -1,2 +1,2 @@
 CompileFlags:
-        Add: [ -I/usr/include/efi, -I/mnt/et_cetera/projects/c/posix-uefi-test/uefi, -pedantic, -Wall, -Wextra, -Werror, --ansi, -fshort-wchar, -fno-strict-aliasing, -ffreestanding, -fno-stack-protector, -fno-stack-check ]
+        Add: [ -I/usr/include/efi, -I/mnt/et_cetera/projects/c/posix-uefi-test/uefi, -fshort-wchar, -fno-strict-aliasing, -ffreestanding, -fno-stack-protector, -fno-stack-check ]

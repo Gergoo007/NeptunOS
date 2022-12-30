@@ -27,13 +27,11 @@ int main(int argc, char** argv) {
 	boot_struct->mem_info->mmap_size = map_size;
 	boot_struct->mem_info->mmap_key = map_key;
 	boot_struct->mem_info->desc_size = desc_size;
-	
+
 	load_kernel(&entry);
-
 	kmain = (call_kernel)entry;
-
 	printf("Resolution: %d x %d\n", boot_struct->g_info->Information->HorizontalResolution, boot_struct->g_info->Information->VerticalResolution);
-	printf("Starting kernel...\n");
+	printf("...\n");
 
 	/* Quit the bullshit. */
 	exit_bs();
