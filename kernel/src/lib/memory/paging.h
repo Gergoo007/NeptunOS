@@ -25,6 +25,3 @@ extern page_map_level* pml4;
 
 void indexer(void* address, uint16_t* pt_i, uint16_t* pd_i, uint16_t* pdp_i, uint16_t* pml4_i);
 void map_address(void* virtual_address, void* physical_address);
-
-void setup_pae();
-void enable_paging(page_map_level*);

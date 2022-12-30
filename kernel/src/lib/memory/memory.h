@@ -35,5 +35,3 @@ extern uint64_t num_pages;
 
 extern void* biggest_conv_mem;
 extern uint64_t biggest_conv_mem_size;
-extern uint64_t esp;
-extern uint64_t ebp;

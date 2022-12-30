@@ -2,25 +2,22 @@
 
 idtr idt;
 
-// void setup_paging() {
-	// pml4 = (page_map_level*)request_page();
-	// memset(pml4, 0, sizeof(page_map_level));
+void setup_paging() {
+	pml4 = (page_map_level*) request_page();
+	memset(pml4, 0, 0x1000);
 
-	// for (uint64_t i = 0; i < total_mem; i += 0x1000) {
-	// 	map_address((void*)i, (void*)i);
-	// 	//printk("hahhah");
-	// }
+	// Identity map the whole physical memory
+	for (uint64_t i = 0; i < total_mem; i += 0x1000) {
+		map_address((void*)i, (void*)i);
+	}
 
-	// //printk("...\n");
-
-	// uint64_t fb_base = (uint64_t)graphics->framebuffer->BaseAddress;
-	// uint64_t fb_size = (uint64_t)graphics->framebuffer->BufferSize + 0x1000;
-	// for (uint64_t i = fb_base; i < fb_base + fb_size; i += 0x1000) {
-	// 	map_address((void*)i, (void*)i);
-	// }
-
-	// asm("mov %0, %%cr3" : : "r" (pml4));
-//}
+	// Identity map the framebuffer so it doesn't break
+	for (uint64_t i = (uint64_t)(info->g_info->fb_base); i <= (uint64_t)(info->g_info->fb_base) + info->g_info->fb_size; i += 0x1000) {
+		map_address((void*)i, (void*)i);
+	}
+	
+	asm("mov %0, %%cr3" :: "r" (pml4));
+}
 
 void setup_font() {
 	if(*((uint8_t*)&_binary_font_psf_start) == 0x36) {
@@ -81,4 +78,6 @@ void kinit(system_info* _info) {
 	load_gdt(&desc);
 
 	int_prep();
+
+	setup_paging();
 }
