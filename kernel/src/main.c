@@ -11,7 +11,7 @@ uint8_t kmain(system_info* _info) {
 	void* third = request_page();
 	printk("Testing request page:\n%p\n%p\n%p\n", first, second, third);
 
-	pml4 = (page_map_level_4*) request_page();
+	pml4 = (page_map_level*) request_page();
 	memset(pml4, 0, 0x1000);
 
 	printk("Total mem: %ud MiB\n", total_mem / 1024 / 1024);
@@ -73,18 +73,9 @@ uint8_t kmain(system_info* _info) {
 		map_address((void*)i, (void*)i);
 	}
 	
-	//enable_paging(pml4);
-	//serial_write(0x3f8, "Alive\n\r");
-	// asm("cli");
-	// asm("hlt");
 	asm("mov %0, %%cr3" :: "r" (pml4));
+	printk("Paging is working!!!\n");
 
-	//void* pml4_addr;
-	//asm("mov %%cr3, %0" : "=r" (pml4_addr));
-	//memcpy(pml4, pml4_addr, 0x1000);
-
-	//map_address((void*)0x1000, (void*)0x1000);
-	
 	text_color_push(0x0000ff00);
 	printk("Successfully reached end of kmain, halting...");
 	text_color_pop();
