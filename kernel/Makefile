@@ -12,7 +12,7 @@ LD := ld
 
 CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc
 NASMFLAGS += -f elf64
-LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -n -z max-page-size=0x1000 -Ttext=0x01000000
+LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -n -z max-page-size=0x1000
 
 kernel_all: clean objdir $(COBJ) $(SOBJ) kernel
 
@@ -37,4 +37,7 @@ out/obj/%.s.o: src/%.s
 kernel: $(COBJ) $(SOBJ) out/obj/font.o
 	$(LD) $(LDFLAGS) $^ -o out/kernel
 
-.PHONY: kernel all objdir clean
+no_debug: kernel_all
+	strip out/kernel
+
+.PHONY: kernel all objdir clean no_debug

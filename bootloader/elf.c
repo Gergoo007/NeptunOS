@@ -27,9 +27,10 @@ void load_kernel(uintptr_t* entry) {
 		i < ehdr->e_phnum;
 		i++, phdr = (Elf64_Phdr *)((uint8_t *)phdr + ehdr->e_phentsize)) {
 			if(phdr->p_type == PT_LOAD) {
-				printf("Found segment\n");
-				memcpy((void*)phdr->p_vaddr, (uint8_t*)fptr + phdr->p_offset, phdr->p_filesz);
-				memset((void*)(phdr->p_vaddr + phdr->p_filesz), 0, phdr->p_memsz - phdr->p_filesz);
+				// Use physical address as memory is identity mapped by UEFI
+				// Switch to virtual addresses when paging is achieved in the bootloader
+				memcpy((void*)phdr->p_paddr, (uint8_t*)fptr + phdr->p_offset, phdr->p_filesz);
+				memset((void*)(phdr->p_paddr + phdr->p_filesz), 0, phdr->p_memsz - phdr->p_filesz);
 			}
 		}
 

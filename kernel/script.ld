@@ -1,30 +1,35 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kmain)
 
-mmio        = 0xfffffffff8000000;              /* these are configurable for level 2 loaders */
-fb          = 0xfffffffffc000000;
-bootboot    = 0xffffffffffe00000;
-environment = 0xffffffffffe01000;
-initstack = 16384;
-
 PHDRS {
-  boot PT_LOAD;                                /* one single loadable segment */
+	text PT_LOAD FILEHDR PHDRS;
+	data PT_LOAD;
 }
 
 SECTIONS {
+	/* set address, otherwise it might load at an address used by UEFI/bootloader */
+	. = 0x01000000;
+
 	KSTART = .;
-    . = 0xffffffffffe02000;
-    .text : {
-        KEEP(*(.text.boot)) *(.text .text.*)   /* code */
-        *(.rodata .rodata.*)                   /* data */
-        *(.data .data.*)
-    } :boot
-    .bss (NOLOAD) : {                          /* bss */
-        . = ALIGN(16);
-        *(.bss .bss.*)
-        *(COMMON)
-    } :boot
+	
+	.text : {
+		*(.text)
+	} :text
+	
+	.data : {
+		*(.data .data.*)
+	} :data
+	
+	.rodata : {
+		*(.rodata .rodata.*)
+	} :data
+	
+	.bss (NOLOAD) : {
+		*(.bss .bss.*)
+		*(COMMON)
+	} :data
+	
 	KEND = .;
 
-    /DISCARD/ : { *(.eh_frame) *(.comment) }
+	/DISCARD/ : { *(.eh_frame) *(.comment) }
 }
