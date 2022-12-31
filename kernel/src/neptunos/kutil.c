@@ -62,15 +62,20 @@ void int_prep() {
 
 void kinit(system_info* _info) {
 	info = _info;
-	clear_screen();
 	setup_font();
+
+	map_memory();
+	init_bitmap(bm);
+
+	#ifdef USE_DOUBLE_BUFFERING
+		setup_back_buffer();
+	#endif
+
+	clear_screen();
 
 	text_color(0x0000ffcc);
 	printk("Framebuffer resolution: %ud x %ud\n", info->g_info->info->width, info->g_info->info->height);
 	text_color_reset();
-
-	map_memory();
-	init_bitmap(bm);
 
 	struct gdt_descriptor desc;
 	desc.size = sizeof(struct gdt) - 1;

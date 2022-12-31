@@ -1,4 +1,5 @@
 #include <neptunos/graphics/graphics.h>
+#include <neptunos/libk/string.h>
 
 void* glyph_buffer;
 psf_header* def;
@@ -14,3 +15,15 @@ void clear_screen_color(uint32_t color) {
     	}
     }
 }
+
+#ifdef USE_DOUBLE_BUFFERING
+	void* back_buffer;
+	void setup_back_buffer() {
+		back_buffer = malloc(info->g_info->fb_size);
+		memcpy(back_buffer, info->g_info->fb_base, info->g_info->fb_size);
+	}
+
+	void sync_back_buffer() {
+		memcpy(info->g_info->fb_base, back_buffer, info->g_info->fb_size);
+	}
+#endif

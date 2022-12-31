@@ -8,7 +8,19 @@ int main(int argc, char** argv) {
 	memory_info* mem_inf;
 	call_kernel kmain;
 	uintptr_t entry = 0;
+	efi_guid_t gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+	uintn_t isiz = sizeof(efi_gop_mode_info_t);
+	efi_gop_mode_info_t* mode;
+	uint16_t i = 0;
+
+	BS->LocateProtocol(&gop_guid, NULL, (void**)&gop);
 	
+	for (i = 0; i < gop->Mode->MaxMode; i++) {
+		gop->QueryMode(gop, i, &isiz, &mode);
+		if(mode->HorizontalResolution == 1280 && mode->VerticalResolution == 720)
+			gop->SetMode(gop, i);
+	}
+
 	BS->GetMemoryMap(&map_size, desc, &map_key, &desc_size, NULL);
 	map_size += 4 * desc_size;
 	desc = (efi_memory_descriptor_t*)malloc(map_size);

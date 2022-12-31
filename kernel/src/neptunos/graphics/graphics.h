@@ -38,11 +38,20 @@ typedef struct psf_header {
 
 extern psf_header* def;
 extern void* glyph_buffer;
+extern void* back_buffer;
 
 static inline void pixel(uint32_t x, uint32_t y, uint32_t color) {
-   /**((uint32_t*) ((uint64_t)info->g_info->fb_base + (x * sizeof(uint32_t)) + (y * info->g_info->info->scanline))) = color;*/
-   *((uint32_t*) (((uint64_t) info->g_info->fb_base) + 4 * info->g_info->info->width * y + 4 * x)) = color;
+	#ifdef USE_DOUBLE_BUFFERING
+		// Write to back buffer instead
+		*((uint32_t*) (((uint64_t) back_buffer) + 4 * info->g_info->info->width * y + 4 * x)) = color;
+	#else
+		// Write to GOP framebuffer directly
+		*((uint32_t*) (((uint64_t) info->g_info->fb_base) + 4 * info->g_info->info->width * y + 4 * x)) = color;
+	#endif
 }
 
 void clear_screen(void);
 void clear_screen_color(uint32_t color);
+
+void setup_back_buffer();
+void sync_back_buffer();
