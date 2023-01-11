@@ -6,17 +6,20 @@ SSRC := $(call rwildcard, src/neptunos, *.s)
 COBJ := $(patsubst src/neptunos/%.c, out/obj/neptunos/%.c.o, $(CSRC))
 SOBJ := $(patsubst src/neptunos/%.s, out/obj/neptunos/%.s.o, $(SSRC))
 
-CC := gcc
-AS := nasm
-LD := ld
+CC = clang
+AS = nasm
+LD = ld.gold
 
-CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc
+CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc -Wno-interrupt-service-routine
 NASMFLAGS += -f elf64
-LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -n -z max-page-size=0x1000
+LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -z max-page-size=0x1000
 
-kernel_all: clean objdir $(COBJ) $(SOBJ) kernel
+k_all: k_clean info objdir $(COBJ) $(SOBJ) kernel
 
-clean:
+info:
+	@echo AS: $(AS), CC: $(CC), LD: $(LD)
+
+k_clean:
 	rm -rf out/*
 
 objdir:
@@ -26,7 +29,7 @@ out/obj/font.o:
 	$(LD) -r -b binary -o $@ font.psf
 
 out/obj/neptunos/tables/interrupts.c.o: src/neptunos/tables/interrupts.c
-	$(CC) -ffreestanding -g -fno-stack-protector -mno-red-zone -mgeneral-regs-only -I/mnt/et_cetera/projects/NeptunOS/kernel/src -c $^ -o $@
+	$(CC) $(CFLAGS) -mgeneral-regs-only -I/mnt/et_cetera/projects/NeptunOS/kernel/src -c $^ -o $@
 
 out/obj/%.c.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@
@@ -37,7 +40,7 @@ out/obj/%.s.o: src/%.s
 kernel: $(COBJ) $(SOBJ) out/obj/font.o
 	$(LD) $(LDFLAGS) $^ -o out/kernel
 
-no_debug: kernel_all
+no_debug: k_all
 	strip out/kernel
 
-.PHONY: kernel all objdir clean no_debug
+.PHONY: kernel k_all objdir k_clean no_debug

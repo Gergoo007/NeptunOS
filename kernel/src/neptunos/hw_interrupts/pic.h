@@ -44,3 +44,12 @@ static inline uint8_t _in8(uint16_t port) {
 	io_wait();	
 	return ret;
 }
+
+static inline void pic_end_master() {
+    _out8(PIC_M_COMMAND, PIC_EOI);
+}
+
+static inline void pic_end_slave() {
+	_out8(PIC_S_COMMAND, PIC_EOI);
+	_out8(PIC_M_COMMAND, PIC_EOI);
+}

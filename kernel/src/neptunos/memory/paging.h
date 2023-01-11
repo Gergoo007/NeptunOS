@@ -14,7 +14,7 @@ typedef struct page_map_entry {
 	uint8_t ignore1 		: 1;
     uint8_t available 		: 3;
     uint64_t address 		: 48;
-	uint8_t pad 			: 4; // To make it exactly 8 bytes
+	uint8_t pad 			: 4; // To make it exactly 64 bits
 } __attribute__((packed)) page_map_entry;
 
 typedef struct page_map_level {

@@ -17,6 +17,25 @@ const char xdigits[16] = {
 const char* fmt_x(char* str, uint64_t value, uint8_t length);
 
 void render_char(char c) {
+	if (c == '\0') return;
+
+	if(c == '\n') {
+		cursor_y += 16;
+		cursor_x = 0;
+		return;
+	} else if (c == '\t') {
+		cursor_x += (info->g_info->info->width / 16) - (cursor_x % (info->g_info->info->width / 16));
+		return;
+	} else if (c == '\b') {
+		cursor_x -= def->width;
+		for (uint32_t y = cursor_y; y < cursor_y + def->height; y++) {
+			for (uint32_t x = cursor_x; x < cursor_x + def->width; x++) {
+				pixel(x, y, 0x00000000);
+			}
+		}
+		return;
+	}
+
     uint8_t* fontPtr = (uint8_t*)(glyph_buffer + (c * def->bytesperglyph));
 
     for (uint32_t y = cursor_y; y < cursor_y + def->height; y++) {
@@ -80,11 +99,6 @@ void render_string(char *restrict str) {
 					}
 					break;
             }
-        } else if(*fmt == '\n') {
-			cursor_y += 16;
-			cursor_x = 0;
-		} else if (*fmt == '\t') {
-			cursor_x += (info->g_info->info->width / 16) - (cursor_x % (info->g_info->info->width / 16));
 		} else {
             render_char(*fmt);
             length++;

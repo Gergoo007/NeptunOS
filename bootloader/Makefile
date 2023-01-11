@@ -1,22 +1,21 @@
-# define which architecture you're targeting
 ARCH = x86_64
-# define your target file here
-TARGET = BOOTX64.EFI
-#define your sources here
-SRCS = $(wildcard *.c)
-# define your default compiler flags
-CFLAGS = -O2
-# define your default linker flags
-#LDFLAGS =
-# define your additional libraries here
-#LIBS = -lm
 
-_all: kernel all run
+TARGET = BOOTX64.EFI
+
+SRCS = $(wildcard *.c)
+
+RAMSIZE ?= 2G
+
+bl_all: bl_clean all img run
 
 include uefi/Makefile
 
-kernel:
-	make -C ../kernel
+flags:
+	@echo
+	@echo CFLAGS: $(CFLAGS)
+	@echo
+	@echo LDFLAGS: $(LDFLAGS)
+	@echo
 
 boot.img:
 	dd if=/dev/zero of=boot.img bs=34664432 count=1
@@ -38,12 +37,15 @@ iso: img
 
 run: img
 	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
-	-serial stdio -smp 1 -m 256M -net none -no-reboot -no-shutdown \
+	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
 	-hda boot.img
 
 run_iso: iso
 	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
-	-serial stdio -smp 1 -m 256M -net none -no-reboot -no-shutdown \
+	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
 	-hda boot.img
 
-.PHONY: _all run iso img
+bl_clean:
+	rm -rf *.o *.iso *.img
+
+.PHONY: bl_all bl_clean run iso img

@@ -1,5 +1,4 @@
 #include "paging.h"
-#include "main.h"
 
 page_map_level* pml4;
 

@@ -17,6 +17,8 @@
 #include <neptunos/tables/idt.h>
 #include <neptunos/tables/interrupts.h>
 
+#include <neptunos/hw_interrupts/pic.h>
+
 #include <neptunos/power/power.h>
 
 extern idtr idt;

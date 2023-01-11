@@ -1,8 +1,3 @@
-all: build qemu
-
-build:
-	make -C kernel kernel_all
-	make -C bootloader all
-
-qemu:
-	make -C bootloader run
+neptunos:
+	make -C kernel k_all
+	make -C bootloader bl_all

@@ -1,33 +1,28 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kmain)
 
-PHDRS {
-	text PT_LOAD FILEHDR PHDRS;
-	data PT_LOAD;
-}
-
 SECTIONS {
-	/* set address, otherwise it might load at an address used by UEFI/bootloader */
-	. = 0x01000000;
+	/* TODO: prepare bootloader and load it in higher half */
+	. = 0x4000000; /* load kernel at +64M */
 
 	KSTART = .;
 	
-	.text : {
+	.text : ALIGN(0x1000) {
 		*(.text)
-	} :text
+	}
 	
-	.data : {
+	.data : ALIGN(0x1000) {
 		*(.data .data.*)
-	} :data
+	}
 	
-	.rodata : {
+	.rodata : ALIGN(0x1000) {
 		*(.rodata .rodata.*)
-	} :data
+	}
 	
-	.bss (NOLOAD) : {
+	.bss (NOLOAD) : ALIGN(0x1000) {
 		*(.bss .bss.*)
 		*(COMMON)
-	} :data
+	}
 	
 	KEND = .;
 

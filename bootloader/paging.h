@@ -1,6 +1,6 @@
 #pragma once
 
-#include "main.h"
+#include "util.h"
 
 typedef struct page_map_entry {
 	uint8_t present 		: 1;

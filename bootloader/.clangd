@@ -1,2 +1,2 @@
 CompileFlags:
-        Add: [ -I/usr/include/efi, -I/mnt/et_cetera/projects/c/posix-uefi-test/uefi, -fshort-wchar, -fno-strict-aliasing, -ffreestanding, -fno-stack-protector, -fno-stack-check ]
+	Add: [ -O2, -fno-strict-aliasing, -ffreestanding, -fno-stack-protector, -fno-stack-check, -I., -I./uefi, -I/usr/include, -I/usr/include/efi, -I/usr/    include/efi/protocol, -I/usr/include/efi/x86_64, -D__x86_64__, -DHAVE_USE_MS_ABI, -mno-red-zone, --target=x86_64-pc-win32-coff, -Wno-builtin-requires-header, -Wno-incompatible-library-redeclaration, -Wno-long-long ]
