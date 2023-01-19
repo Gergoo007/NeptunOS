@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neptunos/libk/stdint.h>
+#include <neptunos/config/attributes.h>
 
 #define IDT_TA_INTERRUPT_GATE 	0b10001110
 #define IDT_TA_CALL_GATE 		0b10001100
@@ -19,7 +20,9 @@ typedef struct idt_desc_entry {
 typedef struct idtr {
 	uint16_t limit;
 	uint16_t offset;
-} __attribute__((packed)) idtr;
+} _attr_packed idtr;
+
+extern idtr idt;
 
 void set_offset(uint64_t offset, idt_desc_entry* entry);
 uint64_t get_offset(idt_desc_entry* entry);

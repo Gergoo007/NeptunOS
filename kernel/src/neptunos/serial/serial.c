@@ -28,11 +28,11 @@ uint8_t send_ready(uint16_t port) {
 }
 
 void serial_write(uint16_t port, char *restrict msg) {
-	while (*msg != '\0') {
+	do {
 		while (send_ready(port) == 0);
 		out8(port, *msg);
-		msg++;
-	}
+		//serial_write_c(port, *msg);
+	} while (*(msg++) != '\0');
 }
 
 void serial_write_c(uint16_t port, char msg) {

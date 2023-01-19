@@ -1,5 +1,6 @@
 #pragma once
 
+#include "neptunos/config/attributes.h"
 #include <neptunos/libk/stdint.h>
 #include <neptunos/libk/stddef.h>
 
@@ -10,7 +11,7 @@ typedef struct {
 	void*					virt_start;
 	uint64_t				num_pages;
 	uint64_t				attribute;
-} __attribute__((packed)) efi_memory_descriptor_t;
+} _attr_packed efi_memory_descriptor_t;
 
 typedef enum {
   	PixelRedGreenBlueReserved8BitPerColor,
@@ -18,14 +19,14 @@ typedef enum {
   	PixelBitMask,
   	PixelBltOnly,
   	PixelFormatMax
-} __attribute__((packed)) efi_gop_pixel_format_t;
+} _attr_packed efi_gop_pixel_format_t;
 
 typedef struct {
 	uint32_t				red_mask;
 	uint32_t				green_mask;
 	uint32_t				blue_mask;
 	uint32_t				reserved_mask;
-} __attribute__((packed)) efi_gop_pixel_bitmask_t;
+} _attr_packed efi_gop_pixel_bitmask_t;
 
 typedef struct {
 	uint32_t				version;
@@ -34,7 +35,7 @@ typedef struct {
 	efi_gop_pixel_format_t	pixel_format;
 	efi_gop_pixel_bitmask_t	pixel_info;
 	uint32_t				scanline;
-} __attribute__((packed)) efi_gop_mode_info_t;
+} _attr_packed efi_gop_mode_info_t;
 
 typedef struct {
 	uint32_t				max_mode;
@@ -43,16 +44,33 @@ typedef struct {
 	size_t					sizeof_info;
 	void*					fb_base;
 	size_t					fb_size;
-} __attribute__((packed)) efi_gop_mode_t;
+} _attr_packed efi_gop_mode_t;
 
-typedef struct memory_info {
+typedef struct rsdp_desc_t {
+	char signature[8];
+	uint8_t checksum;
+	char oemid[6];
+	uint8_t rev;
+	uint32_t rsdt_address;
+} __attribute__ ((packed)) rsdp_desc_t;
+
+typedef struct rsdp_desc_2_t {
+	rsdp_desc_t first;
+	uint32_t length;
+	uint64_t xsdt_address;
+	uint8_t ext_checksum;
+	uint8_t reserved[3];
+} __attribute__ ((packed)) rsdp_desc_2_t;
+
+typedef struct memory_info_t {
 	efi_memory_descriptor_t* mmap;
 	size_t mmap_size;
 	size_t mmap_key;
 	size_t desc_size;
-} __attribute__((packed)) memory_info;
+	void* rsdp;
+} _attr_packed memory_info_t;
 
-typedef struct system_info {
-	memory_info* mem_info;
+typedef struct system_info_t {
+	memory_info_t* mem_info;
 	efi_gop_mode_t* g_info;
-} __attribute__((packed)) system_info;
+} _attr_packed system_info_t;

@@ -18,14 +18,15 @@
 #include <neptunos/tables/interrupts.h>
 
 #include <neptunos/hw_interrupts/pic.h>
+#include <neptunos/hw_interrupts/pit.h>
 
 #include <neptunos/power/power.h>
 
+#include <neptunos/acpi/acpi.h>
+
 extern idtr idt;
 
-void kinit(system_info* _info);
-void int_prep();
-void setup_paging();
+void kinit(system_info_t* _info);
 
 extern volatile unsigned char _binary_font_psf_start;
 

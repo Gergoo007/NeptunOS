@@ -1,5 +1,7 @@
 #include <neptunos/tables/idt.h>
 
+idtr idt;
+
 void set_offset(uint64_t offset, idt_desc_entry* entry) {
 	entry->offset0 = (uint16_t)(offset & 0x000000000000ffff);
 	entry->offset1 = (uint16_t)((offset & 0x00000000ffff0000) >> 16);

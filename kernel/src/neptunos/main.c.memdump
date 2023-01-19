@@ -1,0 +1,41 @@
+#include <neptunos/kutil.h>
+
+uint8_t kmain(system_info* _info) {
+	kinit(_info);
+	printk("Free: %ud MiB; Used: %ud KiB; Reserved: %ud MiB\n", free_mem / 1024 / 1024, used_mem / 1024, reserved_mem / 1024 / 1024);
+	
+	#ifdef USE_DOUBLE_BUFFERING
+		sync_back_buffer();
+	#endif
+
+	// uint8_t* test = (uint8_t*)request_page();
+	// *test = 50;
+	// printk("Value of test: %d\n", *test);
+
+	// map_address((void*) 0x400000000, (void*)test);
+
+	// printk("Value of virtual test: %d\n", *((uint8_t*)0x400000000));
+
+	// asm("mov %0, %%cr3" :: "r" (pml4));
+
+	serial_write(0x3f8, "aaa\n\r");
+
+	for (efi_memory_descriptor_t* desc_i = info->mem_info->mmap; (uint64_t)desc_i < (uint64_t)info->mem_info->mmap + (uint64_t)info->mem_info->mmap_size; desc_i = (efi_memory_descriptor_t*)((uint8_t*)desc_i + info->mem_info->desc_size)) {
+		total_mem += desc_i->num_pages*0x1000;
+		text_color_push(0x0000aaaa);
+		printk("[%p] ", desc_i->phys_start);
+		text_color_pop();
+		printk("%s: ", EFI_MEMORY_TYPES[desc_i->type]);
+		text_color(0x00008811);
+		printk("%d KiB\n", desc_i->num_pages*0x1000/1024);
+		text_color_pop();
+	}
+
+	//while (1);
+	text_color_push(0x0000ff00);
+	printk("Successfully reached end of kmain, halting...");
+	text_color_pop();
+	halt();
+
+	return 0;
+}

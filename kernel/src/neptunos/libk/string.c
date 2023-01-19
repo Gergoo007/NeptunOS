@@ -123,3 +123,11 @@ void* memset(void* dest, const uint8_t src, size_t n) {
 	}
 	return dest;
 }
+
+uint8_t strcmp(char* str1, char* str2, uint16_t len) {
+	uint8_t result;
+	while((len--) > 0) {
+		result |= (str1[len] ^ str2[len]);
+	}
+	return !result;
+}

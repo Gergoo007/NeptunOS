@@ -32,7 +32,7 @@ void map_memory() {
 	}
 }
 
-void init_bitmap(bitmap* bm) {
+void init_bitmap(bitmap_t* bm) {
 	// initialize struct
 	bm->address = biggest_conv_mem;
 	bm->size = (num_pages / 8) + 1;
@@ -161,13 +161,26 @@ void* malloc(uint64_t size_in_bytes) {
 	if(size_in_bytes == 0)
 		return NULL;
 
-	uint64_t pages = size_in_bytes / 0x1000;
+	// Add the size of the header
+	size_in_bytes += sizeof(mem_block_hdr_t);
+	
+	uint64_t pages = size_in_bytes / 0x1000 + 1;
+	mem_block_hdr_t block_hdr;
+	block_hdr.pid = 0; // PID 0 is the kernel
+	block_hdr.pages = pages;
+	
 	register void* ret = request_page();
 	pages--;
-	if(size_in_bytes == 0)
-		return NULL;
-	for (; pages > 0; pages--) {
+	memcpy(ret, &block_hdr, sizeof(mem_block_hdr_t));
+
+	for (; pages > 0; pages--)
 		request_page();
-	}
-	return ret;
+
+	// Return the address to the allocated memory without the header
+	return ret + sizeof(mem_block_hdr_t);
+}
+
+void free(void* addr) {
+	mem_block_hdr_t* hdr = (mem_block_hdr_t*)(addr - sizeof(mem_block_hdr_t));
+	free_page(addr - sizeof(mem_block_hdr_t), hdr->pages);
 }

@@ -1,7 +1,5 @@
 #include <neptunos/kutil.h>
 
-idtr idt;
-
 void setup_paging() {
 	pml4 = (page_map_level*) request_page();
 	memset(pml4, 0, 0x1000);
@@ -9,37 +7,31 @@ void setup_paging() {
 	// Identity map the whole physical memory
 	for (uint64_t i = 0; i < total_mem; i += 0x1000) {
 		map_address((void*)i, (void*)i);
-		//printk("%d", i);
 	}
-	printk("Physical memory identity mapped\n");
 
 	// Identity map the framebuffer so it doesn't break
 	for (uint64_t i = (uint64_t)(info->g_info->fb_base); i <= (uint64_t)(info->g_info->fb_base) + info->g_info->fb_size; i += 0x1000) {
 		map_address((void*)i, (void*)i);
 	}
-	printk("Framebuffer identity mapped\n");
-	printk("Free mem: %ud KiB, Used mem: %ud MiB\n", free_mem / 1024, used_mem / 1024 / 1024);
-
+	
 	asm("mov %0, %%cr3" :: "r" (pml4));
-
-	serial_write(0x3f8, "Applied\n\r");
 }
 
 void setup_font() {
 	if(*((uint8_t*)&_binary_font_psf_start) == 0x36) {
 		serial_write(0x3f8, "Recognized psf ver. 1!\n\r");
-		psf1_header* _tmp = (psf1_header*) &_binary_font_psf_start;
+		psf1_header_t* tmp = (psf1_header_t*) &_binary_font_psf_start;
 		def->numglyph = 512; // If extended, 256 otherwise
 		def->height = 16;
 		def->width = 8;
 		def->bytesperglyph = 16;
-		def->magic = ((_tmp->magic1) | (_tmp->magic2 >> 8));
-		glyph_buffer = (void*)((uint64_t)&_binary_font_psf_start + sizeof(psf1_header));
+		def->magic = ((tmp->magic1) | (tmp->magic2 >> 8));
+		glyph_buffer = (void*)((uint64_t)&_binary_font_psf_start + sizeof(psf1_header_t));
 	} else if (*((uint8_t*)&_binary_font_psf_start) == 0x72) {
 		serial_write(0x3f8, "Recognized psf ver. 2!\n\r");
-		psf2_header* tmp = (psf2_header*) &_binary_font_psf_start;
-		memcpy(def, tmp, sizeof(psf2_header));
-		glyph_buffer = (void*)((uint64_t)&_binary_font_psf_start + sizeof(psf2_header));
+		psf2_header_t* tmp = (psf2_header_t*) &_binary_font_psf_start;
+		memcpy(def, tmp, sizeof(psf2_header_t));
+		glyph_buffer = (void*)((uint64_t)&_binary_font_psf_start + sizeof(psf2_header_t));
 	} else {
 		serial_write(0x3f8, "Bad font!\n\r");
 	}
@@ -63,50 +55,52 @@ void int_prep() {
 	add_interrupt(invalid_opcode_flt_handler, IDT_TA_INTERRUPT_GATE, 0x06);
 	add_interrupt(custom_handler, IDT_TA_INTERRUPT_GATE, 0x30);
 	add_interrupt(pic_kb_press, IDT_TA_INTERRUPT_GATE, 0x21);
+	add_interrupt(pit_tick_int, IDT_TA_INTERRUPT_GATE, 0x20);
 
 	asm("lidt %0" : : "m" (idt));
 }
 
-void kinit(system_info* _info) {
+void kinit(system_info_t* _info) {
 	info = _info;
+	fb_base = info->g_info->fb_base;
+
 	setup_font();
 
-	serial_write(0x3f8, "Setting up mmap\n\r");
+	serial_init();
+
 	map_memory();
-	serial_write(0x3f8, "Setting up bitmap\n\r");
 	init_bitmap(bm);
 
 	#ifdef USE_DOUBLE_BUFFERING
 		setup_back_buffer();
 	#endif
 
-	serial_write(0x3f8, "clear screen\n\r");
 	clear_screen();
 
-	serial_write(0x3f8, "text_color\n\r");
 	text_color(0x0000ffcc);
-	serial_write(0x3f8, "printk\n\r");
 	printk("Framebuffer resolution: %ud x %ud\n", info->g_info->info->width, info->g_info->info->height);
 	printk("Total memory: %ud MiB\n", total_mem / 1024 / 1024);
 	text_color_reset();
 
-	serial_write(0x3f8, "gdt\n\r");
-	struct gdt_descriptor desc;
-	desc.size = sizeof(struct gdt) - 1;
+	gdt_descriptor desc;
+	desc.size = sizeof(gdt) - 1;
 	desc.offset = (uint64_t) &gdt_obj;
 	load_gdt(&desc);
 
-	serial_write(0x3f8, "interrupts\n\r");
 	int_prep();
 
-	serial_write(0x3f8, "paging\n\r");
-	//setup_paging();
+	setup_paging();
 
-	serial_write(0x3f8, "pic\n\r");
 	remap_pic(0x20, 0x28);
-	// Unmask keyboard interrupts
-	_out8(PIC_M_DATA, 0b11111101);
-	_out8(PIC_S_DATA, 0b11111101);
+	// Unmask interrupts
+	_out8(PIC_M_DATA, 0b11111100);
+	_out8(PIC_S_DATA, 0b11111111);
+
+	init_acpi();
+
+	//pit_configure_channel(0);
+
+	//asm("int $0x30");
 
 	asm("sti");
 }

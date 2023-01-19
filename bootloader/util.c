@@ -72,15 +72,14 @@ void load_kernel(uintptr_t* entry) {
 				// Use physical address as memory is identity mapped by UEFI
 				// Switch to virtual addresses when paging is achieved in the bootloader
 				memcpy((void*)phdr->p_vaddr, (uint8_t*)fptr + phdr->p_offset, phdr->p_filesz);
+				check();
 				memset((void*)(phdr->p_vaddr + phdr->p_filesz), 0, phdr->p_memsz - phdr->p_filesz);
+				check();
 			}
 		}
 
 	*entry = ehdr->e_entry;
 
 	free(fptr);
-	free(ehdr);
-	free(phdr);
-
-	fclose(f);
+	check();
 }

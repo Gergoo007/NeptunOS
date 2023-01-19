@@ -1,9 +1,9 @@
 #include <neptunos/globals.h>
 #include <neptunos/graphics/text_renderer.h>
 
-bitmap* bm;
+bitmap_t* bm;
 void* mem_base = NULL;
-system_info* info;
+system_info_t* info;
 
 void __stack_chk_fail() {
 	// text_color_push(0x00ff0000);

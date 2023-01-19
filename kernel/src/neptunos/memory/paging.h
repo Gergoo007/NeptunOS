@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neptunos/libk/stdint.h>
+#include <neptunos/config/attributes.h>
 
 typedef struct page_map_entry {
 	uint8_t present 		: 1;
@@ -15,11 +16,11 @@ typedef struct page_map_entry {
     uint8_t available 		: 3;
     uint64_t address 		: 48;
 	uint8_t pad 			: 4; // To make it exactly 64 bits
-} __attribute__((packed)) page_map_entry;
+} _attr_packed page_map_entry;
 
 typedef struct page_map_level {
 	page_map_entry entries[512];
-} __attribute__((packed)) page_map_level;
+} _attr_packed page_map_level;
 
 extern page_map_level* pml4;
 

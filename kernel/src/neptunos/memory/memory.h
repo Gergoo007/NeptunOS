@@ -1,15 +1,21 @@
 #pragma once
 
 #include <neptunos/libk/stdint.h>
+#include <neptunos/config/attributes.h>
 
-typedef struct bitmap {
+typedef struct bitmap_t {
 	void* address;
 	uint64_t size;
-} bitmap;
+} bitmap_t;
+
+typedef struct mem_block_hdr_t {
+	uint16_t pid;
+	uint64_t pages;
+} mem_block_hdr_t;
 
 void map_memory();
 
-void init_bitmap(bitmap* bm);
+void init_bitmap(bitmap_t* bm);
 
 void free_page(void* address, uint64_t count);
 
@@ -26,6 +32,7 @@ uint8_t bm_get(uint64_t page);
 void bm_set(uint64_t page, uint8_t val);
 
 void* malloc(uint64_t size_in_bytes);
+void free(void* addr);
 
 extern uint64_t total_mem;
 extern uint64_t free_mem;

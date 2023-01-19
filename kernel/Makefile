@@ -10,7 +10,7 @@ CC = clang
 AS = nasm
 LD = ld.gold
 
-CFLAGS += -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc -Wno-interrupt-service-routine
+CFLAGS += -O0 -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc -Wno-interrupt-service-routine -fno-stack-check -Wno-builtin-requires-header -Wno-incompatible-library-redeclaration -Wno-long-long
 NASMFLAGS += -f elf64
 LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -z max-page-size=0x1000
 

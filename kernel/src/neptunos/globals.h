@@ -3,14 +3,15 @@
 #include <neptunos/efi/boot_env.h>
 #include <neptunos/memory/memory.h>
 #include <neptunos/libk/stddef.h>
-#include <neptunos/config.h>
+#include <neptunos/config/config.h>
+#include <neptunos/config/attributes.h>
 
 extern uint16_t cursor_x;
 extern uint16_t cursor_y;
 
-extern system_info* info;
+extern system_info_t* info;
 
-extern bitmap* bm;
+extern bitmap_t* bm;
 extern void* mem_base;
 
 extern void* KSTART;

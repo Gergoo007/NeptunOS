@@ -2,29 +2,27 @@
 
 #include "elf.h"
 
-inline void check() {
-	if(errno == 0)
-		return;
-
-	switch (errno) {
-		case ENOMEM:
-			printf("Error: Out of memory");
-			break;
-		case ENOENT:
-			printf("Error: No such file or directory");
-			break;
-		case EIO:
-			printf("Error: I/O error");
-			break;
-		case EFAULT:
-			printf("Error: Bad address");
-			break;
-		default:
-			printf("Unhandled error: %d", errno);
-			break;
-	}
-	printf(" (L%d, file %s)\n", __LINE__, __FILE__);
-}
+#define check() \
+	if(errno != 0)  { \
+		switch (errno) { \
+			case ENOMEM: \
+				printf("Error: Out of memory"); \
+				break; \
+			case ENOENT: \
+				printf("Error: No such file or directory"); \
+				break; \
+			case EIO: \
+				printf("Error: I/O error"); \
+				break; \
+			case EFAULT: \
+				printf("Error: Bad address"); \
+				break; \
+			default: \
+				printf("Unhandled error: %d", errno); \
+				break; \
+		} \
+		printf(" (L%d, file %s)\n", __LINE__, __FILE__); \
+	} \
 
 #define efi_check(s) if(EFI_ERROR(status)) \
 	printf("Error: %s (L%d, file %s)\n", s, __LINE__, __FILE__); \
@@ -35,6 +33,7 @@ typedef struct memory_info {
 	size_t 						mmap_size;
 	size_t 						mmap_key;
 	size_t 						desc_size;
+	void*						rsdp;
 } __attribute__((packed)) memory_info;
 
 typedef struct system_info {

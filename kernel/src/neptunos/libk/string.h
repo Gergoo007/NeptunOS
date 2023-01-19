@@ -14,3 +14,5 @@ char* __int_to_str(uint64_t value, char* result, int base);
 void* memcpy(void* dest, const void* src, size_t n);
 
 void* memset(void* dest, const uint8_t src, size_t n);
+
+uint8_t strcmp(char* str1, char* str2, uint16_t len);

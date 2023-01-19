@@ -6,6 +6,8 @@ SRCS = $(wildcard *.c)
 
 RAMSIZE ?= 2G
 
+CFLAGS = -O0
+
 bl_all: bl_clean all img run
 
 include uefi/Makefile
@@ -36,8 +38,8 @@ iso: img
 	rm -rf iso
 
 run: img
-	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
-	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
+	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin -machine q35 \
+	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown -enable-kvm \
 	-hda boot.img
 
 run_iso: iso
@@ -45,7 +47,12 @@ run_iso: iso
 	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
 	-hda boot.img
 
+bl_debug: bl_clean all img
+	qemu-system-x86_64 -S -gdb tcp::1234 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
+	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
+	-hda boot.img
+
 bl_clean:
 	rm -rf *.o *.iso *.img
 
-.PHONY: bl_all bl_clean run iso img
+.PHONY: bl_all bl_clean run iso img bl_debug
