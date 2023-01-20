@@ -1,17 +1,9 @@
 #include <neptunos/graphics/text_renderer.h>
-#include <neptunos/libk/string.h>
-#include <neptunos/globals.h>
-
-#include <neptunos/libk/stdarg.h>
-
-#include <neptunos/serial/serial.h>
 
 uint32_t color_stack, current_color = 0xd8d8d8d8;
 uint32_t background_color = 0x00000000;
 
 uint16_t cursor_x = 0, cursor_y = 0;
-
-#include <neptunos/libk/stdint.h>
 
 void render_char(char c) {
 	if (c == '\0') return;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <neptunos/libk/stdint.h>
+#include <neptunos/libk/stdall.h>
 
 extern void serial_init();
 

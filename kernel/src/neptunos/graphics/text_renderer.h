@@ -2,8 +2,7 @@
 
 #include <neptunos/graphics/graphics.h>
 
-#include <neptunos/libk/stdint.h>
-#include <neptunos/libk/stdarg.h>
+#include <neptunos/serial/serial.h>
 
 extern void render_char(char c);
 

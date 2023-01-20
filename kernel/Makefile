@@ -7,11 +7,10 @@ COBJ := $(patsubst src/neptunos/%.c, out/obj/neptunos/%.c.o, $(CSRC))
 SOBJ := $(patsubst src/neptunos/%.s, out/obj/neptunos/%.s.o, $(SSRC))
 
 CC = clang
-AS = nasm
+AS = as
 LD = ld.gold
 
-CFLAGS += -O0 -ffreestanding -fshort-wchar -g -fno-stack-protector -I/mnt/et_cetera/projects/NeptunOS/kernel/src -nostdinc -Wno-interrupt-service-routine -fno-stack-check -Wno-builtin-requires-header -Wno-incompatible-library-redeclaration -Wno-long-long
-NASMFLAGS += -f elf64
+CFLAGS += -O0 -ffreestanding -fshort-wchar -g -fno-stack-protector -Isrc -nostdinc -Wno-interrupt-service-routine -fno-stack-check -Wno-builtin-requires-header -Wno-incompatible-library-redeclaration -Wno-long-long -std=c17
 LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -z max-page-size=0x1000
 
 k_all: k_clean info objdir $(COBJ) $(SOBJ) kernel
@@ -29,7 +28,7 @@ out/obj/font.o:
 	$(LD) -r -b binary -o $@ font.psf
 
 out/obj/neptunos/tables/interrupts.c.o: src/neptunos/tables/interrupts.c
-	$(CC) $(CFLAGS) -mgeneral-regs-only -I/mnt/et_cetera/projects/NeptunOS/kernel/src -c $^ -o $@
+	$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 out/obj/%.c.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@

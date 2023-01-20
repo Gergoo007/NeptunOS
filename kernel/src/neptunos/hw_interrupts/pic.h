@@ -1,7 +1,5 @@
 #pragma once
 
-#include <neptunos/libk/stdint.h>
-
 #include <neptunos/serial/com.h>
 #include <neptunos/graphics/text_renderer.h>
 
@@ -33,10 +31,10 @@
 void remap_pic(uint8_t offset1, uint8_t offset2);
 
 _attr_no_caller_saved_regs static inline void pic_end_master() {
-	_out8(PIC_M_COMMAND, PIC_EOI);
+	outb(PIC_M_COMMAND, PIC_EOI);
 }
 
 _attr_no_caller_saved_regs static inline void pic_end_slave() {
-	_out8(PIC_S_COMMAND, PIC_EOI);
-	_out8(PIC_M_COMMAND, PIC_EOI);
+	outb(PIC_S_COMMAND, PIC_EOI);
+	outb(PIC_M_COMMAND, PIC_EOI);
 }

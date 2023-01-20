@@ -1,6 +1,4 @@
-[bits 64]
-
-global halt
+.global halt
 
 halt:
 	cli

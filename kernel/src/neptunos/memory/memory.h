@@ -1,6 +1,6 @@
 #pragma once
 
-#include <neptunos/libk/stdint.h>
+#include <neptunos/libk/stdall.h>
 #include <neptunos/config/attributes.h>
 
 typedef struct bitmap_t {

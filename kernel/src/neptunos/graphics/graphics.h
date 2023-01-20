@@ -1,7 +1,5 @@
 #pragma once
 
-#include <neptunos/libk/stdint.h>
-
 #include <neptunos/globals.h>
 
 extern void* fb_base;

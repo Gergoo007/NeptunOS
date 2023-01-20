@@ -20,13 +20,13 @@ void pit_configure_channel(uint8_t ch) {
 
 	memcpy(&cmd, &command, 1);
 
-	_out8(PIT_IO_MODE_CMD, cmd);
+	outb(PIT_IO_MODE_CMD, cmd);
 
 	asm("cli");
 
 	uint32_t count = 1000;
-	_out8(PIT_IO_CH_0, count & 0x00FF); // Send low bits
-	_out8(PIT_IO_CH_0, (count & 0xFF00) >> 8); // Send high bits
+	outb(PIT_IO_CH_0, count & 0x00FF); // Send low bits
+	outb(PIT_IO_CH_0, (count & 0xFF00) >> 8); // Send high bits
 }
 
 
@@ -42,8 +42,8 @@ void pit_delay(uint64_t milliseconds) {
 void pit_set_divisor(uint16_t div) {
 	if (div < 100) div = 100;
 	divisor = div;
-	_out8(0x40, (uint8_t)(divisor & 0x00ff));
-	_out8(0x40, (uint8_t)((divisor & 0xff00) >> 8));
+	outb(0x40, (uint8_t)(divisor & 0x00ff));
+	outb(0x40, (uint8_t)((divisor & 0xff00) >> 8));
 }
 
 uint64_t pit_get_frequency() {
