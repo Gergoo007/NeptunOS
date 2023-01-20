@@ -13,12 +13,6 @@ uint16_t cursor_x = 0, cursor_y = 0;
 
 #include <neptunos/libk/stdint.h>
 
-const char xdigits[16] = {
-	"0123456789ABCDEF"
-};
-
-const char* fmt_x(char* str, uint64_t value, uint8_t length);
-
 void render_char(char c) {
 	if (c == '\0') return;
 
@@ -138,8 +132,33 @@ void printk(char *restrict fmt, ...) {
 					break;
 				case 'p': {
 						char testbuf[17];
-						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15);
+						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
 						render_string(testbuf);
+					}
+					break;
+				default: {
+						if (*fmt <= '9' && *fmt >= '0') {
+							uint8_t first = (uint8_t)(*fmt++) - (uint8_t)'0';
+							uint8_t second = (uint8_t)*(fmt++) - (uint8_t)'0';
+							uint8_t final = second + (first * 10);
+							
+							switch (*fmt) {
+								case 'x': {
+									char buffer[final + 1];
+									memset(buffer, 0, final + 1);
+									fmt_x(buffer, (uint64_t)va_arg(arg_list, uint64_t), final, 0);
+									render_string(buffer);
+									break;
+								}
+								case 'X': {
+									char buffer[final + 1];
+									memset(buffer, 0, final + 1);
+									fmt_x(buffer, (uint64_t)va_arg(arg_list, uint64_t), final, 1);
+									render_string(buffer);
+									break;
+								}
+							}
+						}
 					}
 					break;
 			}
@@ -183,7 +202,7 @@ void printk_serial(char *restrict fmt, ...) {
 					break;
 				case 'p': {
 						char testbuf[17];
-						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15);
+						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
 						serial_write(0x3f8, testbuf);
 					}
 					break;
@@ -214,17 +233,25 @@ void text_color_reset() {
 	current_color = 0xd8d8d8d8;
 }
 
-const char* fmt_x(char* str, uint64_t value, uint8_t length) {
-	uint64_t* valPtr = &value;
-	uint8_t* ptr;
-	uint8_t tmp;
-	for (uint8_t i = 0; i < length; i++){
-		ptr = ((uint8_t*)valPtr + i);
-		tmp = ((*ptr & 0xF0) >> 4);
-		str[length - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
-		tmp = ((*ptr & 0x0F));
-		str[length - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+const char* fmt_x(char* str, uint64_t value, uint8_t length, uint8_t upper_case) {
+	const char characters[16] = "0123456789abcdef";
+	const char characters_upper[16] = "0123456789ABCDEF";
+
+	if (upper_case) {
+		for (uint8_t i = 0; i < length; i++) {
+			char character = characters_upper[value % 16];
+			str[length - i - 1] = character;
+			value /= 16;
+		}
+		str[length] = '\0';
+		return str;
+	} else {
+		for (uint8_t i = 0; i < length; i++) {
+			char character = characters[value % 16];
+			str[length - i - 1] = character;
+			value /= 16;
+		}
+		str[length] = '\0';
+		return str;
 	}
-	str[length + 1] = '\0';
-	return str;
 }

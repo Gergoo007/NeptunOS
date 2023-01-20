@@ -1,2 +1,2 @@
 CompileFlags:
-	Add: [ -O0, -ffreestanding, -fshort-wchar, -g, -fno-stack-protector, -I/mnt/et_cetera/projects/NeptunOS/kernel/src, -nostdinc, -Wno-interrupt-service-routine, -fno-stack-check, -Wno-builtin-requires-header, -Wno-incompatible-library-redeclaration, -Wno-long-long ]
+	Add: [ -O0, -ffreestanding, -fshort-wchar, -g, -fno-stack-protector, -I/mnt/et_cetera/projects/NeptunOS/kernel/src, -Wno-interrupt-service-routine, -fno-stack-check, -Wno-builtin-requires-header, -Wno-incompatible-library-redeclaration, -Wno-long-long ]
