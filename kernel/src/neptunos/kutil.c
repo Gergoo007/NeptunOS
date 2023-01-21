@@ -93,8 +93,8 @@ void kinit(system_info_t* _info) {
 
 	remap_pic(0x20, 0x28);
 	// Unmask interrupts
-	outb(PIC_M_DATA, 0b11111100);
-	outb(PIC_S_DATA, 0b11111111);
+	outb(0b11111100, PIC_M_DATA);
+	outb(0b11111111, PIC_S_DATA);
 
 	init_acpi();
 

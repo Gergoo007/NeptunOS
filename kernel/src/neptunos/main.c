@@ -9,6 +9,11 @@ uint8_t kmain(system_info_t* _info) {
 		sync_back_buffer();
 	#endif
 
+	outb('c', 0x3f8);
+
+	uint8_t a = 30;
+	printk("%d", a);
+
 	text_color_push(0x0000ff00);
 	printk("Successfully reached end of kmain, jumping to idle mode...\n");
 	text_color_pop();
