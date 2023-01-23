@@ -18,7 +18,8 @@ uint8_t kmain(system_info_t* _info) {
 	printk("Successfully reached end of kmain, jumping to idle mode...\n");
 	text_color_pop();
 
-	while(1);
+	// Halt until next interrupt
+	while(1) asm("hlt");
 	printk("Idle loop returned, halting...\n");
 	halt();
 

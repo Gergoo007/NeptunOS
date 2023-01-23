@@ -14,5 +14,8 @@ typedef struct pci_id_pair {
 extern const pci_id_pair pci_vendors[];
 extern const pci_id_pair pci_products[];
 
-char* pci_find_vendor(uint16_t id);
-char* pci_find_product(uint16_t id);
+const char* pci_find_vendor(uint16_t id);
+const char* pci_find_product(uint16_t id);
+
+const char* pci_find_class(uint8_t class);
+const char* pci_find_subclass(uint8_t class, uint8_t subclass);
