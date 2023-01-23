@@ -5,20 +5,18 @@ uint8_t kmain(system_info_t* _info) {
 	kinit(_info);
 	printk("Free: %ud MiB; Used: %ud KiB; Reserved: %ud MiB\n", free_mem / 1024 / 1024, used_mem / 1024, reserved_mem / 1024 / 1024);
 	
+	void* stack_base = malloc(0x10000); // 64 KiB
+	asm("movq %0, %%rsp" :: "r" (stack_base));
+
 	#ifdef USE_DOUBLE_BUFFERING
 		sync_back_buffer();
 	#endif
 
-	outb('c', 0x3f8);
-
-	uint8_t a = 30;
-	printk("%d", a);
+	//get_table_address("MCFG");
 
 	text_color_push(0x0000ff00);
 	printk("Successfully reached end of kmain, jumping to idle mode...\n");
 	text_color_pop();
-
-	printk("HHHH: %03x", 0xfa);
 
 	while(1);
 	printk("Idle loop returned, halting...\n");

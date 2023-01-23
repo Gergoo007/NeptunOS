@@ -4,7 +4,7 @@
 #include <neptunos/graphics/text_renderer.h>
 
 typedef struct sdt_hdr_t {
-	unsigned char signature[4];
+	char signature[4];
 	uint32_t length;
 	uint8_t revision;
 	uint8_t checksum;
@@ -15,17 +15,22 @@ typedef struct sdt_hdr_t {
 	uint32_t creator_revision;
 } _attr_packed sdt_hdr_t;
 
+typedef struct mcfg_entry_t {
+	uint64_t base_addr;
+	uint16_t segment_group_num;
+	uint8_t bus_start;
+	uint8_t bus_end;
+	uint32_t reserved;
+} _attr_packed mcfg_entry_t;
+
 typedef struct mcfg_hdr_t {
 	sdt_hdr_t hdr;
 	uint64_t reserved;
 } _attr_packed mcfg_hdr_t;
 
-typedef struct device_config_t {
-	uint64_t address;
-	uint16_t pci_seg_group;
-	uint8_t start_bus;
-	uint8_t end_bus;
-	uint32_t reserved;
-} _attr_packed device_config_t;
+extern sdt_hdr_t* xsdt;
+extern mcfg_hdr_t* mcfg;
 
 void init_acpi();
+
+void* get_table_address(char* table);

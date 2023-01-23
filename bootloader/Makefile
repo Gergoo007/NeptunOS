@@ -12,6 +12,10 @@ bl_all: bl_clean all img run
 
 include uefi/Makefile
 
+QEMU_ARGS :=
+
+_QEMU_ARGS := -bios /usr/share/qemu/bios-TianoCoreEFI.bin -machine q35 -serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown $(QEMU_ARGS)
+
 flags:
 	@echo
 	@echo CFLAGS: $(CFLAGS)
@@ -38,19 +42,13 @@ iso: img
 	rm -rf iso
 
 run: img
-	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin -machine q35 \
-	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown -enable-kvm \
-	-hda boot.img
+	qemu-system-x86_64 $(_QEMU_ARGS) -hda boot.img
 
 run_iso: iso
-	qemu-system-x86_64 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
-	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
-	-hda boot.img
+	qemu-system-x86_64 $(_QEMU_ARGS) -cdrom cdimage.iso
 
 bl_debug: bl_clean all img
-	qemu-system-x86_64 -S -gdb tcp::1234 -bios /usr/share/qemu/bios-TianoCoreEFI.bin \
-	-serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown \
-	-hda boot.img
+	qemu-system-x86_64 -S -gdb tcp::1234 $(_QEMU_ARGS) -hda boot.img
 
 bl_clean:
 	rm -rf *.o *.iso *.img

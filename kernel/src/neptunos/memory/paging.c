@@ -24,47 +24,47 @@ void map_address(void* virtual_address, void* physical_address) {
 	page_map_entry pde;
 
 	pde = pml4->entries[pml4_i];
-    page_map_level* pdp;
-    if (!pde.present) {
-        pdp = (page_map_level*)request_page();
-        memset(pdp, 0, 0x1000);
-        pde.address = (uint64_t)pdp >> 12;
-        pde.present = 1;
-        pde.read_write = 1;
-        pml4->entries[pml4_i] = pde;
-    } else {
-        pdp = (page_map_level*)((uint64_t)pde.address << 12);
-    }
-    
-    pde = pdp->entries[pdp_i];
-    page_map_level* pd;
-    if (!pde.present) {
-        pd = (page_map_level*)request_page();
-        memset(pd, 0, 0x1000);
-        pde.address = (uint64_t)pd >> 12;
-        pde.present = 1;
-        pde.read_write = 1;
-        pdp->entries[pdp_i] = pde;
-    } else {
-        pd = (page_map_level*)((uint64_t)pde.address << 12);
-    }
+	page_map_level* pdp;
+	if (!pde.present) {
+		pdp = (page_map_level*)request_page();
+		memset(pdp, 0, 0x1000);
+		pde.address = (uint64_t)pdp >> 12;
+		pde.present = 1;
+		pde.read_write = 1;
+		pml4->entries[pml4_i] = pde;
+	} else {
+		pdp = (page_map_level*)((uint64_t)pde.address << 12);
+	}
+	
+	pde = pdp->entries[pdp_i];
+	page_map_level* pd;
+	if (!pde.present) {
+		pd = (page_map_level*)request_page();
+		memset(pd, 0, 0x1000);
+		pde.address = (uint64_t)pd >> 12;
+		pde.present = 1;
+		pde.read_write = 1;
+		pdp->entries[pdp_i] = pde;
+	} else {
+		pd = (page_map_level*)((uint64_t)pde.address << 12);
+	}
 
-    pde = pd->entries[pd_i];
-    page_map_level* pt;
-    if (!pde.present) {
-        pt = (page_map_level*)request_page();
-        memset(pt, 0, 0x1000);
-        pde.address = (uint64_t)pt >> 12;
-        pde.present = 1;
-        pde.read_write = 1;
-        pd->entries[pd_i] = pde;
-    } else {
-        pt = (page_map_level*)((uint64_t)pde.address << 12);
-    }
+	pde = pd->entries[pd_i];
+	page_map_level* pt;
+	if (!pde.present) {
+		pt = (page_map_level*)request_page();
+		memset(pt, 0, 0x1000);
+		pde.address = (uint64_t)pt >> 12;
+		pde.present = 1;
+		pde.read_write = 1;
+		pd->entries[pd_i] = pde;
+	} else {
+		pt = (page_map_level*)((uint64_t)pde.address << 12);
+	}
 	
 	pde = pt->entries[pt_i];
-    pde.address = ((uint64_t)physical_address >> 12);
-    pde.present = 1;
-    pde.read_write = 1;
-    pt->entries[pt_i] = pde;
+	pde.address = ((uint64_t)physical_address >> 12);
+	pde.present = 1;
+	pde.read_write = 1;
+	pt->entries[pt_i] = pde;
 }

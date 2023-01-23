@@ -8,9 +8,7 @@ extern void render_char(char c);
 
 extern void render_string(char* str);
 
-extern /*_attr_no_caller_saved_regs*/ void printk(char *fmt, ...);
-
-extern /*_attr_no_caller_saved_regs*/ void printk_serial(char *fmt, ...);
+extern void printk(char *fmt, ...);
 
 extern void text_color(uint32_t color);
 

@@ -62,7 +62,7 @@ char* int_to_str(int value, char* result, int base) {
     return result;
 }
 
-char* _int_to_str(int64_t value, char* result, int base) {
+char* int64_to_str(int64_t value, char* result, int base) {
     // check that the base if valid
     if (base < 2 || base > 36) { *result = '\0'; return result; }
 
@@ -86,28 +86,28 @@ char* _int_to_str(int64_t value, char* result, int base) {
     return result;
 }
 
-char* __int_to_str(uint64_t value, char* result, int base) {
-    // check that the base if valid
-    if (base < 2 || base > 36) { *result = '\0'; return result; }
+char* uint_to_str(uint64_t value, char* result, int base) {
+	// check that the base if valid
+	if (base < 2 || base > 36) { *result = '\0'; return result; }
 
-    char* ptr = result, *ptr1 = result, tmp_char;
-    uint64_t tmp_value;
+	char* ptr = result, *ptr1 = result, tmp_char;
+	uint64_t tmp_value;
 
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-    } while ( value );
+	do {
+		tmp_value = value;
+		value /= base;
+		*ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+	} while ( value );
 
-    // Apply negative sign
-    if (tmp_value < 0) *ptr++ = '-';
-    *ptr-- = '\0';
-    while(ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr--= *ptr1;
-        *ptr1++ = tmp_char;
-    }
-    return result;
+	// Apply negative sign
+	if (tmp_value < 0) *ptr++ = '-';
+	*ptr-- = '\0';
+	while(ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr--= *ptr1;
+		*ptr1++ = tmp_char;
+	}
+	return result;
 }
 
 void* memcpy(void* dest, const void* src, size_t n) {
@@ -124,8 +124,8 @@ void* memset(void* dest, const uint8_t src, size_t n) {
 	return dest;
 }
 
-uint8_t strcmp(char* str1, char* str2, uint16_t len) {
-	uint8_t result;
+uint8_t strncmp(char* str1, char* str2, uint16_t len) {
+	uint8_t result = 0;
 	while((len--) > 0) {
 		result |= (str1[len] ^ str2[len]);
 	}

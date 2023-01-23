@@ -102,32 +102,34 @@ void printk(char *restrict fmt, ...) {
 	while(*fmt != '\0') {
 		if (*fmt == '%') {
 			fmt++;
-			char res[256] = "";
-			int _res = 0;
 			switch (*fmt) {
 				case 'c':
 					render_char((char) va_arg(arg_list, uint32_t));
 					break;
-				case 'd':
-					render_string(_int_to_str(va_arg(arg_list, int64_t), res, 10));
+				case 'd': {
+					char res[256] = "";
+					render_string(int64_to_str(va_arg(arg_list, int64_t), res, 10));
 					break;
+				}
 				case 'u':
 					fmt++;
 					switch(*fmt) {
-						case 'd':
-							render_string(__int_to_str(va_arg(arg_list, uint64_t), res, 10));
+						case 'd': {
+							char res[256] = "";
+							render_string(uint_to_str(va_arg(arg_list, uint64_t), res, 10));
 							break;
+						}
 					}
-					break;	
+					break;
 				case 's':
 					printk(va_arg(arg_list, char*));
 					break;
 				case 'p': {
-						char testbuf[17];
-						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
-						render_string(testbuf);
-					}
+					char testbuf[17];
+					fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
+					render_string(testbuf);
 					break;
+				}
 				default: {
 						if (*fmt <= '9' && *fmt >= '0') {
 							uint8_t first = (uint8_t)(*fmt++) - (uint8_t)'0';
@@ -149,6 +151,16 @@ void printk(char *restrict fmt, ...) {
 									render_string(buffer);
 									break;
 								}
+								case 's': {
+									char buffer[final + 1];
+									memcpy(buffer, (void*)va_arg(arg_list, char*), final);
+									buffer[final] = '\0';
+									render_string(buffer);
+									break;
+								}
+								default:
+									render_string("Invalid format!");
+									break;
 							}
 						}
 					}
@@ -160,51 +172,10 @@ void printk(char *restrict fmt, ...) {
 		}
 
 		fmt++;
-	}
-}
 
-void printk_serial(char *restrict fmt, ...) {
-	va_list arg_list;
-	int16_t length = 0;
-
-	va_start(arg_list, fmt);
-
-	while(*fmt != '\0') {
-		if (*fmt == '%') {
-			fmt++;
-			char res[256] = "";
-			int _res = 0;
-			switch (*fmt) {
-				case 'c':
-					serial_write_c(0x3f8, (char) va_arg(arg_list, uint32_t));
-					break;
-				case 'd':
-					serial_write(0x3f8, _int_to_str(va_arg(arg_list, int64_t), res, 10));
-					break;
-				case 'u':
-					fmt++;
-					switch(*fmt) {
-						case 'd':
-							serial_write(0x3f8, __int_to_str(va_arg(arg_list, uint64_t), res, 10));
-							break;
-					}
-					break;	
-				case 's':
-					printk_serial(va_arg(arg_list, char*));
-					break;
-				case 'p': {
-						char testbuf[17];
-						fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
-						serial_write(0x3f8, testbuf);
-					}
-					break;
-			}
-		} else {
-			serial_write_c(0x3f8, *fmt);
-			length++;
+		if (cursor_y >= info->g_info->info->height) {
+			cursor_y = 0;
 		}
-
-		fmt++;
 	}
 }
 
