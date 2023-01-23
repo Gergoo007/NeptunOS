@@ -1,5 +1,5 @@
 # NeptunOS
-is my attempt at a hobby operating system. This is my second bigger project (the first being the 6502 emulator), and my first OS. It is always Work In Progress unless specified otherwise.
+is my attempt at a hobby operating system. This is my second bigger project (the first being the 6502 emulator), and my first OS.
 
 ## Source tree
 | Directory	| Description									|
@@ -14,5 +14,7 @@ is my attempt at a hobby operating system. This is my second bigger project (the
 | graphics	| Text rendering								|
 | efi		| POSIX-UEFI structs							|
 
-## Resources
-This project was made according to Poncho's osdev series and [wiki.osdev](https://wiki.osdev.org/).
+## Credits
+- [osdev.org](https://wiki.osdev.org/).
+- [Poncho](https://www.youtube.com/@poncho2364)
+- [bzt](https://gitlab.com/bztsrc)

@@ -14,7 +14,7 @@ include uefi/Makefile
 
 QEMU_ARGS :=
 
-_QEMU_ARGS := -bios /usr/share/qemu/bios-TianoCoreEFI.bin -machine q35 -serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown $(QEMU_ARGS)
+_QEMU_ARGS := -bios ovmf_binaries/OVMF_CODE.fd -machine q35 -serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown $(QEMU_ARGS)
 
 flags:
 	@echo
