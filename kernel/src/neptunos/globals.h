@@ -1,9 +1,9 @@
 #pragma once
 
+#include <neptunos/config/config.h>
+
 #include <neptunos/efi/boot_env.h>
 #include <neptunos/memory/memory.h>
-
-#include <neptunos/config/config.h>
 
 extern uint16_t cursor_x;
 extern uint16_t cursor_y;

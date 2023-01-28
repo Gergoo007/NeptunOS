@@ -208,18 +208,16 @@ void _printk(char *restrict fmt, va_list arg_list) {
 }
 
 void _report(char* msg, char* filename, ...) {
-	#ifdef DEBUG_REPORTS
-		va_list list;
-		va_start(list, filename);
-		text_color_push(0x00fff000);
-		render_string("[DEBUG] ");
-		render_char('[');
-		render_string(filename);
-		render_string("] ");
-		_printk(msg, list);
-		text_color_pop();
-		va_end(list);
-	#endif
+	va_list list;
+	va_start(list, filename);
+	text_color_push(0x00fff000);
+	render_string("[DEBUG] ");
+	render_char('[');
+	render_string(filename);
+	render_string("] ");
+	_printk(msg, list);
+	text_color_pop();
+	va_end(list);
 }
 
 void text_color(uint32_t color) {

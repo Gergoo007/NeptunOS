@@ -1,14 +1,19 @@
 #pragma once
 
 #include <neptunos/graphics/graphics.h>
-
 #include <neptunos/serial/serial.h>
+#include <neptunos/globals.h>
 
 // Debug printk
-#define reportln(x, ...) _report(x, __FILE_NAME__, ##__VA_ARGS__); render_char('\n');
-
-// Debug printk
-#define report(x, ...) _report(x, __FILE_NAME__, ##__VA_ARGS__); render_char('\n');
+#ifdef DEBUG_REPORTS
+	// Debug printk
+	#define report(x, ...) _report(x, __FILE_NAME__, ##__VA_ARGS__); render_char('\n');
+	#define reportln(x, ...) _report(x, __FILE_NAME__, ##__VA_ARGS__); render_char('\n');
+#else
+	// Empty macros to silence verbose reporting
+	#define report(x, ...);
+	#define reportln(x, ...);
+#endif
 
 // Fatal error printk
 #define fatal(x, ...) text_color(0x00ff0000); render_string("[FATAL] "); printk(x, ##__VA_ARGS__); asm("cli"); halt();
