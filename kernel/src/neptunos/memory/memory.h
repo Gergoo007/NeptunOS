@@ -16,22 +16,18 @@ typedef struct mem_block_hdr_t {
 void map_memory();
 
 void init_bitmap(bitmap_t* bm);
-
-void free_page(void* address, uint64_t count);
-
-void lock_page(void* address, uint64_t count);
-
-void reserve_page(void* address, uint64_t count);
-
-void unreserve_page(void* address, uint64_t count);
-
-void* request_page();
-
 uint8_t bm_get(uint64_t page);
-
 void bm_set(uint64_t page, uint8_t val);
 
+void free_page(void* address, uint64_t count);
+void lock_page(void* address, uint64_t count);
+void reserve_page(void* address, uint64_t count);
+void unreserve_page(void* address, uint64_t count);
+void* request_page();
+
 void* malloc(uint64_t size_in_bytes);
+// Use it carefully as overflow is not accounted for
+void* calloc(size_t members, size_t member_size);
 void free(void* addr);
 
 extern uint64_t total_mem;

@@ -17,7 +17,8 @@ void map_address(void* virtual_address, void* physical_address) {
 	page_map_level* pdp;
 	if (!pde.present) {
 		printf("PDP not present...\n");
-		status = BS->AllocatePool(EfiLoaderData, 0x1000, (void**)&pdp);
+		pdp = malloc(0x1000);
+		pdp = (page_map_level*)((uint64_t)pdp - ((uint64_t)pdp % 0x1000));
 		efi_check("Unable to allocate for pdp!");
 		memset(pdp, 0, 0x1000);
 		pde.address = (uint64_t)pdp >> 12;
@@ -35,8 +36,9 @@ void map_address(void* virtual_address, void* physical_address) {
 	page_map_level* pd;
 	if (!pde.present) {
 		printf("PD not present...\n");
-		status = BS->AllocatePool(EfiLoaderData, 0x1000, (void**)&pd);
+		pd = malloc(0x1000);
 		efi_check("Unable to allocate for pd!");
+		pd = (page_map_level*)((uint64_t)pd - ((uint64_t)pd % 0x1000));
 		memset(pd, 0, 0x1000);
 		pde.address = (uint64_t)pd >> 12;
 		pde.present = 1;
@@ -51,25 +53,31 @@ void map_address(void* virtual_address, void* physical_address) {
 
 	pde = pd->entries[pd_i];
 	page_map_level* pt;
-	if (!pde.present) {
+	//if (!pde.present) {
 		printf("PT not present...\n");
-		status = BS->AllocatePool(EfiLoaderData, 0x1000, (void**)&pt);
+		pt = malloc(0x1000);
 		efi_check("Unable to allocate for pt!");
 		memset(pt, 0, 0x1000);
 		pde.address = (uint64_t)pt >> 12;
 		pde.present = 1;
 		pde.read_write = 1;
 		pd->entries[pd_i] = pde;
-	} else {
-		pt = (page_map_level*)((uint64_t)pde.address << 12);
-	}
+	//} else {
+	//	pt = (page_map_level*)((uint64_t)pde.address << 12);
+	//}
 
 	if(pde.present)
 		printf("PT is present now...\n");
 	
+	printf("Addresses: %p %p %p\n", pt, pd, pdp);
+
+	printf("Before\n");
 	pde = pt->entries[pt_i];
+	printf("Before\n");
 	pde.address = ((uint64_t)physical_address >> 12);
+	printf("Before\n");
 	pde.present = 1;
+	printf("Before\n");
 	pde.read_write = 1;
 	pt->entries[pt_i] = pde;
 }
@@ -227,6 +235,8 @@ int main(int argc, char** argv) {
 			boot_struct->mem_info->rsdp = _desc;
 			printf("Warning: first version detected\n");
 		}
+
+		
 
 		/* Quit the bullshit. */
 		exit_bs();

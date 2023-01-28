@@ -158,7 +158,7 @@ void bm_set(uint64_t page, uint8_t val) {
 }
 
 void* malloc(uint64_t size_in_bytes) {
-	if(size_in_bytes == 0)
+	if(!size_in_bytes)
 		return NULL;
 
 	// Add the size of the header
@@ -178,6 +178,10 @@ void* malloc(uint64_t size_in_bytes) {
 
 	// Return the address to the allocated memory without the header
 	return ret + sizeof(mem_block_hdr_t);
+}
+
+void* calloc(size_t members, size_t member_size) {
+	return malloc(members * member_size);
 }
 
 void free(void* addr) {

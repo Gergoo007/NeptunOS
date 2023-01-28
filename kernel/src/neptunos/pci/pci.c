@@ -1,5 +1,6 @@
 #include "pci.h"
-#include "pci_ids.h"
+
+#include <neptunos/ahci/ahci.h>
 
 void pci_enumerate() {
 	uint64_t num_entries = (mcfg->hdr.length - sizeof(mcfg_hdr_t)) / sizeof(mcfg_entry_t);
@@ -12,12 +13,18 @@ void pci_enumerate() {
 			for (uint8_t j = 0; j < 32; j++) {
 				for (uint8_t k = 0; k < 8; k++) {
 					// Credit for this formula: https://wiki.osdev.org/PCI_Express
-					pci_device_header_t* device = (pci_device_header_t*)(entry->base_addr + ((i - 0) << 20 | j << 15 | k << 12));
+					pci_device_header_0_t* device = (pci_device_header_0_t*)(entry->base_addr + ((i - 0) << 20 | j << 15 | k << 12));
+					//pci_device_header_t* device = (pci_device_header_t*)(entry->base_addr + ((i - 0) << 20 | j << 15 | k << 12));
 					map_address((void*)device, (void*)device);
-					if (device->vendor_id != 0x0000 && device->vendor_id != 0xffff) {
-						printk("Detected device: %s %s: %s > %s\n", pci_find_vendor(device->vendor_id), 
-							pci_find_product(device->device_id), pci_find_class(device->class), 
-							pci_find_subclass(device->class, device->subclass));
+					if (device->base.vendor_id != 0x0000 && device->base.vendor_id != 0xffff) {
+						printk("Detected device: %s %s: %s > %s\n", pci_find_vendor(device->base.vendor_id), 
+							pci_find_product(device->base.device_id), pci_find_class(device->base.class), 
+							pci_find_subclass(device->base.class, device->base.subclass));
+
+						if (device->base.class == PCI_CLASS_MSD && device->base.subclass == PCI_SCLASS_SATA 
+						&& device->base.program_interface == PCI_PI_AHCI_1_0) {
+							ahci_init(device);
+						}
 					}
 				}
 			}

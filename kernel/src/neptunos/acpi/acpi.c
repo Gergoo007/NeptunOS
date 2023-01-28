@@ -14,7 +14,6 @@ void init_acpi() {
 	xsdt = (sdt_hdr_t*)((rsdp_desc_2_t*)info->mem_info->rsdp)->xsdt_address;
 
 	mcfg = get_table_address("MCFG");
-
 	if (!mcfg) {
 		printk("Failed to get MCFG!\n");
 		return;

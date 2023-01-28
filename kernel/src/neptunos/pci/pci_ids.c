@@ -154,6 +154,239 @@ const char pci_subclasses[23][12][256] = {
 	}
 };
 
+// 2D array for classes & subclasses
+const char pci_program_interfaces[23][12][8][256] = {
+	// Unclassified
+	{
+		{ 
+			// Non-VGA-Compatible unclassified device
+			{ "" },
+			// VGA-Compatible unclassified device
+			{ "" },
+		},
+	},
+	
+	// Mass storage device
+	{
+		// SCSI Bus controller
+		{ "" },
+		// IDE controller
+		{ "" },
+		// Floppy disk controller
+		{ "" },
+		// IPI bus controller
+		{ "" },
+		// RAID controller
+		{ "" },
+		// ATA controller
+		{ "" },
+		// Serial ATA (SATA) controller
+		{ "Vendor specific interface", "AHCI 1.0", "Serial storage bus" },
+		// Serial Attached SCSI controller
+		{ "" },
+		// Non-volatile memory controller
+		{ "" },
+		// Unknown storage controller
+		{ "" },
+	},
+
+	// Network Controller
+	{
+		// Ethernet controller"
+		{ "" },
+		// Token ring controller"
+		{ "" },
+		// FDDI controller"
+		{ "" },
+		// ATM controller"
+		{ "" },
+		// ISDN controller"
+		{ "" },
+		// WorldFip controller"
+		{ "" },
+		// PICMG 2.14 Multi Computing controller"
+		{ "" },
+		// Infiniband controller"
+		{ "" },
+		// Fabric controller"
+		{ "" },
+		// Unknown network controller"
+		{ "" },
+	},
+
+	// Video
+	{
+		// VGA Compatible controller"
+		{ "" },
+		// XGA controller"
+		{ "" },
+		// 3D controller"
+		{ "" },
+		// Unknown display controller"
+		{ "" },
+	},
+
+	// Multimedia
+	{
+		// Multimedia video controller"
+		{ "" },
+		// Multimedia audio controller"
+		{ "" },
+		// Computer telephony device"
+		{ "" },
+		// Audio device"
+		{ "" },
+		// Unknown multimedia device"
+		{ "" },
+	},
+
+	// Memory
+	{
+		// RAM controller"
+		{ "" },
+		// Flash controller"
+		{ "" },
+		// Unknown memory controller"
+		{ "" },
+	},
+
+	// Bridge
+	{
+		// Host bridge
+		{ "" },
+		// ISA bridge
+		{ "" },
+		// EISA bridge
+		{ "" },
+		// MCA bridge
+		{ "" },
+		// PCI-to-PCI bridge
+		{ "" },
+		// PCMCIA bridge
+		{ "" },
+		// NuBus bridge
+		{ "" },
+		// CardBus bridge
+		{ "" },
+		// RACEway bridge
+		{ "" },
+		// PCI-to-PCI bridge
+		{ "" },
+		// Infiniband-to-PCI bridge
+		{ "" },
+		// Unknown bridge
+		{ "" },
+	},
+
+	// Communications
+	{
+		// Serial controller"
+		{ "" },
+		// Parallel controller"
+		{ "" },
+		// Multiport serial controller"
+		{ "" },
+		// Modem"
+		{ "" },
+		// IEEE 488.1/2 controller"
+		{ "" },
+		// Smart Card controller"
+		{ "" },
+		// Unknown communications controller"
+		{ "" },
+	},
+
+	// Basic peripherals
+	{
+		// PIC"
+		{ "" },
+		// DMA controller"
+		{ "" },
+		// Timer"
+		{ "" },
+		// RTC controller"
+		{ "" },
+		// PCI Hot-Plug controller"
+		{ "" },
+		// SD host controller"
+		{ "" },
+		// IOMMU"
+		{ "" },
+		// Unknown peripheral"
+		{ "" },
+	},
+
+	// Input controller
+	{
+		// Keyboard controller
+		{ "" },
+		// Digitizer pen
+		{ "" },
+		// Mouse controller
+		{ "" },
+		// Scanner controller
+		{ "" },
+		// Gameport controller
+		{ "" },
+		// Unknown input controller
+		{ "" },
+	},
+
+	// Docking station
+	{
+		// Generic docking station
+		{ "" },
+		// Unknown docking statio
+		{ "" },
+	},
+
+	// Processor
+	{
+		// 386 processor
+		{ "" },
+		// 486 processor
+		{ "" },
+		// Pentium processor
+		{ "" },
+		// Pentium Pro processor
+		{ "" },
+		// Alpha processor
+		{ "" },
+		// PowerPC processor
+		{ "" },
+		// MIPS processor
+		{ "" },
+		// Co-Processor processor
+		{ "" },
+		// Unknown processor
+		{ "" },
+	},
+
+	// Serial bus controller
+	{
+		// FireWire (IEEE 1394) controller
+		{ "" },
+		// ACCESS Bus controller
+		{ "" },
+		// SSA
+		{ "" },
+		// USB controller
+		{ "" },
+		// Fibre channel
+		{ "" },
+		// SMBus controller
+		{ "" },
+		// Infiniband controller
+		{ "" },
+		// IPMI interface
+		{ "" },
+		// SERCOS interface
+		{ "" },
+		// CANbus controller
+		{ "" },
+	},
+};
+
 const char* pci_classes[] = {
 	"Unclassified",
 	"Mass storage",

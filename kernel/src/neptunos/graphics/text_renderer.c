@@ -158,8 +158,20 @@ void printk(char *restrict fmt, ...) {
 									render_string(buffer);
 									break;
 								}
+								case 'b': {
+									uint64_t num = va_arg(arg_list, uint64_t);
+									while (final-- > 0) {
+										if (num & (1 << final))
+											render_char('1');
+										else
+											render_char('0');
+									}
+									break;
+								};
 								default:
-									render_string("Invalid format!");
+									render_string("Invalid format: ");
+									render_char(*fmt);
+									render_string("!\n");
 									break;
 							}
 						}
