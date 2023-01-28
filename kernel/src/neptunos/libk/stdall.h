@@ -7,5 +7,6 @@
 #include "limits.h"
 #include "string.h"
 #include "stdalign.h"
+#include <neptunos/libk/assert.h>
 
 #include <neptunos/config/config.h>

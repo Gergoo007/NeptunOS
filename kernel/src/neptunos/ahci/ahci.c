@@ -36,10 +36,7 @@ ahci_port_type ahci_check_port_type(hba_port* port) {
 }
 
 void probe_ports() {
-	if (abar == NULL)
-		printk("Hey! What are you doing?\n");
-	else
-		printk("It's fine: %p\n", abar);
+	assert(!abar, "Error: abar is NULL");
 	
 	uint32_t ports_impl = abar->ports_impl;
 	for (uint8_t i = 0; i < 32; i++) {
@@ -48,21 +45,21 @@ void probe_ports() {
 
 			switch (port_type) {
 				case AHCI_SATA:
-					printk("SATA device detected!\n");
+					reportln("SATA device detected!");
 					break;
 				case AHCI_SATAPI:
-					printk("SATAPI device detected!\n");					
+					reportln("SATAPI device detected!");
 					break;
 				case AHCI_PM:
-					printk("Port muliplier device detected!\n");
+					reportln("Port muliplier device detected!");
 					break;
 				case AHCI_SEMB:
-					printk("SEMB device detected!\n");
+					reportln("SEMB device detected!");
 					break;
 				case AHCI_NONE:
 					break;
 				default:
-					printk("BUG: port_type out of bounds! (%d)\n", port_type);
+					error("BUG: port_type out of bounds! (%d)\n", port_type);
 					break;
 			}
 		}
@@ -70,8 +67,7 @@ void probe_ports() {
 }
 
 void ahci_init(pci_device_header_0_t* device) {
-	printk("\nAHCI init called\n");
-	printk("Device: %04x:%04x > %s %s\n", device->base.vendor_id, device->base.device_id, 
+	reportln("Device to be used for AHCI: %04x:%04x > %s %s", device->base.vendor_id, device->base.device_id, 
 		pci_find_class(device->base.class), 
 		pci_find_subclass(device->base.class, device->base.subclass));
 

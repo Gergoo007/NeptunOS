@@ -35,7 +35,7 @@ void map_address(void* virtual_address, void* physical_address) {
 	} else {
 		pdp = (page_map_level*)((uint64_t)pde.address << 12);
 	}
-	
+
 	pde = pdp->entries[pdp_i];
 	page_map_level* pd;
 	if (!pde.present) {

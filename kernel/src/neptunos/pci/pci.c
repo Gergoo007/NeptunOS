@@ -17,7 +17,7 @@ void pci_enumerate() {
 					//pci_device_header_t* device = (pci_device_header_t*)(entry->base_addr + ((i - 0) << 20 | j << 15 | k << 12));
 					map_address((void*)device, (void*)device);
 					if (device->base.vendor_id != 0x0000 && device->base.vendor_id != 0xffff) {
-						printk("Detected device: %s %s: %s > %s\n", pci_find_vendor(device->base.vendor_id), 
+						reportln("Detected device: %s %s: %s > %s", pci_find_vendor(device->base.vendor_id), 
 							pci_find_product(device->base.device_id), pci_find_class(device->base.class), 
 							pci_find_subclass(device->base.class, device->base.subclass));
 

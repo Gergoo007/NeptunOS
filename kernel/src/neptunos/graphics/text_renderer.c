@@ -5,6 +5,8 @@ uint32_t background_color = 0x00000000;
 
 uint16_t cursor_x = 0, cursor_y = 0;
 
+extern void _printk(char *restrict fmt, va_list arg_list);
+
 void render_char(char c) {
 	if (c == '\0') return;
 
@@ -93,11 +95,25 @@ void render_string(char *restrict str) {
 	}
 }
 
+// Normal printk
 void printk(char *restrict fmt, ...) {
-	va_list arg_list;
-	int16_t length = 0;
+	va_list args;
+	va_start(args, fmt);
+	_printk(fmt, args);
+	va_end(args);
+}
 
-	va_start(arg_list, fmt);
+// Normal printk
+void printlnk(char *restrict fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	_printk(fmt, args);
+	va_end(args);
+	render_char('\n');
+}
+
+void _printk(char *restrict fmt, va_list arg_list) {
+	int16_t length = 0;
 
 	while(*fmt != '\0') {
 		if (*fmt == '%') {
@@ -189,6 +205,21 @@ void printk(char *restrict fmt, ...) {
 			cursor_y = 0;
 		}
 	}
+}
+
+void _report(char* msg, char* filename, ...) {
+	#ifdef DEBUG_REPORTS
+		va_list list;
+		va_start(list, filename);
+		text_color_push(0x00fff000);
+		render_string("[DEBUG] ");
+		render_char('[');
+		render_string(filename);
+		render_string("] ");
+		_printk(msg, list);
+		text_color_pop();
+		va_end(list);
+	#endif
 }
 
 void text_color(uint32_t color) {

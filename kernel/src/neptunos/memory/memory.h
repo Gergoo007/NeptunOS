@@ -1,12 +1,34 @@
 #pragma once
 
-#include <neptunos/libk/stdall.h>
 #include <neptunos/config/attributes.h>
+#include <neptunos/libk/stdint.h>
+
+#define bytes_kib(bytes) bytes/1024
+#define bytes_mib(bytes) bytes_kib(bytes)/1024
+#define bytes_gib(bytes) bytes_mib(bytes)/1024
+#define bytes_tib(bytes) bytes_gib(bytes)/1024
+
+#define bytes_kb(bytes) bytes/1000
+#define bytes_mb(bytes) bytes_kb(bytes)/1000
+#define bytes_gb(bytes) bytes_mb(bytes)/1000
+#define bytes_tb(bytes) bytes_gb(bytes)/1000
+
+#define kib_bytes(kibis) kibis*1024
+#define mib_bytes(mebis) kib_bytes(mebis)*1024
+#define gib_bytes(gibis) mib_bytes(gibis)*1024
+#define tib_bytes(tibis) gib_bytes(tibis)*1024
+
+#define kb_bytes(kilos) bytes*1000
+#define mb_bytes(megas) kb_bytes(megas)*1000
+#define gb_bytes(gigas) mb_bytes(gigas)*1000
+#define tb_bytes(terras) gb_bytes(terras)*1000
 
 typedef struct bitmap_t {
 	void* address;
 	uint64_t size;
 } bitmap_t;
+
+#include <neptunos/libk/stdall.h>
 
 typedef struct mem_block_hdr_t {
 	uint16_t pid;

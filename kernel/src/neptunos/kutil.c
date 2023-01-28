@@ -71,6 +71,12 @@ void kinit(system_info_t* _info) {
 	map_memory();
 	init_bitmap(bm);
 
+	// Save return address
+	uint64_t addr = (uint64_t)__builtin_extract_return_addr(__builtin_return_address(0));
+
+	void* stack_base = malloc(mib_bytes(4));
+	asm("movq %0, %%rsp" : "=r" (stack_base));
+
 	#ifdef USE_DOUBLE_BUFFERING
 		setup_back_buffer();
 	#endif
@@ -98,9 +104,9 @@ void kinit(system_info_t* _info) {
 
 	init_acpi();
 
-	//pit_configure_channel(0);
-
-	//asm("int $0x30");
-
 	asm("sti");
+
+	// Return address was saved on the stack, so we have to manually jump
+	void (*after_kinit)(void) = (void*)addr;
+	after_kinit();
 }

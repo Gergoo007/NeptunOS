@@ -6,7 +6,5 @@ void* mem_base = NULL;
 system_info_t* info;
 
 void __stack_chk_fail() {
-	// text_color_push(0x00ff0000);
-	// printk("!! Stack smashing detected !!\n");
-	// text_color_pop();
+	panic("Stack smashing detected!\n");
 }
