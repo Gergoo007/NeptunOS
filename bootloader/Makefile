@@ -14,7 +14,7 @@ include uefi/Makefile
 
 QEMU_ARGS :=
 
-_QEMU_ARGS := -bios ovmf_binaries/OVMF_CODE.fd -machine q35 -serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown -drive id=disk,file=disk.qcow2,if=none,format=qcow2 $(QEMU_ARGS)
+_QEMU_ARGS := -bios ovmf_binaries/OVMF_CODE.fd -machine q35 -serial stdio -smp 1 -m $(RAMSIZE) -net none -no-reboot -no-shutdown $(QEMU_ARGS) # -drive id=disk,file=disk.qcow2,if=none,format=qcow2
 
 flags:
 	@echo

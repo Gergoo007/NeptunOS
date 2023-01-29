@@ -13,4 +13,4 @@
 // #define USE_DOUBLE_BUFFERING
 
 // Define this for verbose reports
-//#define DEBUG_REPORTS
+#define DEBUG_REPORTS
