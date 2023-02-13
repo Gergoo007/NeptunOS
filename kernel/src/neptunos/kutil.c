@@ -5,15 +5,12 @@ void setup_paging() {
 	memset(pml4, 0, 0x1000);
 
 	// Identity map the whole physical memory
-	for (uint64_t i = 0; i < total_mem; i += 0x1000) {
-		map_address((void*)i, (void*)i);
-	}
+	map_region(0, 0, total_mem / 0x1000, MAP_FLAGS_DEFAULTS);
 
 	// Identity map the framebuffer so it doesn't break
-	for (uint64_t i = (uint64_t)(info->g_info->fb_base); i <= (uint64_t)(info->g_info->fb_base) + info->g_info->fb_size; i += 0x1000) {
-		map_address((void*)i, (void*)i);
-	}
-	
+	map_region(fb_base,
+		fb_base, bootboot.fb_size/0x1000, MAP_FLAGS_IO_DEFAULTS);
+
 	asm("mov %0, %%cr3" :: "r" (pml4));
 }
 
@@ -60,9 +57,8 @@ void int_prep() {
 	asm("lidt %0" : : "m" (idt));
 }
 
-void kinit(system_info_t* _info) {
-	info = _info;
-	fb_base = info->g_info->fb_base;
+void kinit() {
+	fb_base = &fb;
 
 	setup_font();
 
@@ -71,42 +67,44 @@ void kinit(system_info_t* _info) {
 	map_memory();
 	init_bitmap(bm);
 
-	// Save return address
-	uint64_t addr = (uint64_t)__builtin_extract_return_addr(__builtin_return_address(0));
+	printk("Done\n");
 
-	void* stack_base = malloc(mib_bytes(4));
-	asm("movq %0, %%rsp" : "=r" (stack_base));
+	// // Save return address
+	// uint64_t addr = (uint64_t)__builtin_extract_return_addr(__builtin_return_address(0));
 
-	#ifdef USE_DOUBLE_BUFFERING
-		setup_back_buffer();
-	#endif
+	// void* stack_base = malloc(mib_bytes(4));
+	// asm("movq %0, %%rsp" : "=r" (stack_base));
 
-	clear_screen();
+	// #ifdef USE_DOUBLE_BUFFERING
+	// 	setup_back_buffer();
+	// #endif
 
-	text_color(0x0000ffcc);
-	printk("Framebuffer resolution: %ud x %ud\n", info->g_info->info->width, info->g_info->info->height);
-	printk("Total memory: %ud MiB\n", total_mem / 1024 / 1024);
-	text_color_reset();
+	// clear_screen();
 
-	gdt_descriptor desc;
-	desc.size = sizeof(gdt) - 1;
-	desc.offset = (uint64_t) &gdt_obj;
-	load_gdt(&desc);
+	// text_color(0x0000ffcc);
+	// printk("Framebuffer resolution: %ud x %ud\n", bootboot.fb_width, bootboot.fb_height);
+	// printk("Total memory: %ud MiB\n", total_mem / 1024 / 1024);
+	// text_color_reset();
 
-	int_prep();
+	// gdt_descriptor desc;
+	// desc.size = sizeof(gdt) - 1;
+	// desc.offset = (uint64_t) &gdt_obj;
+	// load_gdt(&desc);
 
-	setup_paging();
+	// int_prep();
 
-	remap_pic(0x20, 0x28);
-	// Unmask interrupts
-	outb(0b11111100, PIC_M_DATA);
-	outb(0b11111111, PIC_S_DATA);
+	// setup_paging();
 
-	init_acpi();
+	// remap_pic(0x20, 0x28);
+	// // Unmask interrupts
+	// outb(0b11111100, PIC_M_DATA);
+	// outb(0b11111111, PIC_S_DATA);
 
-	asm("sti");
+	// init_acpi();
 
-	// Return address was saved on the stack, so we have to manually jump
-	void (*after_kinit)(void) = (void*)addr;
-	after_kinit();
+	// asm("sti");
+
+	// // Return address was saved on the stack, so we have to manually jump
+	// void (*after_kinit)(void) = (void*)addr;
+	// after_kinit();
 }

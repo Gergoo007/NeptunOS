@@ -4,7 +4,7 @@
 			"name": "Launch with GDB",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "/mnt/et_cetera/projects/NeptunOS/kernel/out/kernel",
+			"program": "/mnt/et_cetera/projects/SymbiOSys/bootloader/kernel",
 			"cwd": "${workspaceFolder}",
 			"args": [],
 			// "sourceFileMap": {
@@ -13,6 +13,7 @@
 			"targetArchitecture": "x86_64",
 			"MIMode": "gdb",
 			"miDebuggerPath": "/usr/bin/gdb_qemu",
+			// "miDebuggerArgs": "",
 			"customLaunchSetupCommands": [
 				{
 					"text": "target remote localhost:1234",
@@ -26,7 +27,7 @@
 					"ignoreFailures": true
 				},
 				{
-					"text": "file /mnt/et_cetera/projects/NeptunOS/kernel/out/kernel",
+					"text": "file /mnt/et_cetera/projects/SymbiOSys/bootloader/kernel",
 					"description": "Load binary."
 				},
 			],

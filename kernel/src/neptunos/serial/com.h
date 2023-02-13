@@ -1,17 +1,7 @@
 #pragma once
 
-// TODO: translate all this into asm
-
 #include <neptunos/libk/stdall.h>
 #include <neptunos/config/attributes.h>
-
-// static inline uint8_t in8(uint16_t port) {
-// 	uint8_t data;
-// 	asm volatile("inb %1, %0"
-// 				: "=a"(data)
-// 				: "d"(port));
-// 	return data;
-// }
 
 extern uint8_t inb(uint16_t);
 extern uint8_t inw(uint16_t);

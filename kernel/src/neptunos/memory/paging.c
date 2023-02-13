@@ -15,7 +15,7 @@ void indexer(void* address, uint16_t* pt_i, uint16_t* pd_i, uint16_t* pdp_i, uin
 	*pml4_i = page_num % 512;
 }
 
-void map_address(void* virtual_address, void* physical_address) {
+void map_page(void* virtual_address, void* physical_address, uint16_t _flags) {
 	// Indexes
 	// pt_i points to the page, not the page table
 	uint16_t pt_i, pd_i, pdp_i, pml4_i;
@@ -29,8 +29,7 @@ void map_address(void* virtual_address, void* physical_address) {
 		pdp = (page_map_level*)request_page();
 		memset(pdp, 0, 0x1000);
 		pde.address = (uint64_t)pdp >> 12;
-		pde.present = 1;
-		pde.read_write = 1;
+		pde.flags = _flags;
 		pml4->entries[pml4_i] = pde;
 	} else {
 		pdp = (page_map_level*)((uint64_t)pde.address << 12);
@@ -42,8 +41,7 @@ void map_address(void* virtual_address, void* physical_address) {
 		pd = (page_map_level*)request_page();
 		memset(pd, 0, 0x1000);
 		pde.address = (uint64_t)pd >> 12;
-		pde.present = 1;
-		pde.read_write = 1;
+		pde.flags = _flags;
 		pdp->entries[pdp_i] = pde;
 	} else {
 		pd = (page_map_level*)((uint64_t)pde.address << 12);
@@ -55,16 +53,22 @@ void map_address(void* virtual_address, void* physical_address) {
 		pt = (page_map_level*)request_page();
 		memset(pt, 0, 0x1000);
 		pde.address = (uint64_t)pt >> 12;
-		pde.present = 1;
-		pde.read_write = 1;
+		pde.flags = _flags;
 		pd->entries[pd_i] = pde;
 	} else {
 		pt = (page_map_level*)((uint64_t)pde.address << 12);
 	}
-	
+
 	pde = pt->entries[pt_i];
 	pde.address = ((uint64_t)physical_address >> 12);
-	pde.present = 1;
-	pde.read_write = 1;
+	pde.flags = _flags;
 	pt->entries[pt_i] = pde;
+}
+
+void map_region(void* virtual_address, void* physical_address, uint64_t pages, uint16_t _flags) {
+	while(pages > 0) {
+		map_page((void*)((uint64_t)virtual_address + (pages*0x1000)-1),
+			(void*)((uint64_t)physical_address + (pages*0x1000)-1), _flags);
+		pages--;
+	}
 }

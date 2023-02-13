@@ -8,8 +8,6 @@
 extern uint16_t cursor_x;
 extern uint16_t cursor_y;
 
-extern system_info_t* info;
-
 extern bitmap_t* bm;
 extern void* mem_base;
 

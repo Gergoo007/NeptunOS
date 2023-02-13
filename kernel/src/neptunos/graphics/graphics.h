@@ -40,7 +40,7 @@ extern psf_header_t* def;
 extern void* glyph_buffer;
 extern void* back_buffer;
 
-#define pixel(x, y, color) *((uint32_t*) (((uint64_t) fb_base) + 4 * info->g_info->info->width * y + 4 * x)) = color;\
+#define pixel(x, y, color) *((uint32_t*) (((uint64_t) fb_base) + 4 * bootboot.fb_width * y + 4 * x)) = color;\
 
 void clear_screen(void);
 void clear_screen_color(uint32_t color);

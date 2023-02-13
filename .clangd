@@ -1,3 +1,2 @@
 CompileFlags:
-	Add: [ -I/usr/include/efi, -ffreestanding, -fshort-wchar, -g, -fstack-protector, -std=c17, -xc, -nostdinc, -nostdlib ]
-	
+	Add: [ -I/usr/include/efi, -ffreestanding, -fshort-wchar, -fstack-protector, -nostdinc, -nostdlib ]

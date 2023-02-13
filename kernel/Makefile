@@ -11,7 +11,7 @@ AS = as
 LD = ld.gold
 
 CFLAGS += -O0 -ffreestanding -fshort-wchar -g -fno-stack-protector -Isrc -nostdinc -Wno-interrupt-service-routine -fno-stack-check -Wno-builtin-requires-header -Wno-incompatible-library-redeclaration -Wno-long-long -std=c17
-LDFLAGS += -T script.ld -static -Bsymbolic -nostdlib -z max-page-size=0x1000
+LDFLAGS += -T script.ld -Bsymbolic -nostdlib -z max-page-size=0x1000 -static
 
 k_all: k_clean info objdir $(COBJ) $(SOBJ) kernel
 

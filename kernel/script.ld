@@ -1,29 +1,28 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kmain)
 
-SECTIONS {
-	/* TODO: prepare bootloader and load it in higher half */
-	. = 0x4000000; /* load kernel at +64M */
+mmio        = 0xfffffffff8000000;              /* these are configurable for level 2 loaders */
+fb          = 0xfffffffffc000000;
+bootboot    = 0xffffffffffe00000;
+environment = 0xffffffffffe01000;
 
+PHDRS {
+	boot PT_LOAD;                                /* one single loadable segment */
+}
+
+SECTIONS {
+	. = 0xffffffffffe02000;
 	KSTART = .;
-	
-	.text : ALIGN(0x1000) {
-		*(.text)
-	}
-	
-	.data : ALIGN(0x1000) {
+	.text : {
+		KEEP(*(.text.boot)) *(.text .text.*)   /* code */
+		*(.rodata .rodata.*)                   /* data */
 		*(.data .data.*)
-	}
-	
-	.rodata : ALIGN(0x1000) {
-		*(.rodata .rodata.*)
-	}
-	
-	.bss (NOLOAD) : ALIGN(0x1000) {
+	} :boot
+	.bss (NOLOAD) : {                          /* bss */
+		. = ALIGN(16);
 		*(.bss .bss.*)
 		*(COMMON)
-	}
-	
+	} :boot
 	KEND = .;
 
 	/DISCARD/ : { *(.eh_frame) *(.comment) }

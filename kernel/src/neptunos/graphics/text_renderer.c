@@ -15,7 +15,7 @@ void render_char(char c) {
 		cursor_x = 0;
 		return;
 	} else if (c == '\t') {
-		cursor_x += (info->g_info->info->width / 16) - (cursor_x % (info->g_info->info->width / 16));
+		cursor_x += (bootboot.fb_width / 16) - (cursor_x % (bootboot.fb_width / 16));
 		return;
 	} else if (c == '\b') {
 		cursor_x -= def->width;
@@ -41,7 +41,7 @@ void render_char(char c) {
 	}
 
 	cursor_x += def->width;
-	if (cursor_x >= info->g_info->info->width) {
+	if (cursor_x >= bootboot.fb_width) {
 		cursor_y += def->height;
 		cursor_x = 0;
 	}
@@ -55,7 +55,7 @@ void render_char_transparent(char c) {
 		cursor_x = 0;
 		return;
 	} else if (c == '\t') {
-		cursor_x += (info->g_info->info->width / 16) - (cursor_x % (info->g_info->info->width / 16));
+		cursor_x += (bootboot.fb_width / 16) - (cursor_x % (bootboot.fb_width / 16));
 		return;
 	} else if (c == '\b') {
 		cursor_x -= def->width;
@@ -79,7 +79,7 @@ void render_char_transparent(char c) {
 	}
 
 	cursor_x += def->width;
-	if (cursor_x >= info->g_info->info->width) {
+	if (cursor_x >= bootboot.fb_width) {
 		cursor_y += def->height;
 		cursor_x = 0;
 	}
@@ -87,11 +87,9 @@ void render_char_transparent(char c) {
 
 
 void render_string(char *restrict str) {
-	uint16_t length = 0;
 	while(*str != '\0') {
 		render_char(*str);
 		str++;
-		length++;
 	}
 }
 
@@ -113,8 +111,6 @@ void printlnk(char *restrict fmt, ...) {
 }
 
 void _printk(char *restrict fmt, va_list arg_list) {
-	int16_t length = 0;
-
 	while(*fmt != '\0') {
 		if (*fmt == '%') {
 			fmt++;
@@ -151,7 +147,7 @@ void _printk(char *restrict fmt, va_list arg_list) {
 							uint8_t first = (uint8_t)(*fmt++) - (uint8_t)'0';
 							uint8_t second = (uint8_t)*(fmt++) - (uint8_t)'0';
 							uint8_t final = second + (first * 10);
-							
+
 							switch (*fmt) {
 								case 'x': {
 									char buffer[final + 1];
@@ -196,12 +192,11 @@ void _printk(char *restrict fmt, va_list arg_list) {
 			}
 		} else {
 			render_char(*fmt);
-			length++;
 		}
 
 		fmt++;
 
-		if (cursor_y >= info->g_info->info->height) {
+		if (cursor_y >= bootboot.fb_height) {
 			cursor_y = 0;
 		}
 	}

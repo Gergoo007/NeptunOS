@@ -10,7 +10,6 @@
 #include <neptunos/libk/string.h>
 
 #include <neptunos/memory/memory.h>
-#include <neptunos/memory/efi_memory.h>
 #include <neptunos/memory/paging.h>
 
 #include <neptunos/tables/gdt.h>
@@ -26,7 +25,7 @@
 
 extern idtr idt;
 
-void kinit(system_info_t* _info);
+void kinit();
 
 extern volatile unsigned char _binary_font_psf_start;
 

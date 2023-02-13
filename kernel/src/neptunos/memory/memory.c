@@ -2,7 +2,6 @@
 #include <neptunos/globals.h>
 #include <neptunos/graphics/text_renderer.h>
 #include <neptunos/libk/string.h>
-#include <neptunos/memory/efi_memory.h>
 
 // Memory stats in bytes
 uint64_t total_mem 		= 0;
@@ -14,22 +13,23 @@ uint64_t num_pages 		= 0;
 void* biggest_conv_mem = NULL;
 uint64_t biggest_conv_mem_size = 0;
 
+const char* MEM_TYPES[4] = {
+	"Used",
+	"Free",
+	"ACPI",
+	"MMIO"
+};
+
 void map_memory() {
-	for (efi_memory_descriptor_t* entry = info->mem_info->mmap; 
-		(uint8_t*)entry < ((uint8_t*)info->mem_info->mmap) + info->mem_info->mmap_size; 
-		entry = (efi_memory_descriptor_t*) ((uint8_t*)entry + info->mem_info->desc_size)) {
-
-		if(entry->type == EfiConventionalMemory && entry->num_pages*0x1000 > biggest_conv_mem_size) {
-			biggest_conv_mem = entry->phys_start;
-			biggest_conv_mem_size = entry->num_pages*0x1000;
+	for (MMapEnt* entry = &bootboot.mmap; (uint64_t)entry < (uint64_t)&bootboot + (bootboot.size); entry++) {
+		if ((MMapEnt_Type(entry) == MMAP_FREE) && (MMapEnt_Size(entry) > biggest_conv_mem_size)) {
+			biggest_conv_mem_size = MMapEnt_Size(entry);
+			biggest_conv_mem = (void*) MMapEnt_Ptr(entry);
 		}
-
-		if(entry->type != 8) {
-			total_mem += entry->num_pages*0x1000;
-			num_pages += entry->num_pages;
-		} else
-			printk("Unusable memory detected!\n");
+		total_mem += MMapEnt_Size(entry);
 	}
+
+	num_pages = total_mem / 0x1000;
 }
 
 void init_bitmap(bitmap_t* bm) {
@@ -39,7 +39,7 @@ void init_bitmap(bitmap_t* bm) {
 	mem_base = biggest_conv_mem;
 	free_mem = total_mem;
 	if(mem_base == NULL) {
-		text_color_push(0x00ff0000); 
+		text_color_push(0x00ff0000);
 		printk("Invalid mem_base!\n");
 		text_color_pop();
 	}
@@ -48,25 +48,35 @@ void init_bitmap(bitmap_t* bm) {
 	memset(bm->address, 0, bm->size);
 
 	// fill the bitmap
-	for (efi_memory_descriptor_t* entry = info->mem_info->mmap; 
-		(uint8_t*)entry < ((uint8_t*)info->mem_info->mmap) + info->mem_info->mmap_size; 
-		entry = (efi_memory_descriptor_t*) ((uint8_t*)entry + info->mem_info->desc_size)) {
-		
-		// If this segment is not general purpose, reserve it
-		// This assumes that ExitBootServices has been called
-		// (https://uefi.org/sites/default/files/resources/UEFI_Spec_2_8_final.pdf at page 232)
-		if(!(entry->type == EfiBootServicesCode || entry->type == EfiBootServicesData ||
-		entry->type == EfiConventionalMemory))
-			reserve_page(entry->phys_start, entry->num_pages);
-		else
-			free_page(entry->phys_start, entry->num_pages);
+	for (MMapEnt* entry = &bootboot.mmap; (uint64_t)entry < (uint64_t)&bootboot + (bootboot.size); entry++) {
+		switch (MMapEnt_Type(entry)) {
+			case MMAP_FREE: {
+				free_page((void*)MMapEnt_Ptr(entry), MMapEnt_Size(entry)/0x1000);
+				break;
+			};
+
+			case MMAP_USED: {
+				lock_page((void*)MMapEnt_Ptr(entry), MMapEnt_Size(entry)/0x1000);
+				break;
+			};
+
+			case MMAP_ACPI: {
+				reserve_page((void*)MMapEnt_Ptr(entry), MMapEnt_Size(entry)/0x1000);
+				break;
+			};
+
+			case MMAP_MMIO: {
+				reserve_page((void*)MMapEnt_Ptr(entry), MMapEnt_Size(entry)/0x1000);
+				break;
+			};
+
+			default:
+				panic("Invalid memory type: %d", MMapEnt_Type(entry));
+				break;
+		}
 	}
 	
 	lock_page(bm->address, bm->size / 0x1000 + 1);
-
-	// Mark kernel pages as used
-	const uint64_t kernel_num_pages = ((uint64_t)&KEND - (uint64_t)&KSTART) / 0x1000 + 1;
-	lock_page(&KSTART, kernel_num_pages);
 }
 
 void free_page(void* address, uint64_t count) {
@@ -82,41 +92,44 @@ void free_page(void* address, uint64_t count) {
 	used_mem -= 4096 * count;
 }
 
+// NOTE: Only usable for physical addresses
 void lock_page(void* address, uint64_t count) {
 	uint64_t page = (uint64_t) address / 4096; // hányadik page
 	
 	if(bm_get((uint64_t)address/0x1000)) // page is already reserved/used
 		return;
 	
-	for (uint64_t i = 0; i < count; i++) {
+	for (; count > 0; count--)
 		bm_set(page, 1);
-	}
+	
 	free_mem -= 4096 * count;
 	used_mem += 4096 * count;
 }
 
+// NOTE: Only usable for physical addresses
 void reserve_page(void* address, uint64_t count) {
 	uint64_t page = (uint64_t) address / 4096; // hányadik page
 	
 	if(bm_get((uint64_t)address/0x1000)) // page is already reserved/used
 		return;
 	
-	for (uint64_t i = 0; i < count; i++) {
+	for (; count > 0; count--)
 		bm_set(page, 1);
-	}
+
 	free_mem -= 4096 * count;
 	reserved_mem += 4096 * count;
 }
 
+// NOTE: Only usable for physical addresses
 void unreserve_page(void* address, uint64_t count) {
 	uint64_t page = (uint64_t) address / 4096; // hányadik page
 	
 	if(!bm_get((uint64_t)address/0x1000)) // page is already free
 		return;
 	
-	for (uint64_t i = 0; i < count; i++) {
+	for (; count > 0; count--)
 		bm_set(page, 0);
-	}
+	
 	free_mem += 4096 * count;
 	reserved_mem -= 4096 * count;
 }

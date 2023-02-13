@@ -11,8 +11,8 @@ void clear_screen() {
 }
 
 void clear_screen_color(uint32_t color) {
-	for (uint32_t x = 0; x < info->g_info->info->width; x++) {
-        for (uint32_t y = 0; y < info->g_info->info->height; y++) {
+	for (uint32_t x = 0; x < bootboot.fb_width; x++) {
+        for (uint32_t y = 0; y < bootboot.fb_height; y++) {
 			pixel(x, y, color);
     	}
     }

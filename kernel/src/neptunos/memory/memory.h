@@ -23,6 +23,8 @@
 #define gb_bytes(gigas) mb_bytes(gigas)*1000
 #define tb_bytes(terras) gb_bytes(terras)*1000
 
+extern const char* MEM_TYPES[4];
+
 typedef struct bitmap_t {
 	void* address;
 	uint64_t size;

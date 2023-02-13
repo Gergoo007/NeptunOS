@@ -1,11 +1,8 @@
-neptunos:
-	make -C kernel k_all
-	make -C bootloader bl_all
+all: build qemu
 
 build:
 	make -C kernel k_all
-	make -C bootloader bl_clean all img
+	make -C bootloader bootloader_all
 
-debug:
-#	make -C kernel k_all
-	make -C bootloader bl_debug
+qemu:
+	make -C bootloader qemu

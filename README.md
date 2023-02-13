@@ -12,9 +12,8 @@ is my attempt at a hobby operating system. This is my second bigger project (the
 | libk		| Some libc implementations						|
 | hw_interrupts	| PIC driver								|
 | graphics	| Text rendering								|
-| efi		| POSIX-UEFI structs							|
 
 ## Credits
-- [osdev.org](https://wiki.osdev.org/).
+- [osdev.org](https://wiki.osdev.org/)
 - [Poncho](https://www.youtube.com/@poncho2364)
 - [bzt](https://gitlab.com/bztsrc)
