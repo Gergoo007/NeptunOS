@@ -1,2 +1,0 @@
-CompileFlags:
-	Add: [ -ffreestanding, -fshort-wchar, -fno-stack-protector, -Wno-interrupt-service-routine, -fno-stack-check, -Wall, -Wno-builtin-requires-header, -Wno-incompatible-library-redeclaration, -Wno-unused-function, -std=c17, -xc ]

@@ -1,5 +1,5 @@
 {
 	"clangd.fallbackFlags": [
-		"-I${workspaceFolder}/kernel/src",
+		"-I${workspaceFolder}/src",
 	],
 }

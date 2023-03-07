@@ -1,9 +1,0 @@
-[package]
-name = "mykernel-rust"
-version = "0.0.1"
-authors = ["Vinay Chandra"]
-edition = "2018"
-
-[dependencies]
-rlibc = "1.0"
-
