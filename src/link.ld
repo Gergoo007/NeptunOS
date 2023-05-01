@@ -1,28 +1,24 @@
+/* Credit for the higher half theory: https://github.com/thomasloven/mittos64 */
+
 OUTPUT_FORMAT(elf64-x86-64)
-ENTRY(onboot)
+ENTRY(kmain)
+
+/* To be loaded here */
+KERNEL_OFFSET = 0xFFFFFF8000000000;
 
 SECTIONS {
-	. = 1M;
-	.multiboot : ALIGN(8) {
-		*(.multiboot)
-	}
-	.text : ALIGN(CONSTANT(MAXPAGESIZE)) {
+	. = KERNEL_OFFSET;
+	
+	.text ALIGN(4K) : AT(ADDR(.text)) {
 		*(.text)
 	}
-	.data : ALIGN(CONSTANT(MAXPAGESIZE)) {
-		*(.*data)
+	.data ALIGN(4K) : AT(ADDR(.data)) {
+		*(.data)
+		*(.rodata)
 	}
-	.bss : ALIGN(CONSTANT(MAXPAGESIZE)) {
+	.bss ALIGN(4K) : AT(ADDR(.bss)) {
 		*(.bss)
 	}
-	. = 0xfffffffff0000000;
-	.realtext : ALIGN(CONSTANT(MAXPAGESIZE)) {
-		*(.rtext)
-	}
-	.realdata : ALIGN(CONSTANT(MAXPAGESIZE)) {
-		*(.*rdata)
-	}
-	.realbss : ALIGN(CONSTANT(MAXPAGESIZE)) {
-		*(.rbss)
-	}
+
+	/*. = 0xffffffffffd00000;*/
 }

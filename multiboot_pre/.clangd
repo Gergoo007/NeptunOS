@@ -1,0 +1,2 @@
+CompileFlags:
+	Add: [ -nostdinc, -nostdlib, -ffreestanding, -Isrc, -std=c17, -xc ]

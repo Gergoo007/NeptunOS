@@ -2,33 +2,6 @@
 
 #define pixel(x, y, color) *((uint32_t*) (((uint64_t) fb_base) + 4 * bootboot.fb_width * y + 4 * x)) = color;
 
-tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
-	// MB2 magic header
-	0xE85250D6,
-	0,
-	sizeof(multiboot_hdr_t),
-	(uint32_t)0 - 0xE85250D6 - 0 - sizeof(multiboot_hdr_t),
-
-	// Tags
-	// FB info tag [not supported]
-	// { .type = 6 },
-
-	// EFI System Table (amd64)
-	//{ .type = 11, .size = 16 },
-
-	// Command line
-	//{ .type = 1 },
-
-	// .info_request = {
-	// 	.type = 1,
-	// 	.flags = 0,
-	// 	.size = sizeof(info_request),
-	// },
-
-	// End tag
-	//.end_tag = { 0, 0, 8 },
-};
-
 uint16_t x = 0, y = 0;
 
 void putc(unsigned char c, int x, int y) {
@@ -78,7 +51,7 @@ char* uint_to_str(uint64_t value, char* result, int base) {
 		return result;
 }
 
-void c_main(uint32_t mbi) {
+void kmain(uint32_t mbi) {
 	// Print OK using VGA
 	*(uint32_t*)0xb8000 = 0x2f4b2f4f;
 

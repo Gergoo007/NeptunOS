@@ -1,0 +1,6 @@
+{
+	"clangd.fallbackFlags": [
+		"-I${workspaceFolder}/src",
+	],
+	"discord.enabled": false,
+}

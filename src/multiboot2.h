@@ -93,64 +93,27 @@ typedef struct multiboot_tag_framebuffer {
 } multiboot_tag_framebuffer_t;
 
 typedef struct multiboot_hdr_t {
-	uint32_t magic;
-	uint32_t arch;
-	uint32_t hdr_length;
-	uint32_t checksum;
+	struct {
+		uint32_t magic;
+		uint32_t arch;
+		uint32_t hdr_length;
+		uint32_t checksum;
+	} magic_fields;
 
+	// Ending tag
+	struct {
+		uint16_t type; // 5
+		uint16_t flags;
+		uint32_t size; // 20
+		uint32_t width;
+		uint32_t height;
+		uint32_t depth;
+	} tag_align fb_tag;
+
+	// Ending tag
 	struct {
 		uint16_t type;
 		uint16_t flags;
 		uint32_t size;
-		uint32_t* tag_types;
-	} info_request;
-
-	// struct {
-	// 	uint32_t type;
-	// 	uint32_t size;
-	// 	uint32_t framebuffer_addr;
-	// 	uint32_t framebuffer_pitch;
-	// 	uint32_t framebuffer_width;
-	// 	uint32_t framebuffer_height;
-	// 	uint8_t framebuffer_bpp;
-	// 	uint8_t framebuffer_type;
-	// 	uint8_t reserved;
-	// 	union {
-	// 		struct {
-	// 			uint32_t framebuffer_palette_num_colors;
-	// 			struct {
-	// 				uint8_t red_value;
-	// 				uint8_t green_value;
-	// 				uint8_t blue_value;
-	// 			} framebuffer_palette;
-	// 		} type_0;
-	// 		struct {
-	// 			uint8_t framebuffer_red_field_position;
-	// 			uint8_t framebuffer_red_mask_size;
-	// 			uint8_t framebuffer_green_field_position;
-	// 			uint8_t framebuffer_green_mask_size;
-	// 			uint8_t framebuffer_blue_field_position;
-	// 			uint8_t framebuffer_blue_mask_size;
-	// 		} type_1;
-	// 	} color_info;
-	// } tag_align fb_info_tag;
-
-	struct {
-		uint32_t type;
-		uint32_t size;
-		uint64_t pointer;
-	} tag_align st_pointer;
-
-	struct {
-		uint32_t type;
-		uint32_t size;
-		char* str;
-	} tag_align cmd_line;
-
-	// Ending tag
-	struct {
-		uint16_t one;
-		uint16_t two;
-		uint32_t three;
 	} tag_align end_tag;
 } __attribute__((packed)) multiboot_hdr_t;
