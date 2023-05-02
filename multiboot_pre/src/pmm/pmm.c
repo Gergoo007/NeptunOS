@@ -23,7 +23,7 @@ void init_pmm(multiboot_tag_efi_mmap_t* mmap_tag) {
 	printk("Will zero %p\n\r", bm->address);
 	printk("Until %p\n\r", bm->address+bm->size);
 	// zero the bitmap
-	//memset(bm->address, 0, bm->size);
+	memset(bm->address, 0, bm->size);
 
 	// for (uint64_t i = 0; i < bm->size; i++) {
 	// 	*((uint8_t*)bm->address+i) = 0;
