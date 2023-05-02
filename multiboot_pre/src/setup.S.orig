@@ -95,73 +95,24 @@ set_up_page_tables:
 	mov [p4_table], eax
 
 	; map first P3 entry to P2 table
-	mov eax, p2_table_1
+	mov eax, p2_table
 	or eax, 0b11 ; present + writable
-	mov [p3_table + 0 * 8], eax
+	mov [p3_table], eax
 
-	; map second P3 entry to second P2 table
-	; (so on and so forth)
-	mov eax, p2_table_2
-	or eax, 0b11 ; present + writable
-	mov [p3_table + 1 * 8], eax
+	; map each P2 entry to a huge 2MiB page
+	mov ecx, 0         ; counter variable
 
-	mov eax, p2_table_3
-	or eax, 0b11 ; present + writable
-	mov [p3_table + 2 * 8], eax
-
-	mov eax, p2_table_4
-	or eax, 0b11 ; present + writable
-	mov [p3_table + 3 * 8], eax
-
-.map_p2_tables:
-	mov ecx, 0         ; reset counter
-.map_p2_1_table:
+.map_p2_table:
 	; map ecx-th P2 entry to a huge page that starts at address 2MiB*ecx
-	mov eax, 0x200000  ; 2MiB (0x200000 bytes)
-	mul ecx            ; start address of ecx-th page
-	or eax, 0b10000011 ; present + writable + huge
-	; eax is the page map entry
-	mov [p2_table_1 + ecx * 8], eax ; map ecx-th entry
-
-	inc ecx            ; increase counter
-	cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-	jne .map_p2_1_table  ; else map the next entry
-
-	mov ecx, 0         ; reset counter
-.map_p2_2_table:
 	mov eax, 0x200000  ; 2MiB
 	mul ecx            ; start address of ecx-th page
-	add eax, 1073742000 ; add 1G to the address
 	or eax, 0b10000011 ; present + writable + huge
-	mov [p2_table_2 + ecx * 8], eax ; map ecx-th entry
+	mov [p2_table + ecx * 8], eax ; map ecx-th entry
 
 	inc ecx            ; increase counter
 	cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-	jne .map_p2_2_table  ; else map the next entry
+	jne .map_p2_table  ; else map the next entry
 
-	mov ecx, 0         ; reset counter
-.map_p2_3_table:
-	mov eax, 0x200000  ; 2MiB
-	mul ecx            ; start address of ecx-th page
-	add eax, 2147484000 ; add 2G to the address
-	or eax, 0b10000011 ; present + writable + huge
-	mov [p2_table_3 + ecx * 8], eax ; map ecx-th entry
-
-	inc ecx            ; increase counter
-	cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-	jne .map_p2_3_table  ; else map the next entry
-
-	mov ecx, 0         ; reset counter
-.map_p2_4_table:
-	mov eax, 0x200000  ; 2MiB
-	mul ecx            ; start address of ecx-th page
-	add eax, 3221226000 ; add 3G to the address
-	or eax, 0b10000011 ; present + writable + huge
-	mov [p2_table_4 + ecx * 8], eax ; map ecx-th entry
-
-	inc ecx            ; increase counter
-	cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-	jne .map_p2_4_table  ; else map the next entry
 	ret
 
 enable_paging:
@@ -196,21 +147,13 @@ error:
 	mov byte  [0xb800a], al
 	hlt
 
-; One P2 table maps 1G of mem
-; 4 of them will map the entire 32 bit address space
 section .bss
 align 4096
 p4_table:
 	resb 4096
 p3_table:
 	resb 4096
-p2_table_1:
-	resb 4096
-p2_table_2:
-	resb 4096
-p2_table_3:
-	resb 4096
-p2_table_4:
+p2_table:
 	resb 4096
 stack_bottom:
 	resb 64

@@ -2,6 +2,25 @@
 
 #include "stdint.h"
 
+static const char* EFI_MEMORY_TYPE_STRINGS[] = {
+	"EfiReservedMemoryType",
+	"EfiLoaderCode",
+	"EfiLoaderData",
+	"EfiBootServicesCode",
+	"EfiBootServicesData",
+	"EfiRuntimeServicesCode",
+	"EfiRuntimeServicesData",
+	"EfiConventionalMemory",
+	"EfiUnusableMemory",
+	"EfiACPIReclaimMemory",
+	"EfiACPIMemoryNVS",
+	"EfiMemoryMappedIO",
+	"EfiMemoryMappedIOPortSpace",
+	"EfiPalCode",
+	"EfiPersistentMemory",
+	"EfiMaxMemoryType",
+};
+
 #define tag_align __attribute__((aligned(8)))
 
 #define MULTIBOOT_TAG_TYPE_END               0
