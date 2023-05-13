@@ -3,10 +3,12 @@
 #include "pmm/mmap.h"
 #include "pmm/pmm.h"
 #include "serial.h"
+#include "paging/paging.h"
 
 extern void* _binary_out_post_start;
-extern uint64_t _binary_out_post_size;
+extern u64 _binary_out_post_size;
 extern void* _binary_out_post_end;
+extern void* p4_table;
 
 tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 	// Magic
@@ -16,7 +18,7 @@ tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 	// Hdr length
 	sizeof(multiboot_hdr_t),
 	// Checksum (magic fields + checksum = 0)
-	(uint32_t)(0-0xE85250D6-0-sizeof(multiboot_hdr_t)),
+	(u32)(0-0xE85250D6-0-sizeof(multiboot_hdr_t)),
 
 	.fb_tag = {
 		5,		// Type
@@ -35,38 +37,47 @@ tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 };
 
 void c_main(multiboot_hdr_t* mbi) {
-	multiboot_tag_t* tag = (multiboot_tag_t*)((uint8_t*)mbi+8);
+	multiboot_tag_t* tag = (multiboot_tag_t*)((u8*)mbi+8);
 	
-	printk("Hello world! %s\n\r%d\n\r", "asdasd", 202);
 	multiboot_tag_framebuffer_t* fb_tag;
 	for (; tag->type != MULTIBOOT_TAG_TYPE_END;
-	tag = (multiboot_tag_t*) ((uint8_t*) tag + ((tag->size + 7) & ~7))) {
+	tag = (multiboot_tag_t*) ((u8*) tag + ((tag->size + 7) & ~7))) {
 		switch (tag->type) {
 			case MULTIBOOT_TAG_TYPE_EFI_MMAP: {
 				interpret_mmap((multiboot_tag_efi_mmap_t*)tag);
 				break;
 			}
-
 			case MULTIBOOT_TAG_TYPE_FRAMEBUFFER: {
 				fb_tag = (multiboot_tag_framebuffer_t*) tag;
-				printk("Found FB tag! (Type %d, %dx%d)\n\r", fb_tag->common.framebuffer_type,
-					fb_tag->common.framebuffer_width,fb_tag->common.framebuffer_height);
-				printk("FB located at %p\n\r", fb_tag->common.framebuffer_addr);
-
 				break;
 			}
 		}
-		printk("New tag: %d\n\r", tag->type);
 	}
 
 	// If the program didn't froze, there should be a white square on the screen
-	for (uint8_t x = 0; x < 100; x++) {
-		for (uint8_t y = 0; y < 100; y++) {
-			*((uint32_t*) (((uint64_t) fb_tag->common.framebuffer_addr) + fb_tag->common.framebuffer_pitch*y + (fb_tag->common.framebuffer_bpp/8)*x)) = 0x00ffffff;
+	for (u8 x = 0; x < 100; x++) {
+		for (u8 y = 0; y < 100; y++) {
+			*((u32*) (((u64) fb_tag->common.framebuffer_addr) + fb_tag->common.framebuffer_pitch*y + (fb_tag->common.framebuffer_bpp/8)*x)) = 0x00ffffff;
 		}
 	}
 
-	while(1);
+	__asm__("movq $0xC0000011, %rax");
+	__asm__("mov %rax, %cr0");
+
+	__asm__("movq $0x00000768, %rax");
+	__asm__("movq %rax, %cr4");
+
+	setup_paging();
+
+	// Kernel is to be loaded at 0xFFFFFF8000000000
+	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)&_binary_out_post_start;
+	if (memcmp(ehdr->e_ident, "\127ELF", 3)) {
+		printk("Kernel found!\n\r");
+	} else {
+		printk("No kernel found!\n\r");
+	}
+
+	__asm__("cli\n hlt");
 }
 
 void __stack_chk_fail() {}

@@ -84,105 +84,105 @@ typedef enum {
 } EFI_MEMORY_TYPE;
 
 typedef struct multiboot_fb_info_tag_t {
-	uint32_t type;
-	uint32_t size;
+	u32 type;
+	u32 size;
 } __attribute__((packed)) multiboot_fb_info_tag_t;
 
 typedef struct multiboot_tag_t {
-	uint32_t type;
-	uint32_t size;
+	u32 type;
+	u32 size;
 } __attribute__((packed)) multiboot_tag_t;
 
 struct multiboot_tag_framebuffer_common {
-	uint32_t type;
-	uint32_t size;
+	u32 type;
+	u32 size;
 
-	uint64_t framebuffer_addr;
-	uint32_t framebuffer_pitch;
-	uint32_t framebuffer_width;
-	uint32_t framebuffer_height;
-	uint8_t framebuffer_bpp;
+	u64 framebuffer_addr;
+	u32 framebuffer_pitch;
+	u32 framebuffer_width;
+	u32 framebuffer_height;
+	u8 framebuffer_bpp;
 	#define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED 0
 	#define MULTIBOOT_FRAMEBUFFER_TYPE_RGB     1
 	#define MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT     2
-	uint8_t framebuffer_type;
-	uint16_t reserved;
+	u8 framebuffer_type;
+	u16 reserved;
 };
 
 struct multiboot_color {
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
+	u8 red;
+	u8 green;
+	u8 blue;
 };
 
 typedef struct multiboot_tag_framebuffer {
 	struct multiboot_tag_framebuffer_common common;
 	union {
 		struct {
-			uint16_t framebuffer_palette_num_colors;
+			u16 framebuffer_palette_num_colors;
 			struct multiboot_color framebuffer_palette[0];
 		};
 		struct {
-			uint8_t framebuffer_red_field_position;
-			uint8_t framebuffer_red_mask_size;
-			uint8_t framebuffer_green_field_position;
-			uint8_t framebuffer_green_mask_size;
-			uint8_t framebuffer_blue_field_position;
-			uint8_t framebuffer_blue_mask_size;
+			u8 framebuffer_red_field_position;
+			u8 framebuffer_red_mask_size;
+			u8 framebuffer_green_field_position;
+			u8 framebuffer_green_mask_size;
+			u8 framebuffer_blue_field_position;
+			u8 framebuffer_blue_mask_size;
 		};
 	};
 } multiboot_tag_framebuffer_t;
 
 typedef struct multiboot_mmap_entry {
-	uint64_t base_addr;
-	uint64_t length;
-	uint32_t type;
-	uint32_t reserved;
+	u64 base_addr;
+	u64 length;
+	u32 type;
+	u32 reserved;
 } multiboot_mmap_entry_t;
 
 typedef struct multiboot_tag_mmap {
-	uint32_t type;
-	uint32_t size;
-	uint32_t entry_size;
-	uint32_t entry_version;
+	u32 type;
+	u32 size;
+	u32 entry_size;
+	u32 entry_version;
 	multiboot_mmap_entry_t first[1];
 } multiboot_tag_mmap_t;
 
 typedef struct multiboot_hdr_t {
-	uint32_t magic;
-	uint32_t arch;
-	uint32_t hdr_length;
-	uint32_t checksum;
+	u32 magic;
+	u32 arch;
+	u32 hdr_length;
+	u32 checksum;
 
 	struct {
-		uint16_t type;
-		uint16_t flags;
-		uint32_t size;
-		uint32_t width;
-		uint32_t height;
-		uint32_t depth;
+		u16 type;
+		u16 flags;
+		u32 size;
+		u32 width;
+		u32 height;
+		u32 depth;
 	} fb_tag;
 
 	struct {
-		uint16_t one;
-		uint16_t two;
-		uint32_t three;
+		u16 one;
+		u16 two;
+		u32 three;
 	} end_tag;
 } __attribute__((packed)) multiboot_hdr_t;
 
 typedef struct {
-	uint32_t type;
-	uint32_t pad;
-	uint64_t phys;
-	uint64_t virt;
-	uint64_t num_pages;
-	uint64_t attr;
+	u32 type;
+	u32 pad;
+	u64 phys;
+	u64 virt;
+	u64 num_pages;
+	u64 attr;
 } efi_mem_desc_t;
 
 typedef struct {
-	uint32_t type;
-	uint32_t size;
-	uint32_t descr_size;
-	uint32_t descr_vers;
+	u32 type;
+	u32 size;
+	u32 descr_size;
+	u32 descr_vers;
 	efi_mem_desc_t efi_mmap[];
 } multiboot_tag_efi_mmap_t;

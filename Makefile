@@ -1,7 +1,7 @@
 .PHONY: all clean link build pack uefi run
 
-CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17
-LDFLAGS := -n -T src/link.ld
+CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 -g -O0
+LDFLAGS := -n -T src/link.ld -g
 
 RAMSIZE ?= 2G
 QEMU_ARGS ?= -smp 1 -m $(RAMSIZE) \
@@ -41,3 +41,9 @@ uefi:
 
 run:
 	qemu-system-x86_64 $(QEMU_ARGS)
+
+debug_uefi:
+	qemu-system-x86_64 -bios ovmf/OVMF_CODE.fd $(QEMU_ARGS) -s -S
+
+debug:
+	qemu-system-x86_64 $(QEMU_ARGS) -s -S

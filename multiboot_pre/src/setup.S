@@ -3,6 +3,7 @@
 ;
 
 global onboot
+global p4_table
 
 extern c_main
 
@@ -198,6 +199,7 @@ error:
 
 ; One P2 table maps 1G of mem
 ; 4 of them will map the entire 32 bit address space
+; Kernel will be mapped at 0xFFFF800000000000
 section .bss
 align 4096
 p4_table:

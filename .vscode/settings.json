@@ -4,4 +4,5 @@
 		"-I${workspaceFolder}/multiboot_pre/src",
 	],
 	"discord.enabled": false,
+	"debug.onTaskErrors": "debugAnyway",
 }

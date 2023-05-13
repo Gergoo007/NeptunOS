@@ -24,8 +24,7 @@ out/%.s.o: src/%.S
 	nasm -felf64 $^ -o $@
 
 link: clean $(C_OBJ) $(ASM_OBJ)
-# out/payload.o
-	ld $(LDFLAGS) $(ASM_OBJ) $(C_OBJ) -o out/carrier.elf
+	ld $(LDFLAGS) $(ASM_OBJ) $(C_OBJ) out/payload.o -o out/carrier.elf
 	cp out/carrier.elf ../iso_content/kernel.elf
 
 build: link

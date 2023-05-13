@@ -1,11 +1,11 @@
 #include "stdint.h"
 
-char* uint_to_str(uint64_t value, char* result, int base) {
+char* uint_to_str(u64 value, char* result, int base) {
 	// check that the base if valid
 	if (base < 2 || base > 36) { *result = '\0'; return result; }
 
 	char* ptr = result, *ptr1 = result, tmp_char;
-	uint64_t tmp_value;
+	u64 tmp_value;
 
 	do {
 			tmp_value = value;
@@ -24,12 +24,12 @@ char* uint_to_str(uint64_t value, char* result, int base) {
 	return result;
 }
 
-char* int64_to_str(int64_t value, char* result, int base) {
+char* int64_to_str(i64 value, char* result, int base) {
 	// check that the base if valid
 	if (base < 2 || base > 36) { *result = '\0'; return result; }
 
 	char* ptr = result, *ptr1 = result, tmp_char;
-	int64_t tmp_value;
+	i64 tmp_value;
 
 	do {
 		tmp_value = value;
@@ -48,17 +48,24 @@ char* int64_to_str(int64_t value, char* result, int base) {
 	return result;
 }
 
-void* memcpy(void* dest, const void* src, size_t n) {
+void* memcpy(void* p, const void* src, size_t n) {
 	for (size_t i = 0; i < n; i++) {
-		*((uint8_t*)dest++) = *((uint8_t*)src++);
+		*((u8*)p++) = *((u8*)src++);
 	}
-	return dest;
+	return p;
 }
 
-void* memset(void* s, int c, size_t len) {
-	uint32_t* p = s;
-	while(len--) {
-		*p++ = (uint32_t)c;
+void* memset(void* p, int c, size_t n) {
+	for (; n; n--, p++)
+		*(u32*)p = c;
+
+	return p;
+}
+
+int memcmp(const void* one, const void* two, size_t n) {
+	for (; n; n--) {
+		if (((u8*)one)[n] != ((u8*)two)[n])
+			return 0;
 	}
-	return s;
+	return 1;
 }
