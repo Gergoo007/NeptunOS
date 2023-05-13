@@ -36,6 +36,8 @@ tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 	},
 };
 
+typedef u8 (*kentry)();
+
 void c_main(multiboot_hdr_t* mbi) {
 	multiboot_tag_t* tag = (multiboot_tag_t*)((u8*)mbi+8);
 	
@@ -76,6 +78,29 @@ void c_main(multiboot_hdr_t* mbi) {
 	} else {
 		printk("No kernel found!\n\r");
 	}
+
+	Elf64_Phdr* phdrs = (Elf64_Phdr*)((u8*)ehdr + ehdr->e_phoff);
+
+	for (
+		Elf64_Phdr* phdr = phdrs;
+		(u8*)phdr < (u8*)phdrs + ehdr->e_phnum*ehdr->e_phentsize;
+		phdr = (Elf64_Phdr*)((u8*)phdr + ehdr->e_phentsize)
+	) {
+		if (phdr->p_type == PT_LOAD) {
+			printk("%d pages\n\r", phdr->p_memsz);
+			for (u16 page = 0; page*0x1000 < phdr->p_memsz; page++) {
+				void* page_p = request_page();
+				printk("%p -> %p\n\r", (void*)phdr->p_vaddr+(page*0x1000), page_p);
+				map_page((void*)phdr->p_vaddr+(page*0x1000), page_p, MAP_FLAGS_DEFAULTS);
+			}
+
+			memcpy((void*)phdr->p_vaddr, (void*)ehdr + phdr->p_offset, phdr->p_memsz);
+		}
+	}
+
+	printk("Kernel loaded...\n\r");
+	printk("Exiting to kernel...\n\r");
+	printk("Kernel returned: %d\n\r", ((kentry)ehdr->e_entry)());
 
 	__asm__("cli\n hlt");
 }

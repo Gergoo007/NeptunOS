@@ -1,7 +1,7 @@
 .PHONY: all clean link build pack uefi run
 
-CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17
-LDFLAGS := -n -T src/link.ld
+CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 -O0 -ggdb3
+LDFLAGS := -n -T src/link.ld -g
 
 ASM_SRC := $(shell find . -name '*.S' -type f)
 ASM_OBJ = $(patsubst ./src/%.S, out/%.s.o, $(ASM_SRC))

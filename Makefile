@@ -1,7 +1,7 @@
 .PHONY: all clean link build pack uefi run
 
-CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 -g -O0
-LDFLAGS := -n -T src/link.ld -g
+CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 -O0
+LDFLAGS := -n -T src/link.ld
 
 RAMSIZE ?= 2G
 QEMU_ARGS ?= -smp 1 -m $(RAMSIZE) \

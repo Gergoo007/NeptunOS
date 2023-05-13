@@ -75,6 +75,8 @@ void map_page(void* virtual_address, void* physical_address, u16 _flags) {
 	pde.address = ((u64)physical_address >> 12);
 	pde.flags = _flags;
 	pt->entries[pt_i] = pde;
+
+	__asm__ volatile ("invlpg (%0)" :: "b"(virtual_address) : "memory");
 }
 
 void map_region(void* virtual_address, void* physical_address, u64 pages, u16 _flags) {
