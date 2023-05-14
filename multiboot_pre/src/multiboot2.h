@@ -2,6 +2,10 @@
 
 #include "stdint.h"
 
+extern void* fb_base;
+extern void* PSTART;
+extern void* PEND;
+
 static const char* EFI_MEMORY_TYPE_STRINGS[] = {
 	"EfiReservedMemoryType",
 	"EfiLoaderCode",
@@ -82,11 +86,6 @@ typedef enum {
 	EfiPersistentMemory,
 	EfiMaxMemoryType
 } EFI_MEMORY_TYPE;
-
-typedef struct multiboot_fb_info_tag_t {
-	u32 type;
-	u32 size;
-} __attribute__((packed)) multiboot_fb_info_tag_t;
 
 typedef struct multiboot_tag_t {
 	u32 type;
@@ -186,3 +185,6 @@ typedef struct {
 	u32 descr_vers;
 	efi_mem_desc_t efi_mmap[];
 } multiboot_tag_efi_mmap_t;
+
+extern multiboot_hdr_t* mbi;
+extern u64 mb_hdr_length;

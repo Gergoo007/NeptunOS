@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdint.h"
+#include <neptunos/libk/stdint.h>
 
 static const char* EFI_MEMORY_TYPE_STRINGS[] = {
 	"EfiReservedMemoryType",

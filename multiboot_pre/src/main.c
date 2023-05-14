@@ -5,10 +5,14 @@
 #include "serial.h"
 #include "paging/paging.h"
 
-extern void* _binary_out_post_start;
-extern u64 _binary_out_post_size;
-extern void* _binary_out_post_end;
+extern void* _binary_out_kernel_start;
+extern u64 _binary_out_kernel_size;
+extern void* _binary_out_kernel_end;
 extern void* p4_table;
+multiboot_tag_framebuffer_t* fb_tag;
+void* fb_base;
+u64 mb_hdr_length = 0;
+multiboot_hdr_t* mbi;
 
 tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 	// Magic
@@ -36,14 +40,31 @@ tag_align __attribute__((section(".multiboot"))) multiboot_hdr_t header = {
 	},
 };
 
-typedef u8 (*kentry)();
+typedef struct {
+	multiboot_hdr_t* mb;
+	struct {
+		u64 total;
+		u64 free;
+		u64 used;
+		u64 reserved;
+		void* heap_base;
+		u64 heap_size;
+	} mem_stats;
+	struct {
+		void* kernel_addr;
+	} kernel_stats;
+} __attribute__((packed)) boot_info_t;
 
-void c_main(multiboot_hdr_t* mbi) {
+typedef u8 (*kentry)(boot_info_t* mbi);
+
+void c_main(multiboot_hdr_t* _mbi) {
+	mbi = _mbi;
 	multiboot_tag_t* tag = (multiboot_tag_t*)((u8*)mbi+8);
-	
-	multiboot_tag_framebuffer_t* fb_tag;
+
 	for (; tag->type != MULTIBOOT_TAG_TYPE_END;
 	tag = (multiboot_tag_t*) ((u8*) tag + ((tag->size + 7) & ~7))) {
+		mb_hdr_length += tag->size;
+
 		switch (tag->type) {
 			case MULTIBOOT_TAG_TYPE_EFI_MMAP: {
 				interpret_mmap((multiboot_tag_efi_mmap_t*)tag);
@@ -51,17 +72,13 @@ void c_main(multiboot_hdr_t* mbi) {
 			}
 			case MULTIBOOT_TAG_TYPE_FRAMEBUFFER: {
 				fb_tag = (multiboot_tag_framebuffer_t*) tag;
+				fb_base = (void*)fb_tag->common.framebuffer_addr;
 				break;
 			}
 		}
 	}
 
-	// If the program didn't froze, there should be a white square on the screen
-	for (u8 x = 0; x < 100; x++) {
-		for (u8 y = 0; y < 100; y++) {
-			*((u32*) (((u64) fb_tag->common.framebuffer_addr) + fb_tag->common.framebuffer_pitch*y + (fb_tag->common.framebuffer_bpp/8)*x)) = 0x00ffffff;
-		}
-	}
+	__asm__ volatile("cli");
 
 	__asm__("movq $0xC0000011, %rax");
 	__asm__("mov %rax, %cr0");
@@ -72,7 +89,7 @@ void c_main(multiboot_hdr_t* mbi) {
 	setup_paging();
 
 	// Kernel is to be loaded at 0xFFFFFF8000000000
-	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)&_binary_out_post_start;
+	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)&_binary_out_kernel_start;
 	if (memcmp(ehdr->e_ident, "\127ELF", 3)) {
 		printk("Kernel found!\n\r");
 	} else {
@@ -90,7 +107,6 @@ void c_main(multiboot_hdr_t* mbi) {
 			printk("%d pages\n\r", phdr->p_memsz);
 			for (u16 page = 0; page*0x1000 < phdr->p_memsz; page++) {
 				void* page_p = request_page();
-				printk("%p -> %p\n\r", (void*)phdr->p_vaddr+(page*0x1000), page_p);
 				map_page((void*)phdr->p_vaddr+(page*0x1000), page_p, MAP_FLAGS_DEFAULTS);
 			}
 
@@ -98,9 +114,19 @@ void c_main(multiboot_hdr_t* mbi) {
 		}
 	}
 
+	printk("pitch: %d\n\r", fb_tag->common.framebuffer_pitch);
+
+	boot_info_t* info = request_page();
+	info->mb = mbi;
+	info->mem_stats.free = free_mem;
+	info->mem_stats.used = used_mem;
+	info->mem_stats.reserved = reserved_mem;
+	info->mem_stats.heap_base = heap_base;
+	info->mem_stats.heap_size = heap_size;
+
 	printk("Kernel loaded...\n\r");
 	printk("Exiting to kernel...\n\r");
-	printk("Kernel returned: %d\n\r", ((kentry)ehdr->e_entry)());
+	printk("Kernel returned: %d\n\r", ((kentry)ehdr->e_entry)(info));
 
 	__asm__("cli\n hlt");
 }

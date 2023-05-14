@@ -1,15 +1,22 @@
 #include "serial.h"
 
+#define SERIAL_DEBUG
+
 void debug_putc(const char c) {
+	#ifdef SERIAL_DEBUG
 	__asm__ volatile("outb %0, %1" :: "a"(c), "d"(0x3f8));
+	#endif
 }
 
 void debug_puts(const char* str) {
+	#ifdef SERIAL_DEBUG
 	while (*str != '\0')
 		debug_putc(*str++);
+	#endif
 }
 
 void printk(char* fmt, ...) {
+	#ifdef SERIAL_DEBUG
 	va_list arg_list;
 	va_start(arg_list, fmt);
 	while(*fmt != '\0') {
@@ -113,4 +120,5 @@ void printk(char* fmt, ...) {
 		fmt++;
 	}
 	va_end(arg_list);
+	#endif
 }

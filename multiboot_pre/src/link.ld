@@ -7,6 +7,7 @@ SECTIONS {
 	}
 
 	. = 1M;
+	PSTART = .;
 
 	.text ALIGN(4K) : AT(ADDR(.text)) {
 		*(.text)
@@ -17,4 +18,6 @@ SECTIONS {
 	.bss ALIGN(4K) : AT(ADDR(.bss)) {
 		*(.bss)
 	}
+
+	PEND = .;
 }

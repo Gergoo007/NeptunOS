@@ -1,7 +1,7 @@
 .PHONY: all clean link build pack uefi run
 
-CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 -O0 -ggdb3
-LDFLAGS := -n -T src/link.ld -g
+_CFLAGS := -c -nostdinc -nostdlib -ffreestanding -Isrc -std=c17 $(CFLAGS)
+_LDFLAGS := -n -T src/link.ld $(LDFLAGS)
 
 ASM_SRC := $(shell find . -name '*.S' -type f)
 ASM_OBJ = $(patsubst ./src/%.S, out/%.s.o, $(ASM_SRC))
@@ -18,13 +18,13 @@ clean:
 	@rsync -a --include='*/' --exclude='*' src/ out/
 
 out/%.c.o: src/%.c
-	gcc $(CFLAGS) -xc $^ -o $@
+	gcc $(_CFLAGS) -xc $^ -o $@
 
 out/%.s.o: src/%.S
 	nasm -felf64 $^ -o $@
 
 link: clean $(C_OBJ) $(ASM_OBJ)
-	ld $(LDFLAGS) $(ASM_OBJ) $(C_OBJ) out/payload.o -o out/carrier.elf
+	ld $(_LDFLAGS) $(ASM_OBJ) $(C_OBJ) out/payload.o -o out/carrier.elf
 	cp out/carrier.elf ../iso_content/kernel.elf
 
 build: link

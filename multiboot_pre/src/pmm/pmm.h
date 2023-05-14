@@ -4,6 +4,10 @@
 
 typedef u64 size_t;
 
+extern u64 free_mem;
+extern u64 used_mem;
+extern u64 reserved_mem;
+
 typedef struct bitmap_t {
 	void* address;
 	u64 size;
