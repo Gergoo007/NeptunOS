@@ -1,17 +1,31 @@
+#include <neptunos/tables/interrupts.h>
 #include <neptunos/tables/idt.h>
 
-idtr idt;
-
-void set_offset(uint64_t offset, idt_desc_entry* entry) {
-	entry->offset0 = (uint16_t)(offset & 0x000000000000ffff);
-	entry->offset1 = (uint16_t)((offset & 0x00000000ffff0000) >> 16);
-	entry->offset2 = (uint32_t)((offset & 0xffffffff00000000) >> 32);
+void idt_add_handler(idt_desc_t* idt, void (*handler)(struct interrupt_frame*)) {
+	idt_desc_t* entry = &idt[0xe];
+	entry->offs0 = (u64)handler & 0xffff;
+	entry->offs1 = ((u64)handler >> 16) & 0xffff;
+	entry->offs2 = ((u64)handler) >> 32;
+	entry->dpl = 0;
+	entry->p = 1;
+	entry->gate_type = 0xe;
+	entry->ist = 0;
+	entry->ss = 0x8;
 }
 
-uint64_t get_offset(idt_desc_entry* entry) {
-	register uint64_t offset = 0;
-	offset |= (uint64_t)entry->offset0;
-	offset |= (uint64_t)entry->offset1 << 16;
-	offset |= (uint64_t)entry->offset2 << 32;
-	return offset;
+void idt_init(void) {
+	const u32 idt_size = sizeof(idt_desc_t) * 256;
+	// The IDT consists of 256 descriptors
+	idt_desc_t* idt = request_pages(idt_size/0x1000);
+	memset(idt, 0, idt_size);
+
+	idt_add_handler(idt, double_flt_handler);
+
+	{
+		idtr_t idtr;
+		idtr.addr = (u64)idt;
+		idtr.limit = sizeof(idt_desc_t)*256-1;
+
+		asm volatile("lidt %0" :: "m"(idtr));
+	}
 }

@@ -1,7 +1,10 @@
 #pragma once
 
-#include "neptunos/config/attributes.h"
+#include <neptunos/config/attributes.h>
+#include <neptunos/tables/idt.h>
+
 struct interrupt_frame;
+
 _attr_int void page_flt_handler(struct interrupt_frame* frame);
 _attr_int void double_flt_handler(struct interrupt_frame* frame);
 _attr_int void invalid_opcode_flt_handler(struct interrupt_frame* frame);

@@ -48,6 +48,7 @@ void lock_page(void* address, uint64_t count);
 void reserve_page(void* address, uint64_t count);
 void unreserve_page(void* address, uint64_t count);
 void* request_page(void);
+void* request_pages(u32 pages);
 
 void* malloc(uint64_t size_in_bytes);
 // Use it carefully as overflow is not accounted for

@@ -52,7 +52,4 @@ kernel: $(COBJ) $(SOBJ) out/obj/font.o
 	$(LD) $(_LDFLAGS) $^ -o out/kernel
 	ld -r -b binary -o ../multiboot_pre/out/payload.o out/kernel
 
-no_debug: k_all
-	strip out/kernel
-
 .PHONY: kernel k_all objdir k_clean no_debug

@@ -111,10 +111,19 @@ void c_main(multiboot_hdr_t* _mbi) {
 			}
 
 			memcpy((void*)phdr->p_vaddr, (void*)ehdr + phdr->p_offset, phdr->p_memsz);
+			
+			if (phdr->p_memsz > phdr->p_filesz) {
+				// Set the remaining bytes to 0, as per the ELF specification
+				u32 remaining = phdr->p_memsz - phdr->p_filesz;
+				memset((void*)(phdr->p_vaddr + phdr->p_memsz), 0, remaining);
+				printk("Possible BSS at %p - %p\n\r", phdr->p_vaddr+phdr->p_memsz, phdr->p_vaddr+phdr->p_memsz+remaining);
+				printk("Setting %d bytes for it...\n\r", remaining);
+			}
 		}
 	}
 
-	printk("pitch: %d\n\r", fb_tag->common.framebuffer_pitch);
+	printk("a50a4: %04x\n", *(u32*)0xffffff80000a50a4);
+	// memset((void*)0xffffff80000a50a4, 0, 4);
 
 	boot_info_t* info = request_page();
 	info->mb = mbi;

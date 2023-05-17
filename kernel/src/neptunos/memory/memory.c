@@ -97,6 +97,14 @@ void* request_page(void) {
 	return NULL;
 }
 
+void* request_pages(u32 pages) {
+	void* ret = request_page();
+	pages--;
+	for (; pages; pages--)
+		request_page();
+	return ret;
+}
+
 uint8_t bm_get(uint64_t page) {
 	uint64_t byteIndex = page / 8;
 	uint8_t bitIndex = page % 8;

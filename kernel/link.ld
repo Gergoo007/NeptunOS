@@ -16,9 +16,11 @@ SECTIONS {
 	.rodata ALIGN(4K) : AT(ADDR(.rodata)) {
 		*(.*rodata)
 	}
-
+	
 	.bss ALIGN(4K) : AT(ADDR(.bss)) {
+		BSS_START = .;
 		*(.bss)
+		BSS_END = .;
 	}
 
 	KEND = .;

@@ -112,16 +112,16 @@ char* uint_to_str(uint64_t value, char* result, int base) {
 	return result;
 }
 
-void* memcpy(void* dest, const void* src, size_t n) {
-	for (; n; n--)
-		*((uint8_t*)dest++) = *((uint8_t*)src++);
+// void* memcpy(void* dest, const void* src, size_t n) {
+// 	for (; n; n--)
+// 		*((uint8_t*)dest++) = *((uint8_t*)src++);
 	
-	return dest;
-}
+// 	return dest;
+// }
 
 void* memset(void* dest, const int src, size_t n) {
-	for (; n; n--)
-		*((uint8_t*)dest++) = src;
+	for (; n; n--, dest++)
+		*((uint32_t*)dest) = src;
 
 	return dest;
 }

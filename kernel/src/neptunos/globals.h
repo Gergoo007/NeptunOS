@@ -22,5 +22,7 @@ extern bitmap_t bm;
 
 extern void* KSTART;
 extern void* KEND;
+// extern void* BSS_START;
+// extern void* BSS_END;
 
 extern void __stack_chk_fail(void);

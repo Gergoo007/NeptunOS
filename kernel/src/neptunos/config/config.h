@@ -14,4 +14,4 @@
 #define DEBUG_REPORTS
 
 // Define this for serial logging
-// #define SERIAL_DEBUG
+#define SERIAL_DEBUG

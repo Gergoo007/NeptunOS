@@ -1,9 +1,11 @@
 #include <neptunos/graphics/text_renderer.h>
 
-uint32_t color_stack, current_color = 0xd8d8d8d8;
-uint32_t background_color = 0x00000000;
+u32 color_stack = 0x00000000;
+u32 background_color = 0x00000000;
+u32 current_color = 0xd8d8d8d8;
 
-uint16_t cursor_x = 0, cursor_y = 0;
+u16 cursor_x = 0;
+u16 cursor_y = 0;
 
 extern void _printk(const char *restrict fmt, va_list arg_list);
 
@@ -90,7 +92,7 @@ void _printk(const char *restrict fmt, va_list arg_list) {
 					break;
 				case 'p': {
 					char testbuf[17];
-					fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
+					fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 16, 1);
 					render_string(testbuf);
 					break;
 				}

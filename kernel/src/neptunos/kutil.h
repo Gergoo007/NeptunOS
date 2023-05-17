@@ -25,10 +25,10 @@
 
 #include <neptunos/cpuid/cpuid.h>
 
-extern idtr idt;
 extern uint16_t get_processor_id(void);
 
 void kinit(void);
 
 extern volatile unsigned char _binary_font_psf_start;
+extern volatile unsigned char _binary_font_psf_end;
 

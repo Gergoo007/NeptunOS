@@ -2,27 +2,27 @@
 
 #include <neptunos/libk/stdint.h>
 #include <neptunos/config/attributes.h>
+#include <neptunos/globals.h>
 
-#define IDT_TA_INTERRUPT_GATE 	0b10001110
-#define IDT_TA_CALL_GATE 		0b10001100
-#define IDT_TA_TRAP_GATE 		0b10001111
-
-typedef struct idt_desc_entry {
-	uint16_t offset0;
-	uint16_t selector;
-	uint8_t ist; // interrupt stack table
-	uint8_t attrib;
-	uint16_t offset1;
-	uint32_t offset2;
-	uint32_t none;
-} idt_desc_entry;
+typedef struct idt_desc {
+	u16 offs0;
+	u16 ss;
+	u8 ist : 3;
+	u8 : 5;
+	u8 gate_type : 4;
+	u8 : 1;
+	u8 dpl : 2;
+	u8 p : 1;
+	u16 offs1;
+	u32 offs2;
+	u32 : 32;
+} _attr_packed idt_desc_t;
 
 typedef struct idtr {
-	uint16_t limit;
-	uint16_t offset;
-} _attr_packed idtr;
+	u16 limit; // size - 1
+	u64 addr;
+} _attr_packed idtr_t;
 
-extern idtr idt;
+extern idtr_t idtr;
 
-void set_offset(uint64_t offset, idt_desc_entry* entry);
-uint64_t get_offset(idt_desc_entry* entry);
+void idt_init(void);

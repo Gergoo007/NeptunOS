@@ -3,7 +3,7 @@
 RAMSIZE ?= 2G
 QEMU_ARGS ?= -smp 1 -m $(RAMSIZE) \
 	-net none -no-reboot -no-shutdown \
-	-cdrom out.iso -enable-kvm
+	-cdrom out.iso
 
 all: _kernel preloader pack uefi
 

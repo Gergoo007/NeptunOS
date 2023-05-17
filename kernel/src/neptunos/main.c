@@ -1,23 +1,18 @@
 #include <neptunos/kutil.h>
 
-// Experimnetal memcpy (WIP)
-void* memcpyx(void* p, const void* src, size_t n) {
-	// Move data using ymm0 (256-bit reg)
-	if(n > 32) {
-		__asm__ volatile("movups %0, %%xmm0" :: "m"(p));
-	}
-
-	return p;
-}
+extern void BSS_START;
+extern void BSS_END;
 
 uint8_t kmain(boot_info_t* _inf) {
+	memset(&BSS_START, 0, &BSS_END - &BSS_START);
 	info = _inf;
 	kinit();
+
+	printk("BSS: %p - %p\n", &BSS_START, &BSS_END);
+
 	#ifdef USE_DOUBLE_BUFFERING
 		sync_back_buffer();
 	#endif
-
-	
 
 	printk("Free: %ud MiB; Used: %ud MiB; Reserved: %ud MiB\n", bytes_mib(free_mem), bytes_mib(used_mem), bytes_mib(reserved_mem));
 	text_color_push(0x0000ff00);
