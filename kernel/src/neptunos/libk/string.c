@@ -119,12 +119,12 @@ char* uint_to_str(uint64_t value, char* result, int base) {
 // 	return dest;
 // }
 
-void* memset(void* dest, const int src, size_t n) {
-	for (; n; n--, dest++)
-		*((uint32_t*)dest) = src;
+// void* memset(void* dest, const int src, size_t n) {
+// 	for (; n; n--, dest++)
+// 		*((uint32_t*)dest) = src;
 
-	return dest;
-}
+// 	return dest;
+// }
 
 uint8_t strncmp(char* str1, char* str2, uint16_t len) {
 	uint8_t result = 0;
