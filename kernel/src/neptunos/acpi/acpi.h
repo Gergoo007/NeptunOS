@@ -3,6 +3,22 @@
 #include <neptunos/globals.h>
 #include <neptunos/graphics/text_renderer.h>
 
+typedef struct rsdp_t {
+	char signature[8];
+	u8 checksum;
+	char oem_id[6];
+	u8 revision;
+	u32 rsdt_addr;
+} _attr_packed rsdp_t;
+
+typedef struct xsdp_t {
+	rsdp_t common;
+	u32 length;
+	u64 xsdt_addr;
+	u8 checksum;
+	u8 reserved[3];
+} _attr_packed xsdp_t;
+
 typedef struct sdt_hdr_t {
 	char signature[4];
 	uint32_t length;
@@ -29,6 +45,7 @@ typedef struct mcfg_hdr_t {
 } _attr_packed mcfg_hdr_t;
 
 extern sdt_hdr_t* xsdt;
+extern xsdp_t* xsdp;
 extern mcfg_hdr_t* mcfg;
 
 void init_acpi(void);

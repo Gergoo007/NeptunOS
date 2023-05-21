@@ -5,6 +5,8 @@
 
 struct interrupt_frame;
 
+extern u64 int_handlers[][2];
+
 _attr_int void page_flt_handler(struct interrupt_frame* frame);
 _attr_int void double_flt_handler(struct interrupt_frame* frame);
 _attr_int void invalid_opcode_flt_handler(struct interrupt_frame* frame);

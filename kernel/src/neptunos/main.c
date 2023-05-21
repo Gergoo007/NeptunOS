@@ -8,8 +8,6 @@ uint8_t kmain(boot_info_t* _inf) {
 	info = _inf;
 	kinit();
 
-	printk("BSS: %p - %p\n", &BSS_START, &BSS_END);
-
 	#ifdef USE_DOUBLE_BUFFERING
 		sync_back_buffer();
 	#endif

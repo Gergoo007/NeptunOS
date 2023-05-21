@@ -1,5 +1,6 @@
 #pragma once
 
+#include <neptunos/config/attributes.h>
 #include <neptunos/libk/stdint.h>
 
 static const char* EFI_MEMORY_TYPE_STRINGS[] = {
@@ -186,3 +187,9 @@ typedef struct {
 	u32 descr_vers;
 	efi_mem_desc_t efi_mmap[];
 } multiboot_tag_efi_mmap_t;
+
+typedef struct multiboot_tag_acpi_new_t {
+	u32 type;
+	u32 size;
+	u8 rsdp[0];
+} _attr_packed multiboot_tag_acpi_new_t;

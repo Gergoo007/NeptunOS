@@ -1,17 +1,8 @@
 #include <neptunos/kutil.h>
 
 void setup_paging(void) {
-	pml4 = (page_map_level*) request_page();
-	memset(pml4, 0, 0x1000);
-
-	// Identity map the whole physical memory
-	map_region(0, 0, total_mem / 0x1000, MAP_FLAGS_DEFAULTS);
-
-	// Identity map the framebuffer so it doesn't break
-	// map_region(fb_base,
-	// 	fb_base, bootboot.fb_size/0x1000, MAP_FLAGS_IO_DEFAULTS);
-
-	asm("mov %0, %%cr3" :: "r" (pml4));
+	asm volatile("movq %cr3, %rax");
+	asm volatile("movq %%rax, %0" : "=m"(pml4));
 }
 
 void setup_font(void) {
@@ -57,18 +48,20 @@ void kinit(void) {
 					screen.fb_base, screen.width, screen.height, screen.pitch, screen.bpp);
 				break;
 			}
+			case MULTIBOOT_TAG_TYPE_ACPI_NEW: {
+				multiboot_tag_acpi_new_t* acpi_tag = (multiboot_tag_acpi_new_t*) tag;
+				xsdp = (xsdp_t*)acpi_tag->rsdp;
+				break;
+			}
 		}
 	}
+
 
 	setup_font();
 	cursor_x = cursor_y = 0;
 
-	printk("Setting stack...\n");
-
 	// void* stack_base = malloc(mib_bytes(4));
 	// asm("movq %0, %%rsp" : "=r" (stack_base));
-
-	printk("Better stack done\n");
 
 	#ifdef USE_DOUBLE_BUFFERING
 		setup_back_buffer();
@@ -81,14 +74,14 @@ void kinit(void) {
 
 	idt_init();
 
-	// // setup_paging();
+	setup_paging();
 
 	// // remap_pic(0x20, 0x28);
 	// // Unmask interrupts
 	// // outb(0b11111100, PIC_M_DATA);
 	// // outb(0b11111111, PIC_S_DATA);
 
-	// init_acpi();
+	init_acpi();
 
 	// asm("sti");
 

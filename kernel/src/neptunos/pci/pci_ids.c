@@ -2,7 +2,13 @@
 
 const pci_id_pair pci_vendors[] = {
 	{ 0x8086, "Intel" },
-	{ 0x1234, "Bochs" }
+	{ 0x1002, "AMD/ATI" },
+	{ 0x1b21, "ASMedia" },
+	{ 0x1234, "Bochs" },
+	{ 0x0951, "Kingston Technology" },
+	{ 0x055d, "Samsung Electro-Mechanics Co." },
+	{ 0x1d27, "ASUS" },
+	{ 0x10de, "NVIDIA Corporation" },
 };
 
 const pci_id_pair pci_products[] = {
@@ -10,7 +16,18 @@ const pci_id_pair pci_products[] = {
 	{ 0x1111, "Virtual graphics" },
 	{ 0x2918, "82801IB (ICH9) LPC Interface Controller" },
 	{ 0x2922, "82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode]" },
-	{ 0x2930, "82801I (ICH9 Family) SMBus Controller" }
+	{ 0x2930, "82801I (ICH9 Family) SMBus Controller" },
+	{ 0x0c00, "4th Gen Core Processor DRAM Controller" },
+	{ 0x0c01, "Xeon E3-1200 v3/4th Gen Core Processor PCI Express x16 Controller" },
+	{ 0x8cb1, "9 Series Chipset Family USB xHCI Controller" },
+	{ 0x15a1, "Ethernet Connection (2) I218-V" },
+	{ 0x8cad, "9 Series Chipset Family USB EHCI Controller #2" },
+	{ 0x8c90, "9 Series Chipset Family PCI Express Root Port 1" },
+	{ 0x244e, "82801 PCI Bridge" },
+	{ 0x8ca6, "9 Series Chipset Family USB EHCI Controller #1" },
+	{ 0x8cc4, "Z97 Chipset LPC Controller" },
+	{ 0x8c82, "9 Series Chipset Family SATA Controller [AHCI Mode]" },
+	{ 0x8ca2, "9 Series Chipset Family SMBus Controller" },
 };
 
 // 2D array for classes & subclasses
@@ -18,7 +35,7 @@ const char pci_subclasses[23][12][256] = {
 	// Unclassified
 	{
 		{ "Non-VGA-Compatible unclassified device" },
-		{ "VGA-Compatible unclassified device" } 
+		{ "VGA-Compatible unclassified device" }
 	},
 	
 	// Mass storage device
@@ -158,7 +175,7 @@ const char pci_subclasses[23][12][256] = {
 const char pci_program_interfaces[23][12][8][256] = {
 	// Unclassified
 	{
-		{ 
+		{
 			// Non-VGA-Compatible unclassified device
 			{ "" },
 			// VGA-Compatible unclassified device
@@ -410,13 +427,14 @@ const char* pci_classes[] = {
 	"Non-Essential instrumentation"
 };
 
+static char buf[16];
 const char* pci_find_vendor(uint16_t id) {
 	for (uint16_t i = 0; i < sizeof(pci_vendors); i++)
 		if (pci_vendors[i].id == id)
 			return pci_vendors[i].name;
-	
-	printk("\nError: Unknown manufacturer: %04x\n", id);
-	return NULL;
+
+	sprintf(buf, "unkn_vend(%04x)", id);
+	return buf;
 }
 
 const char* pci_find_product(uint16_t id) {
@@ -424,18 +442,22 @@ const char* pci_find_product(uint16_t id) {
 		if (pci_products[i].id == id)
 			return pci_products[i].name;
 			
-	printk("\nError: Unknown product: %04x\n", id);
-	return NULL;
+	sprintf(buf, "unkn_prod(%04x)", id);
+	return buf;
 }
 
 const char* pci_find_class(uint8_t class) {
-	if (!pci_classes[class])
-		printk("Error: class %d not implemented!\n", class);
-	return pci_classes[class];
+	if (pci_classes[class])
+		return pci_classes[class];
+
+	sprintf(buf, "unkn_clas(%04x)", class);
+	return buf;
 }
 
 const char* pci_find_subclass(uint8_t class, uint8_t subclass) {
-	if (!pci_classes[class])
-		printk("Error: subclass %d in class %d not implemented!\n", subclass, class);
-	return pci_subclasses[class][subclass];
+	if (pci_subclasses[class][subclass])
+		return pci_subclasses[class][subclass];
+
+	sprintf(buf, "unkn_subc(%04x->%04x)", class, subclass);
+	return buf;
 }

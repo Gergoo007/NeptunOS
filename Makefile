@@ -1,7 +1,7 @@
 .PHONY: all clean link build pack uefi run
 
 RAMSIZE ?= 2G
-QEMU_ARGS ?= -smp 1 -m $(RAMSIZE) \
+QEMU_ARGS ?= -smp 1 -machine q35 -m $(RAMSIZE) \
 	-net none -no-reboot -no-shutdown \
 	-cdrom out.iso
 

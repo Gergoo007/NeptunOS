@@ -4,6 +4,7 @@
 #include <neptunos/libk/stdarg.h>
 #include <neptunos/libk/limits.h>
 #include <neptunos/libk/stdint.h>
+#include <neptunos/graphics/text_renderer.h>
 
 int str_to_int(const char* str, int* num) {
 	int sign = 1, base = 0, i = 0;
@@ -134,101 +135,105 @@ uint8_t strncmp(char* str1, char* str2, uint16_t len) {
 	return !result;
 }
 
+u16 strlen(const char* restrict str) {
+	u16 res = 0;
+	while(*(str+res) != '\0')
+		res++;
+	return res;
+}
 
-// void sprintf(char* string, char* fmt, ...) {
-// 	va_list arg_list;
-// 	va_start(arg_list, fmt);
-// 	int16_t length = 0;
-// 	uint16_t character = 0;
+void sprintf(char* dest, const char *restrict fmt, ...) {
+	va_list arg_list;
+	va_start(arg_list, fmt);
+	for (u16 fmt_c = 0, dest_c = 0; ; fmt_c++, dest_c++) {
+		if (fmt[fmt_c] == '%') {
+			fmt_c++;
+			switch (fmt[fmt_c]) {
+				case 'c':
+					dest[fmt_c] = (char) va_arg(arg_list, u32);
+					dest++;
+					break;
+				case 'd': {
+					char buf[256];
+					int64_to_str(va_arg(arg_list, i64), buf, 10);
+					memcpy(dest+dest_c, buf, strlen(buf));
+					dest_c += strlen(buf)-1;
+					break;
+				}
+				case 'u':
+					switch(fmt[fmt_c]) {
+						case 'd': {
+							char buf[256];
+							uint_to_str(va_arg(arg_list, u64), buf, 10);
+							memcpy(dest+dest_c, buf, strlen(buf));
+							dest_c += strlen(buf)-1;
+							break;
+						}
+					}
+					break;
+				case 's': {
+					const char* arg = va_arg(arg_list, char*);
+					memcpy(dest+dest_c, arg, strlen(arg));
+					dest_c += strlen(arg)-1;
+					break;
+				}
+				case 'p': {
+					char buf[17];
+					uint_to_str(va_arg(arg_list, u64), buf, 16);
+					memcpy(dest+dest_c, buf, strlen(buf));
+					dest_c += strlen(buf)-1;
+					break;
+				}
+				default: {
+					if (fmt[fmt_c] <= '9' && fmt[fmt_c] >= '0') {
+						uint8_t first = (uint8_t)(fmt[++fmt_c]) - (uint8_t)'0';
+						uint8_t second = (uint8_t)(fmt[++fmt_c]) - (uint8_t)'0';
+						uint8_t final = second + (first * 10);
+						switch (fmt[fmt_c]) {
+							case 'x': {
+								char buffer[final + 1];
+								memset(buffer, 0, final + 1);
+								u64 arg = va_arg(arg_list, uint64_t);
+								uint_to_str(arg, buffer, 16);
+								memcpy(dest+dest_c, buffer, final);
+								dest_c += strlen(buffer)-1;
+								break;
+							}
+							case 'X': {
+								char buffer[final + 1];
+								memset(buffer, 0, final + 1);
+								u64 arg = va_arg(arg_list, uint64_t);
+								uint_to_str(arg, buffer, 16);
+								memcpy(dest+dest_c, buffer, final);
+								dest_c += strlen(buffer)-1;
+								break;
+							}
+							case 's': {
+								memcpy(dest+dest_c, va_arg(arg_list, char*), final);
+								dest_c += final;
+								break;
+							}
+							case 'b': {
+								dest[dest_c] = va_arg(arg_list, uint64_t) == 1 ? '1' : '0';
+								dest_c++;
+								break;
+							};
+							default:
+								break;
+						}
+					}
+				}
+				break;
+			}
+		} else {
+			dest[dest_c] = fmt[fmt_c];
+		}
 
-// 	while(*fmt != '\0') {
-// 		if (*fmt == '%') {
-// 			fmt++;
-// 			switch (*fmt) {
-// 				case 'c':
-// 					string[character] = ((char)va_arg(arg_list, uint32_t));
-// 					break;
-// 				case 'd': {
-// 					char res[256] = "";
-// 					int64_to_str(va_arg(arg_list, int64_t), res, 10);
-// 					break;
-// 				}
-// 				case 'u':
-// 					fmt++;
-// 					switch(*fmt) {
-// 						case 'd': {
-// 							char res[256] = "";
-// 							render_string(uint_to_str(va_arg(arg_list, uint64_t), res, 10));
-// 							break;
-// 						}
-// 					}
-// 					break;
-// 				case 's':
-// 					printk(va_arg(arg_list, char*));
-// 					break;
-// 				case 'p': {
-// 					char testbuf[17];
-// 					fmt_x(testbuf, (uint64_t)va_arg(arg_list, void*), 15, 1);
-// 					render_string(testbuf);
-// 					break;
-// 				}
-// 				default: {
-// 						if (*fmt <= '9' && *fmt >= '0') {
-// 							uint8_t first = (uint8_t)(*fmt++) - (uint8_t)'0';
-// 							uint8_t second = (uint8_t)*(fmt++) - (uint8_t)'0';
-// 							uint8_t final = second + (first * 10);
+		if(fmt_c == strlen(fmt)) {
+			dest[dest_c+1] = '\0';
+			break;
+		}
+	}
 
-// 							switch (*fmt) {
-// 								case 'x': {
-// 									char buffer[final + 1];
-// 									memset(buffer, 0, final + 1);
-// 									fmt_x(buffer, (uint64_t)va_arg(arg_list, uint64_t), final, 0);
-// 									render_string(buffer);
-// 									break;
-// 								}
-// 								case 'X': {
-// 									char buffer[final + 1];
-// 									memset(buffer, 0, final + 1);
-// 									fmt_x(buffer, (uint64_t)va_arg(arg_list, uint64_t), final, 1);
-// 									render_string(buffer);
-// 									break;
-// 								}
-// 								case 's': {
-// 									char buffer[final + 1];
-// 									memcpy(buffer, (void*)va_arg(arg_list, char*), final);
-// 									buffer[final] = '\0';
-// 									render_string(buffer);
-// 									break;
-// 								}
-// 								case 'b': {
-// 									uint64_t num = va_arg(arg_list, uint64_t);
-// 									while (final-- > 0) {
-// 										if (num & (1 << final))
-// 											render_char('1');
-// 										else
-// 											render_char('0');
-// 									}
-// 									break;
-// 								};
-// 								default:
-// 									render_string("Invalid format: ");
-// 									render_char(*fmt);
-// 									render_string("!\n");
-// 									break;
-// 							}
-// 						}
-// 					}
-// 					break;
-// 			}
-// 		} else {
-// 			render_char(*fmt);
-// 			length++;
-// 		}
-
-// 		fmt++;
-
-// 		if (cursor_y >= info->g_info->info->height) {
-// 			cursor_y = 0;
-// 		}
-// 	}
-// }
+	va_end(arg_list);
+}

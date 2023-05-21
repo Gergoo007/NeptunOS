@@ -1,8 +1,8 @@
 #include <neptunos/tables/interrupts.h>
 #include <neptunos/tables/idt.h>
 
-void idt_add_handler(idt_desc_t* idt, void (*handler)(struct interrupt_frame*)) {
-	idt_desc_t* entry = &idt[0xe];
+void idt_add_handler(idt_desc_t* idt, void (*handler)(struct interrupt_frame*), u8 i) {
+	idt_desc_t* entry = &idt[i];
 	entry->offs0 = (u64)handler & 0xffff;
 	entry->offs1 = ((u64)handler >> 16) & 0xffff;
 	entry->offs2 = ((u64)handler) >> 32;
@@ -19,7 +19,10 @@ void idt_init(void) {
 	idt_desc_t* idt = request_pages(idt_size/0x1000);
 	memset(idt, 0, idt_size);
 
-	idt_add_handler(idt, double_flt_handler);
+	// 5 handlers implemented at the moment
+	for (u8 _int = 0; _int <= 5; _int++) {
+		idt_add_handler(idt, (void (*)(struct interrupt_frame *)) int_handlers[_int][0], int_handlers[_int][1]);
+	}
 
 	{
 		idtr_t idtr;

@@ -46,3 +46,26 @@ _attr_int void pit_tick_int(struct interrupt_frame* frame) {
 	// pit_tick();
 	pic_end_slave();
 }
+
+u64 int_handlers[][2] = {
+	{
+		(u64)page_flt_handler,
+		0xe
+	},
+	{
+		(u64)double_flt_handler,
+		0x8
+	},
+	{
+		(u64)invalid_opcode_flt_handler,
+		0x6
+	},
+	{
+		(u64)general_protection_handler,
+		0xd
+	},
+	{
+		(u64)custom_handler,
+		0x50
+	},
+};

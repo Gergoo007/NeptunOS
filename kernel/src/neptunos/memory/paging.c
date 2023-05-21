@@ -15,10 +15,10 @@ void indexer(void* address, uint16_t* pt_i, uint16_t* pd_i, uint16_t* pdp_i, uin
 	*pml4_i = page_num % 512;
 }
 
-void map_page(void* virtual_address, void* physical_address, uint16_t _flags) {
+void map_page(void* virtual_address, void* physical_address, u16 _flags) {
 	// Indexes
 	// pt_i points to the page, not the page table
-	uint16_t pt_i, pd_i, pdp_i, pml4_i;
+	u16 pt_i, pd_i, pdp_i, pml4_i;
 	indexer(virtual_address, &pt_i, &pd_i, &pdp_i, &pml4_i);
 
 	page_map_entry pde;
@@ -28,11 +28,12 @@ void map_page(void* virtual_address, void* physical_address, uint16_t _flags) {
 	if (!pde.present) {
 		pdp = (page_map_level*)request_page();
 		memset(pdp, 0, 0x1000);
-		pde.address = (uint64_t)pdp >> 12;
-		pde.flags = _flags;
+		pde.address = (u64)pdp >> 12;
+		// pde.flags = _flags;
+		pde.flags = MAP_FLAG_PRESENT | MAP_FLAG_RW;
 		pml4->entries[pml4_i] = pde;
 	} else {
-		pdp = (page_map_level*)((uint64_t)pde.address << 12);
+		pdp = (page_map_level*)((u64)pde.address << 12);
 	}
 
 	pde = pdp->entries[pdp_i];
@@ -40,11 +41,12 @@ void map_page(void* virtual_address, void* physical_address, uint16_t _flags) {
 	if (!pde.present) {
 		pd = (page_map_level*)request_page();
 		memset(pd, 0, 0x1000);
-		pde.address = (uint64_t)pd >> 12;
-		pde.flags = _flags;
+		pde.address = (u64)pd >> 12;
+		// pde.flags = _flags;
+		pde.flags = MAP_FLAG_PRESENT | MAP_FLAG_RW;
 		pdp->entries[pdp_i] = pde;
 	} else {
-		pd = (page_map_level*)((uint64_t)pde.address << 12);
+		pd = (page_map_level*)((u64)pde.address << 12);
 	}
 
 	pde = pd->entries[pd_i];
@@ -52,17 +54,20 @@ void map_page(void* virtual_address, void* physical_address, uint16_t _flags) {
 	if (!pde.present) {
 		pt = (page_map_level*)request_page();
 		memset(pt, 0, 0x1000);
-		pde.address = (uint64_t)pt >> 12;
+		pde.address = (u64)pt >> 12;
+		// pde.flags = _flags;
 		pde.flags = _flags;
 		pd->entries[pd_i] = pde;
 	} else {
-		pt = (page_map_level*)((uint64_t)pde.address << 12);
+		pt = (page_map_level*)((u64)pde.address << 12);
 	}
 
 	pde = pt->entries[pt_i];
-	pde.address = ((uint64_t)physical_address >> 12);
+	pde.address = ((u64)physical_address >> 12);
 	pde.flags = _flags;
 	pt->entries[pt_i] = pde;
+
+	asm volatile ("invlpg (%0)" :: "b"(virtual_address));
 }
 
 void map_region(void* virtual_address, void* physical_address, uint64_t pages, uint16_t _flags) {
