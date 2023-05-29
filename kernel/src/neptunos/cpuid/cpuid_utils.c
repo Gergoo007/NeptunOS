@@ -7,7 +7,7 @@ void cpuid_get_vendor_id(char* result) {
 	asm("movl %%ebx, %0" : "=b"(*(uint32_t*)(&result[0])));
 	asm("movl %%ecx, %0" : "=c"(*(uint32_t*)(&result[8])));
 	asm("movl %%edx, %0" : "=d"(*(uint32_t*)(&result[4])));
-	
+
 	result[12] = '\0';
 }
 

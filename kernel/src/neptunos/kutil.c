@@ -37,7 +37,7 @@ void kinit(void) {
 				break;
 			}
 			case MULTIBOOT_TAG_TYPE_FRAMEBUFFER: {
-				multiboot_tag_framebuffer_t* fb_tag = (multiboot_tag_framebuffer_t*) tag;
+				multiboot_tag_framebuffer_t* fb_tag = (multiboot_tag_framebuffer_t*)(u64)tag;
 				screen.fb_base = (void*)0xFFFFFF8040000000;
 				screen.width = fb_tag->common.framebuffer_width;
 				screen.height = fb_tag->common.framebuffer_height;
@@ -55,7 +55,6 @@ void kinit(void) {
 			}
 		}
 	}
-
 
 	setup_font();
 	cursor_x = cursor_y = 0;

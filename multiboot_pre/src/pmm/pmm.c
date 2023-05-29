@@ -2,9 +2,9 @@
 
 #include "pmm.h"
 
-u64 free_mem;
-u64 used_mem;
-u64 reserved_mem;
+u64 free_mem = 0;
+u64 used_mem = 0;
+u64 reserved_mem = 0;
 
 bitmap_t* bm;
 
@@ -12,39 +12,46 @@ void init_pmm(multiboot_tag_efi_mmap_t* mmap_tag) {
 	// initialize struct
 	bm->address = heap_base;
 	bm->size = (total/0x1000 / 8) + 1;
-	free_mem = total;
 	if(heap_base == NULL) {
 		printk("Invalid heap_base!\n\r");
 	}
 
 	// zero the bitmap
 	memset(bm->address, 0, bm->size);
-	
+
 	u16 num_entries = (mmap_tag->size - sizeof(multiboot_tag_efi_mmap_t)) / mmap_tag->descr_size;
 	efi_mem_desc_t* desc = mmap_tag->efi_mmap;
-	
+
 	for (efi_mem_desc_t* desc = mmap_tag->efi_mmap;
 	(u64)desc < ((u64)mmap_tag->efi_mmap + (mmap_tag->descr_size * num_entries));
 	desc = (efi_mem_desc_t*) ((u8*)desc + mmap_tag->descr_size)) {
+		if(desc->type > 14)
+			continue;
+
 		switch (desc->type) {
 			case EfiConventionalMemory:
 			case EfiBootServicesCode:
 			case EfiBootServicesData:
-				free_page((void*)desc->phys, desc->num_pages);
+				// _free_page((void*)desc->phys, desc->num_pages);
+				free_mem += 0x1000 * desc->num_pages;
 				break;
 
-			case EfiACPIMemoryNVS:
-			case EfiACPIReclaimMemory:
+			case EfiReservedMemoryType:
+			case EfiUnusableMemory:
 			case EfiMemoryMappedIO:
 			case EfiMemoryMappedIOPortSpace:
 			case EfiPersistentMemory:
-			case EfiReservedMemoryType:
-			case EfiUnusableMemory:
-				reserve_page((void*)desc->phys, desc->num_pages);
+			case EfiMaxMemoryType:
+			case EfiPalCode:
+				// _reserve_page((void*)desc->phys, desc->num_pages);
+				bm_set(desc->phys/0x1000, 1);
+				reserved_mem += 0x1000 * desc->num_pages;
 				break;
-			
+
 			default:
-				lock_page((void*)desc->phys, desc->num_pages);
+				// _lock_page((void*)desc->phys, desc->num_pages);
+				bm_set(desc->phys/0x1000, 1);
+				used_mem += 0x1000 * desc->num_pages;
 				break;
 		}
 	}
@@ -58,11 +65,12 @@ void free_page(void* address, u64 count) {
 	if(!bm_get((u64)address/0x1000)) // page is already free
 		return;
 
+	free_mem += 4096 * count;
+	used_mem -= 4096 * count;
+
 	for (u64 i = 0; i < count; i++) {
 		bm_set(page, 0);
 	}
-	free_mem += 4096 * count;
-	used_mem -= 4096 * count;
 }
 
 // NOTE: Only usable for physical addresses
@@ -71,12 +79,12 @@ void lock_page(void* address, u64 count) {
 	
 	if(bm_get((u64)address/0x1000)) // page is already reserved/used
 		return;
-	
-	for (; count > 0; count--)
-		bm_set(page, 1);
-	
+
 	free_mem -= 4096 * count;
 	used_mem += 4096 * count;
+
+	for (; count > 0; count--)
+		bm_set(page, 1);
 }
 
 // NOTE: Only usable for physical addresses
@@ -86,11 +94,11 @@ void reserve_page(void* address, u64 count) {
 	if(bm_get((u64)address/0x1000)) // page is already reserved/used
 		return;
 	
-	for (; count > 0; count--)
-		bm_set(page, 1);
-
 	free_mem -= 4096 * count;
 	reserved_mem += 4096 * count;
+
+	for (; count > 0; count--)
+		bm_set(page, 1);
 }
 
 // NOTE: Only usable for physical addresses
@@ -99,12 +107,12 @@ void unreserve_page(void* address, u64 count) {
 	
 	if(!bm_get((u64)address/0x1000)) // page is already free
 		return;
-	
-	for (; count > 0; count--)
-		bm_set(page, 0);
-	
+
 	free_mem += 4096 * count;
 	reserved_mem -= 4096 * count;
+
+	for (; count > 0; count--)
+		bm_set(page, 0);
 }
 
 void* request_page() {
@@ -117,6 +125,7 @@ void* request_page() {
 			page++;
 			if ((page * 4096) > (heap_size * (u64)heap_base)) {
 				printk("Out of memory!\n\r");
+				while(1);
 			}
 		}
 	}

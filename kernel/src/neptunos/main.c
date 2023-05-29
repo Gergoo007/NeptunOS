@@ -12,7 +12,7 @@ uint8_t kmain(boot_info_t* _inf) {
 		sync_back_buffer();
 	#endif
 
-	printk("Free: %ud MiB; Used: %ud MiB; Reserved: %ud MiB\n", bytes_mib(free_mem), bytes_mib(used_mem), bytes_mib(reserved_mem));
+	printk("Total: %d MiB\nFree/Used: %d MiB/%d MiB\n", bytes_mib(total_mem), bytes_mib(free_mem), bytes_mib(used_mem));
 	text_color_push(0x0000ff00);
 	printk("Successfully reached end of kmain, jumping to idle mode...\n");
 	text_color_pop();

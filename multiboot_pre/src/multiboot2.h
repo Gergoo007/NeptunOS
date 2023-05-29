@@ -22,7 +22,6 @@ static const char* EFI_MEMORY_TYPE_STRINGS[] = {
 	"EfiMemoryMappedIOPortSpace",
 	"EfiPalCode",
 	"EfiPersistentMemory",
-	"EfiMaxMemoryType",
 };
 
 #define tag_align __attribute__((aligned(8)))

@@ -104,7 +104,6 @@ void c_main(multiboot_hdr_t* _mbi) {
 		phdr = (Elf64_Phdr*)((u8*)phdr + ehdr->e_phentsize)
 	) {
 		if (phdr->p_type == PT_LOAD) {
-			printk("%d pages\n\r", phdr->p_memsz);
 			for (u16 page = 0; page*0x1000 < phdr->p_memsz; page++) {
 				void* page_p = request_page();
 				map_page((void*)phdr->p_vaddr+(page*0x1000), page_p, MAP_FLAGS_DEFAULTS);
@@ -116,19 +115,15 @@ void c_main(multiboot_hdr_t* _mbi) {
 				// Set the remaining bytes to 0, as per the ELF specification
 				u32 remaining = phdr->p_memsz - phdr->p_filesz;
 				memset((void*)(phdr->p_vaddr + phdr->p_memsz), 0, remaining);
-				printk("Possible BSS at %p - %p\n\r", phdr->p_vaddr+phdr->p_memsz, phdr->p_vaddr+phdr->p_memsz+remaining);
-				printk("Setting %d bytes for it...\n\r", remaining);
 			}
 		}
 	}
-
-	printk("a50a4: %04x\n", *(u32*)0xffffff80000a50a4);
-	// memset((void*)0xffffff80000a50a4, 0, 4);
 
 	boot_info_t* info = request_page();
 	info->mb = mbi;
 	info->mem_stats.free = free_mem;
 	info->mem_stats.used = used_mem;
+	info->mem_stats.total = total;
 	info->mem_stats.reserved = reserved_mem;
 	info->mem_stats.heap_base = heap_base;
 	info->mem_stats.heap_size = heap_size;
