@@ -10,8 +10,8 @@ CC = gcc
 AS = as
 LD = ld.gold
 
-_CFLAGS += -ffreestanding -fshort-wchar -fno-stack-protector -Isrc -nostdinc \
-	-Wno-interrupt-service-routine -fno-stack-check -Wno-builtin-requires-header \
+_CFLAGS += -ffreestanding -fshort-wchar -Isrc -nostdinc \
+	-Wno-interrupt-service-routine -Wno-builtin-requires-header \
 	-Wno-incompatible-library-redeclaration -Wno-long-long -std=c17 \
 	$(CFLAGS)
 _LDFLAGS += -T link.ld -Bsymbolic -nostdlib -z max-page-size=0x1000 -static $(LDFLAGS)

@@ -3,7 +3,7 @@
 RAMSIZE ?= 2G
 QEMU_ARGS ?= -smp 1 -machine q35 -m $(RAMSIZE) \
 	-net none -no-reboot -no-shutdown \
-	-cdrom out.iso
+	-cdrom out.iso -drive file=raw.img,format=raw
 
 all: _kernel preloader pack uefi
 

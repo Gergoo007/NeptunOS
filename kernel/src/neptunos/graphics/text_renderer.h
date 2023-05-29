@@ -16,13 +16,13 @@
 #endif
 
 // Fatal error printk
-#define fatal(x, ...) text_color(0x00ff0000); render_string("[FATAL] "); printk(x, ##__VA_ARGS__); asm("cli"); halt();
+#define fatal(x, ...) text_color(0x00ff0000); printk("[FATAL] [%s] ", __FILE_NAME__); printk(x, ##__VA_ARGS__); asm("cli"); halt();
 
 // Non-fatal error printk
-#define error(x, ...) text_color_push(0x00ff0000); render_string("[ERROR] "); printk(x, ##__VA_ARGS__); text_color_pop();
+#define error(x, ...) text_color_push(0x00ff0000); printk("[ERROR] [%s] ", __FILE_NAME__); printk(x, ##__VA_ARGS__); text_color_pop();
 
 // Warning printk
-#define warning(x, ...) text_color_push(0x00ff6600); render_string("[WARNING] "); printk(x, ##__VA_ARGS__); text_color_pop();
+#define warning(x, ...) text_color_push(0x00ff6600); printk("[WARNING] [%s] ", __FILE_NAME__); printk(x, ##__VA_ARGS__); text_color_pop();
 
 void render_char(const char c);
 void render_string(const char* str);

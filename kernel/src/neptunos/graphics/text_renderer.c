@@ -57,7 +57,7 @@ void render_string(const char *restrict str) {
 }
 
 // Normal printk
-void printk(const char *restrict fmt, ...) {
+void printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	_printk(fmt, args);
