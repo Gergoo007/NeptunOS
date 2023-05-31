@@ -29,4 +29,3 @@ link: clean $(C_OBJ) $(ASM_OBJ)
 
 build: link
 	./verify.sh out/carrier.elf
-

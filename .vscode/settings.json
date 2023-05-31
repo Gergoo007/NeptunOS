@@ -3,6 +3,6 @@
 		"-I${workspaceFolder}/kernel/src",
 		"-I${workspaceFolder}/multiboot_pre/src",
 	],
-	"discord.enabled": false,
+	"discord.enabled": true,
 	"debug.onTaskErrors": "debugAnyway",
 }

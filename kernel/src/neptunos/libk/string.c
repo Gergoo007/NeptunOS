@@ -6,6 +6,8 @@
 #include <neptunos/libk/stdint.h>
 #include <neptunos/graphics/text_renderer.h>
 
+void* (*memcpy)(void* dest, const void* src, size_t n) = NULL;
+
 int str_to_int(const char* str, int* num) {
 	int sign = 1, base = 0, i = 0;
 
