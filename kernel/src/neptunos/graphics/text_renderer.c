@@ -7,6 +7,44 @@ u32 current_color = 0xd8d8d8d8;
 u16 cursor_x = 0;
 u16 cursor_y = 0;
 
+#define wpixel(x, y, color) *(u32*)((u64)screen.fb_base + screen.pitch*y + screen.bpp/8*x) = color;
+
+void scroll_down(u8 lines) {
+	asm("cli");
+	// Start with the second line on the screen
+	u8 line = lines;
+	u8 num_lines = screen.height/16;
+	while (line < num_lines) {
+		memcpy(
+			(void*)((u64)screen.fb_base + screen.pitch*(line-lines)*16 + screen.bpp/8*0),
+			(void*)((u64)screen.fb_base + screen.pitch*line*16 + screen.bpp/8*0),
+			screen.pitch*16
+		);
+		line++;
+	}
+
+	cursor_y -= 16*lines;
+
+	memset(
+		(void*)((u64)screen.fb_base + screen.pitch*(screen.height-16)-16),
+		0,
+		screen.pitch*16
+	);
+	asm("sti");
+}
+
+void scroll_up(void) {
+	asm("cli");
+	memcpy(
+		(void*)((u64)screen.fb_base + screen.pitch*0 + screen.bpp/8*0),
+		(void*)((u64)screen.fb_base + screen.pitch*16 + screen.bpp/8*0),
+		screen.pitch*(screen.height-16)
+	);
+
+	cursor_y += 16;
+	asm("sti");
+}
+
 extern void _printk(const char *restrict fmt, va_list arg_list);
 
 void render_char(char c) {
@@ -15,12 +53,16 @@ void render_char(char c) {
 	if(c == '\n') {
 		cursor_y += 16;
 		cursor_x = 0;
-		return;
+		goto end;
 	} else if (c == '\t') {
 		cursor_x += (screen.width / 16) - (cursor_x % (screen.width / 16));
 		return;
 	} else if (c == '\b') {
-		cursor_x -= def.width;
+		if(cursor_x < def.width)
+			cursor_x = 0;
+		else
+			cursor_x -= def.width;
+
 		for (uint32_t y = cursor_y; y < cursor_y + def.height; y++) {
 			for (uint32_t x = cursor_x; x < cursor_x + def.width; x++) {
 				pixel(x, y, background_color);
@@ -46,6 +88,11 @@ void render_char(char c) {
 	if (cursor_x >= screen.width) {
 		cursor_y += def.height;
 		cursor_x = 0;
+	}
+
+end:
+	if (cursor_y >= screen.height) {
+		scroll_down(1);
 	}
 }
 
@@ -149,10 +196,6 @@ void _printk(const char *restrict fmt, va_list arg_list) {
 		}
 
 		fmt++;
-
-		if (cursor_y >= screen.height) {
-			cursor_y = 0;
-		}
 	}
 }
 

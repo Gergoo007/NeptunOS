@@ -91,3 +91,4 @@ u8 cpuid_sse42(void);
 u8 cpuid_avx(void);
 u8 cpuid_avx2(void);
 u8 cpuid_avx512f(void);
+u8 cpuid_apic(void);

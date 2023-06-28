@@ -28,6 +28,7 @@ void render_char(const char c);
 void render_string(const char* str);
 
 void printk(const char *fmt, ...);
+void _printk(const char *restrict fmt, va_list arg_list);
 void _report(const char* msg, char* filename, ...);
 
 void text_color(uint32_t color);
@@ -36,3 +37,6 @@ void text_color_push(uint32_t color);
 void text_color_reset(void);
 
 const char* fmt_x(char* str, uint64_t value, uint8_t length, uint8_t upper_case);
+
+void scroll_down(u8 lines);
+void scroll_up(void);

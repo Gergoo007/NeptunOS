@@ -4,7 +4,7 @@ RAMSIZE ?= 2G
 QEMU_ARGS ?= -smp 1 -machine q35 -m $(RAMSIZE) \
 	-net none -no-reboot -no-shutdown \
 	-cdrom out.iso -drive file=raw.img,format=raw \
-	-enable-kvm -cpu SandyBridge,+avx2,enforce
+	-enable-kvm -cpu SandyBridge,+avx2,enforce -smp 4
 
 all: _kernel preloader pack uefi
 

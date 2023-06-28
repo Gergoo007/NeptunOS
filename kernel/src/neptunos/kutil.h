@@ -16,9 +16,6 @@
 #include <neptunos/tables/idt.h>
 #include <neptunos/tables/interrupts.h>
 
-#include <neptunos/hw_interrupts/pic.h>
-#include <neptunos/hw_interrupts/pit.h>
-
 #include <neptunos/power/power.h>
 
 #include <neptunos/acpi/acpi.h>

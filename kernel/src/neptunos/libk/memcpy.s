@@ -10,9 +10,6 @@
 
 // compatibility variant
 memcpy_comp:
-memcpy_comp.check_xmm:
-	cmp $0x10, %rdx
-	jge memcpy_comp.xmm
 memcpy_comp.check_rax:
 	cmp $0x8, %rdx
 	jge memcpy_comp.rax
@@ -32,11 +29,6 @@ memcpy_comp.rax:
 	movq (%rsi, %rdx, 1), %rax
 	movq %rax, (%rdi, %rdx, 1)
 	jmp memcpy_comp.check_rax
-memcpy_comp.xmm:
-	sub $0x10, %rdx
-	movups (%rsi, %rdx, 1), %xmm0
-	movups %xmm0, (%rdi, %rdx, 1)
-	jmp memcpy_comp.check_xmm
 
 memcpy_sse:
 memcpy_sse.check_xmm:

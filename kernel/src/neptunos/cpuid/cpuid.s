@@ -10,6 +10,8 @@
 .global cpuid_avx2
 .global cpuid_avx512f
 
+.global cpuid_apic
+
 // rdi: pointer to string into which vendor gets stored
 // returns: highest eax value when using cpuid
 cpuid_get_vendor:
@@ -96,5 +98,14 @@ cpuid_avx512f:
 	cpuid
 	movl %ebx, %eax
 	shr $16, %eax
+	and $1, %eax
+	ret
+
+cpuid_apic:
+	movl $0x1, %eax
+	movl $0x0, %ecx
+	cpuid
+	movl %edx, %eax
+	shr $9, %eax
 	and $1, %eax
 	ret

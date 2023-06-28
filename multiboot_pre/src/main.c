@@ -127,6 +127,8 @@ void c_main(multiboot_hdr_t* _mbi) {
 	info->mem_stats.reserved = reserved_mem;
 	info->mem_stats.heap_base = heap_base;
 	info->mem_stats.heap_size = heap_size;
+	
+	__asm__ volatile ("movq %0, %%rsp" :: "r"(request_page()));
 
 	printk("Kernel loaded...\n\r");
 	printk("Exiting to kernel...\n\r");

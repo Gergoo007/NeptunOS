@@ -1,7 +1,5 @@
 #include <neptunos/graphics/panic.h>
 
-extern void _printk(char* restrict fmt, ...);
-
 _attr_no_caller_saved_regs void _panic(char msg[256], char* caller, char* file, uint32_t line, ...) {
 	va_list args;
 	va_start(args, line);
