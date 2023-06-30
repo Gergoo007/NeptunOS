@@ -3,7 +3,13 @@
 #include <neptunos/config/attributes.h>
 #include <neptunos/interrupts/idt.h>
 
-struct interrupt_frame;
+typedef struct interrupt_frame {
+	u16 ip;
+	u16 cs;
+	u16 flags;
+	u16 sp;
+	u16 ss;
+} _attr_packed int_frame_t;
 
 extern u64 int_handlers[][2];
 

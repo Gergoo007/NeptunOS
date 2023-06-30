@@ -55,7 +55,7 @@ void ioapic_init(void) {
 		}
 	}
 
-	rtc_init();
+	enable_rtc();
 	mask_pic();
 
 	printk("RTC GSI: %d\n", rtc_gsi);
@@ -69,8 +69,8 @@ void ioapic_init(void) {
 	entry.lvl_triggered = 0;
 	entry.mask = 0;
 	entry.apic_id = cpuid_x2apic_id();
-	ioapic_write_reg(&ioapics[0], 0x20, entry.first_part);
-	ioapic_write_reg(&ioapics[0], 0x21, entry.second_part);
+	ioapic_write_reg(&ioapics[0], 0x10 + (8 * 2), entry.first_part);
+	ioapic_write_reg(&ioapics[0], 0x11 + (8 * 2) + 1, entry.second_part);
 	
 	entry.vector = 0x80;
 	entry.delivery_mode = 0;

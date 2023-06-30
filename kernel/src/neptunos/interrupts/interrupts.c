@@ -7,61 +7,63 @@
 
 #include <neptunos/graphics/panic.h>
 
-_attr_no_caller_saved_regs void __printk(const char* fmt, ...) {
+_attr_no_caller_saved_regs void safe_printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	_printk(fmt, args);
 	va_end(args);
 }
 
-_attr_int void page_flt_handler(struct interrupt_frame* frame) {
+_attr_no_caller_saved_regs void safe_outb(u8 data, u16 port) { outb(data, port); }
+_attr_no_caller_saved_regs u8 safe_inb(u16 port) { return inb(port); }
+
+_attr_int void page_flt_handler(int_frame_t* frame) {
 	panic("Page fault detected!");
 }
 
-_attr_int void double_flt_handler(struct interrupt_frame* frame) {
+_attr_int void double_flt_handler(int_frame_t* frame) {
 	panic("Double fault detected!");
 }
 
-_attr_int void invalid_opcode_flt_handler(struct interrupt_frame* frame) {
+_attr_int void invalid_opcode_flt_handler(int_frame_t* frame) {
 	panic("Invalid opcode!");
 }
 
-_attr_int void general_protection_handler(struct interrupt_frame* frame) {
+_attr_int void general_protection_handler(int_frame_t* frame) {
 	panic("General protection exception!");
 }
 
-_attr_int void custom_handler(struct interrupt_frame* frame) {
+_attr_int void custom_handler(int_frame_t* frame) {
 	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
-	__printk("Custom interrupt triggered!\n");
+	safe_printk("Custom interrupt triggered!\n");
 
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
 	lapic->eoi = eoi;
 }
 
-_attr_int void rtc_test(struct interrupt_frame* frame) {
-	__printk("RTC int!\n");
-	outb(0x70, 0x0C);	// select register C
-	inb(0x71);		// just throw away contents
+_attr_int void rtc_test(int_frame_t* frame) {
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	safe_printk("RTC int!\n");
+	safe_outb(0x0C, 0x70);	// select register C
+	safe_inb(0x71);		// just throw away contents
+	u32 eoi = lapic->eoi;
+	eoi &= 0;
+	lapic->eoi = eoi;
 }
 
-_attr_int void ps2_kb_press(struct interrupt_frame* frame) {
+_attr_int void ps2_kb_press(int_frame_t* frame) {
 	// Just send an EOI for now
-	// __printk("Key pressed! (%02x)\n", inb(0x60));
+	safe_printk("Key pressed! (%02x)\n", safe_inb(0x60));
 
 	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
-
-	// __printk("Return value: %d\n", wrapper(test));
 
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
 	lapic->eoi = eoi;
 }
 
-_attr_int void spurious_int(struct interrupt_frame* frame) {
-	// text_color_push(0x0000ff88);
-	// printk("Custom interrupt triggered!");
-	// text_color_pop();
+_attr_int void spurious_int(int_frame_t* frame) {
 	panic("Spurious int triggered!");
 	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
 	u32 eoi = lapic->eoi;
@@ -69,12 +71,7 @@ _attr_int void spurious_int(struct interrupt_frame* frame) {
 	lapic->eoi = eoi;
 }
 
-_attr_int void apic_test(struct interrupt_frame* frame) {
-	// text_color_push(0x0000ff88);
-	// printk("Custom interrupt triggered!\n");
-	// text_color_pop();
-	// panic("Custom handler triggered!");
-
+_attr_int void apic_test(int_frame_t* frame) {
 	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
 	u32 eoi = lapic->eoi;
 	eoi &= 0;

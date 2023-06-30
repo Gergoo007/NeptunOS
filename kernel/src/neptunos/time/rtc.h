@@ -2,4 +2,4 @@
 
 #include <neptunos/interrupts/nmi.h>
 
-void rtc_init(void);
+void enable_rtc(void);
