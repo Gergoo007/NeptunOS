@@ -69,11 +69,11 @@ typedef struct madt_hdr {
 	madt_entry_base_t entries[1];
 } _attr_packed madt_hdr_t;
 
-struct madt_entry_flags {
+typedef struct madt_entry_flags {
 	u8 active_low : 2;
 	u8 lvl_trig : 2;
 	u16 : 12;
-} _attr_packed;
+} _attr_packed madt_entry_flags_t;
 
 typedef struct madt_entry_lapic {
 	madt_entry_base_t base;
@@ -88,8 +88,8 @@ typedef struct madt_entry_int_override {
 	madt_entry_base_t base;
 	u8 bus_source;
 	u8 irq_source;
-	u32 globl_sys_int;
-	struct madt_entry_flags flags;
+	u32 gsi;
+	madt_entry_flags_t flags;
 } _attr_packed madt_entry_int_override_t;
 
 typedef struct madt_entry_ioapic {
@@ -97,20 +97,20 @@ typedef struct madt_entry_ioapic {
 	u8 ioapic_id;
 	u8 res;
 	u32 ioapic_addr;
-	u32 globl_sys_int_base;
-	struct madt_entry_flags flags;
-} _attr_packed madt_entry_ioapic;
+	u32 gsi_base;
+	madt_entry_flags_t flags;
+} _attr_packed madt_entry_ioapic_t;
 
 typedef struct madt_entry_nmi_src {
 	madt_entry_base_t base;
-	struct madt_entry_flags flags;
+	madt_entry_flags_t flags;
 	u32 glob_sys_int;
 } _attr_packed madt_entry_nmi_src;
 
 typedef struct madt_entry_lapic_nmi {
 	madt_entry_base_t base;
 	u8 acpi_cpu_uid;
-	struct madt_entry_flags flags;
+	madt_entry_flags_t flags;
 	u8 lapic_lint;
 } _attr_packed madt_entry_lapic_nmi_t;
 

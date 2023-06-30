@@ -28,39 +28,38 @@ void setup_font(void) {
 void kinit(void) {
 	memcpy = memcpy_comp;
 	// Configure processor
-	register u64 rax asm("%rax");
-	if (cpuid_sse()) {
-		serprintk("Enabling SSE\n\r");
-		// Enable SSE
-		// Disable x87 (bit 2 of CR0)
-		asm volatile("mov %%cr0, %0" : "=a"(rax));
-		rax &= ~(1 << 2);
-		rax |= (1 << 1);
-		asm volatile("mov %0, %%cr0" :: "a"(rax));
+	// register u64 rax asm("%rax");
+	// if (cpuid_sse()) {
+	// 	serprintk("Enabling SSE\n\r");
+	// 	// Enable SSE
+	// 	// Disable x87 (bit 2 of CR0)
+	// 	asm volatile("mov %%cr0, %0" : "=a"(rax));
+	// 	rax &= ~(1 << 2);
+	// 	rax |= (1 << 1);
+	// 	asm volatile("mov %0, %%cr0" :: "a"(rax));
 
-		asm volatile("mov %%cr4, %0" : "=a"(rax));
-		rax |= (1 << 9);
-		rax |= (1 << 10);
-		rax |= (1 << 18);
-		asm volatile("mov %0, %%cr4" :: "a"(rax));
+	// 	asm volatile("mov %%cr4, %0" : "=a"(rax));
+	// 	rax |= (1 << 9);
+	// 	rax |= (1 << 10);
+	// 	rax |= (1 << 18);
+	// 	asm volatile("mov %0, %%cr4" :: "a"(rax));
 
-		memcpy = memcpy_sse;
-	}
+	// 	memcpy = memcpy_sse;
+	// }
 
-	if (cpuid_avx2()) {
-		serprintk("Enabling AVX2\n\r");
+	// if (cpuid_avx2()) {
+	// 	serprintk("Enabling AVX2\n\r");
 
-		asm volatile("mov %%cr0, %0" : "=a"(rax));
-		rax &= ~(1 << 2);
-		asm volatile("mov %0, %%cr0" :: "a"(rax));
-		serprintk("asd123\n\r");
-		// Correct XCR0
-		asm volatile("xgetbv");
-		rax |= 7;
-		asm volatile("xsetbv");
+	// 	asm volatile("mov %%cr0, %0" : "=a"(rax));
+	// 	rax &= ~(1 << 2);
+	// 	asm volatile("mov %0, %%cr0" :: "a"(rax));
+	// 	// Correct XCR0
+	// 	asm volatile("xgetbv");
+	// 	rax |= 7;
+	// 	asm volatile("xsetbv");
 
-		memcpy = memcpy_avx2;
-	}
+	// 	memcpy = memcpy_avx2;
+	// }
 
 	// Process multiboot tags
 	multiboot_tag_t* tag = (multiboot_tag_t*)((u8*)info->mb+8);

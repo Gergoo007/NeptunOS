@@ -1,7 +1,7 @@
 #include <neptunos/acpi/acpi.h>
 #include <neptunos/pci/pci.h>
 #include <neptunos/libk/string.h>
-#include <neptunos/acpi/apic/apic.h>
+#include <neptunos/interrupts/apic/apic.h>
 
 xsdp_t* xsdp = NULL;
 sdt_hdr_t* xsdt = NULL;

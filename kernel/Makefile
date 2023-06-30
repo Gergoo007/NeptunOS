@@ -30,16 +30,13 @@ objdir:
 out/obj/font.o:
 	$(LD) -r -b binary -o $@ font.psf
 
-out/obj/neptunos/tables/interrupts.c.o: src/neptunos/tables/interrupts.c
+out/obj/neptunos/interrupts/interrupts.c.o: src/neptunos/interrupts/interrupts.c
 	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 out/obj/neptunos/graphics/panic.c.o: src/neptunos/graphics/panic.c
 	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 out/obj/neptunos/serial/com.c.o: src/neptunos/serial/com.c
-	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
-
-out/obj/neptunos/hw_interrupts/pic.c.o: src/neptunos/hw_interrupts/pic.c
 	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 out/obj/%.c.o: src/%.c

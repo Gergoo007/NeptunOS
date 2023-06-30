@@ -12,9 +12,9 @@
 #include <neptunos/memory/memory.h>
 #include <neptunos/memory/paging.h>
 
-#include <neptunos/tables/gdt.h>
-#include <neptunos/tables/idt.h>
-#include <neptunos/tables/interrupts.h>
+#include <neptunos/gdt/gdt.h>
+#include <neptunos/interrupts/idt.h>
+#include <neptunos/interrupts/interrupts.h>
 
 #include <neptunos/power/power.h>
 
