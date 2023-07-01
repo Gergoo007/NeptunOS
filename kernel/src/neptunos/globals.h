@@ -18,8 +18,6 @@ extern uint16_t cursor_y;
 extern boot_info_t* info;
 extern screen_props_t screen;
 
-extern bitmap_t bm;
-
 extern void* KSTART;
 extern void* KEND;
 // extern void* BSS_START;

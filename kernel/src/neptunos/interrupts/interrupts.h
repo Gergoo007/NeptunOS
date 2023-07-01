@@ -11,12 +11,6 @@ typedef struct interrupt_frame {
 	u16 ss;
 } _attr_packed int_frame_t;
 
-extern u64 int_handlers[][2];
+extern u64 exception_isrs[][2];
 
-_attr_int void page_flt_handler(struct interrupt_frame* frame);
-_attr_int void double_flt_handler(struct interrupt_frame* frame);
-_attr_int void invalid_opcode_flt_handler(struct interrupt_frame* frame);
-_attr_int void general_protection_handler(struct interrupt_frame* frame);
-_attr_int void custom_handler(struct interrupt_frame* frame);
-_attr_int void pic_kb_press(struct interrupt_frame* frame);
-_attr_int void pit_tick_int(struct interrupt_frame* frame);
+_attr_int void ps2_kb_press(int_frame_t* frame);

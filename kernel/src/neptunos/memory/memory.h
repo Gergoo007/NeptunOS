@@ -25,11 +25,6 @@
 
 extern const char* MEM_TYPES[4];
 
-typedef struct bitmap_t {
-	void* address;
-	uint64_t size;
-} bitmap_t;
-
 #include <neptunos/libk/stdall.h>
 
 typedef struct mem_block_hdr_t {
@@ -40,8 +35,6 @@ typedef struct mem_block_hdr_t {
 void map_memory(void);
 
 void init_bitmap(void);
-uint8_t bm_get(uint64_t page);
-void bm_set(uint64_t page, uint8_t val);
 
 void free_page(void* address, uint64_t count);
 void lock_page(void* address, uint64_t count);
@@ -55,8 +48,10 @@ void* malloc(uint64_t size_in_bytes);
 void* calloc(size_t members, size_t member_size);
 void free(void* addr);
 
+extern void* heap_base;
 extern uint64_t total_mem;
 extern uint64_t free_mem;
 extern uint64_t reserved_mem;
 extern uint64_t used_mem;
 extern uint64_t num_pages;
+extern bitmap_t phys_mem_bm;

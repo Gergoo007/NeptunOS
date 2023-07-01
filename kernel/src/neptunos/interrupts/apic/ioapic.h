@@ -1,6 +1,11 @@
 #pragma once
 
+#include "apic.h"
+
 #include <neptunos/libk/stdall.h>
+#include <neptunos/time/rtc.h>
+#include <neptunos/memory/paging.h>
+#include <neptunos/interrupts/idt.h>
 
 typedef struct ioapic_id {
 	u32 : 23;
@@ -57,7 +62,12 @@ typedef struct ioapic {
 	u8 ioapic_id;
 } ioapic_t;
 
-typedef struct ioapic_override {
-	u8 irq;
-	u32 gsi;
-} ioapic_override_t;
+extern u32* ioapic_overrides;
+extern ioapic_t* ioapics;
+extern u8 num_ioapic_overrides;
+extern u32* ioapic_overrides;
+
+void ioapic_init(void);
+void ioapic_add_redirection(u32 gsi, u8 vector, u8 lvl_trig, u8 active_low, u8 target_id);
+void ioapic_set_mask(u32 gsi, u8 mask);
+u8 ioapic_get_mask(u32 gsi);

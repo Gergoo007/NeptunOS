@@ -3,6 +3,8 @@
 #include <neptunos/libk/stdint.h>
 #include <neptunos/config/attributes.h>
 #include <neptunos/globals.h>
+#include "interrupts.h"
+#include <neptunos/memory/paging.h>
 
 typedef struct idt_desc {
 	u16 offs0;
@@ -23,6 +25,7 @@ typedef struct idtr {
 	u64 addr;
 } _attr_packed idtr_t;
 
-extern idtr_t idtr;
+extern idt_desc_t* idt;
 
 void idt_init(void);
+u8 idt_add_isr(void (*handler)(struct interrupt_frame*));

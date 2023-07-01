@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neptunos/libk/stdall.h>
+#include "apic.h"
 
 typedef struct lapic_ver_reg {
 	u8 ver;
@@ -55,3 +56,5 @@ typedef struct lapic_regs {
 	_Alignas(16) u32 timer_divide_config;
 	_Alignas(16) u32 _res6;
 } _attr_packed lapic_regs_t;
+
+void lapic_init(cpu_core_t* cpu);

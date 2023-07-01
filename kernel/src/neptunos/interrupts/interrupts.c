@@ -34,7 +34,7 @@ _attr_int void general_protection_handler(int_frame_t* frame) {
 }
 
 _attr_int void custom_handler(int_frame_t* frame) {
-	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
 	safe_printk("Custom interrupt triggered!\n");
 
 	u32 eoi = lapic->eoi;
@@ -43,7 +43,7 @@ _attr_int void custom_handler(int_frame_t* frame) {
 }
 
 _attr_int void rtc_test(int_frame_t* frame) {
-	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
 	safe_printk("RTC int!\n");
 	safe_outb(0x0C, 0x70);	// select register C
 	safe_inb(0x71);		// just throw away contents
@@ -56,7 +56,7 @@ _attr_int void ps2_kb_press(int_frame_t* frame) {
 	// Just send an EOI for now
 	safe_printk("Key pressed! (%02x)\n", safe_inb(0x60));
 
-	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
 
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
@@ -65,47 +65,37 @@ _attr_int void ps2_kb_press(int_frame_t* frame) {
 
 _attr_int void spurious_int(int_frame_t* frame) {
 	panic("Spurious int triggered!");
-	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
 	lapic->eoi = eoi;
 }
 
 _attr_int void apic_test(int_frame_t* frame) {
-	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) lapic_base;
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
 	lapic->eoi = eoi;
 }
 
-u64 int_handlers[][2] = {
+// These interrupts are always needed, regardless of
+// the peripherals attached
+u64 exception_isrs[][2] = {
 	{
 		(u64)page_flt_handler,
-		0xe
+		0x0e
 	},
 	{
 		(u64)double_flt_handler,
-		0x8
+		0x08
 	},
 	{
 		(u64)invalid_opcode_flt_handler,
-		0x6
+		0x06
 	},
 	{
 		(u64)general_protection_handler,
-		0xd
-	},
-	{
-		(u64)custom_handler,
-		0x51
-	},
-	{
-		(u64)rtc_test,
-		0x78
-	},
-	{
-		(u64)ps2_kb_press,
-		0x80
+		0x0d
 	},
 	{
 		(u64)spurious_int,
