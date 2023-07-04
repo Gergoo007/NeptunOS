@@ -2,6 +2,7 @@
 #include <neptunos/pci/pci.h>
 #include <neptunos/libk/string.h>
 #include <neptunos/interrupts/apic/apic.h>
+#include <neptunos/interrupts/pic/pic.h>
 
 xsdp_t* xsdp = NULL;
 sdt_hdr_t* xsdt = NULL;
@@ -24,7 +25,9 @@ void init_acpi(void) {
 			pci_enumerate();
 		} else if (strncmp(sign, "APIC", 4)) {
 			madt = (madt_hdr_t*)next_sdt_hdr;
-			apic_init();
+			// Select if you want to use APIC or PIC here
+			pic_init();
+			// apic_init();
 		}
 	}
 }

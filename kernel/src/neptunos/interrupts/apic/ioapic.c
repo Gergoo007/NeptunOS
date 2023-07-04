@@ -59,7 +59,12 @@ void ioapic_init(void) {
 
 	map_page(ioapics[0].addr, ioapics[0].addr, MAP_FLAGS_IO_DEFAULTS | MAP_FLAG_WRITE_THROUGH);
 
+	for (u8 i = 0; i < 24; i++) {
+		ioapic_set_mask(i, 1);
+	}
+	
 	ioapic_add_redirection(ioapic_find_gsi(IRQ_PS2_KB), idt_add_isr(ps2_kb_press), 0, 1, cpus[0].apic_id);
-	ioapic_set_mask(1, 0);
-	ioapic_add_redirection(ioapic_find_gsi(IRQ_RTC), 0x78, 0, 1, cpus[0].apic_id);
+	ioapic_set_mask(ioapic_find_gsi(IRQ_PS2_KB), 0);
+	ioapic_add_redirection(ioapic_find_gsi(IRQ_RTC), idt_add_isr(rtc_test), 0, 1, cpus[0].apic_id);
+	ioapic_set_mask(ioapic_find_gsi(IRQ_RTC), 0);
 }

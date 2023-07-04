@@ -3,7 +3,6 @@
 // Only works 1/5th of the time on real hardware for some reason
 void enable_rtc(void) {
 	nmi_disable();
-	asm("cli");
 
 	rtc_reg_a_t reg_a;
 	rtc_reg_b_t reg_b;
@@ -31,6 +30,5 @@ void enable_rtc(void) {
 	outb(0x0C, 0x70);
 	inb(0x71);
 
-	asm("sti");
 	nmi_enable();
 }

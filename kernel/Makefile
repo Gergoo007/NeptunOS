@@ -13,7 +13,7 @@ LD = ld.gold
 _CFLAGS += -ffreestanding -fshort-wchar -Isrc -nostdinc \
 	-Wno-interrupt-service-routine -Wno-builtin-requires-header \
 	-Wno-incompatible-library-redeclaration -Wno-long-long -mno-red-zone -std=c17 \
-	$(CFLAGS)
+	-O0 $(CFLAGS)
 _LDFLAGS += -T link.ld -Bsymbolic -nostdlib -z max-page-size=0x1000 -static $(LDFLAGS)
 
 k_all: k_clean info objdir $(COBJ) $(SOBJ) kernel

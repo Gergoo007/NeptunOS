@@ -11,6 +11,6 @@ extern void outb(uint8_t data, uint16_t port);
 extern void outw(uint16_t data, uint16_t port);
 extern void outl(uint32_t data, uint16_t port);
 
-extern void io_wait(void);
+extern void io_wait(u32 rounds);
 
 _attr_no_caller_saved_regs void _in8(uint16_t port, uint8_t* data);

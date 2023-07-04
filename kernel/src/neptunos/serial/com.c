@@ -1,5 +1,6 @@
 #include <neptunos/serial/com.h>
 
-void io_wait(void) {
-	outb(0, 0x80);
+void io_wait(u32 rounds) {
+	while(rounds--)
+		outb(0, 0x80);
 }

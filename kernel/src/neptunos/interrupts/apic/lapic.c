@@ -27,11 +27,26 @@ void lapic_init(cpu_core_t* cpu) {
 
 	entry = lapic->lvt_lint0;
 	entry.mask = 1;
-	entry.nmi = cpu->nmi_pin == 0 ? 0b100 : 0;
+	if (cpu->nmi_pin == 0) {
+		entry.nmi = 0b100;
+		entry.vector_num = idt_add_isr(nmi);
+		entry.mask = 0;
+	} else {
+		entry.nmi = 0;
+		entry.vector_num = idt_add_isr(lint);
+		entry.mask = 0;
+	}
 	lapic->lvt_lint0 = entry;
 
 	entry = lapic->lvt_lint1;
-	entry.mask = 1;
-	entry.nmi = cpu->nmi_pin ? 0b100 : 0;
+	if (cpu->nmi_pin == 1) {
+		entry.nmi = 0b100;
+		entry.vector_num = idt_add_isr(nmi);
+		entry.mask = 0;
+	} else {
+		entry.nmi = 0;
+		entry.vector_num = idt_add_isr(lint);
+		entry.mask = 0;
+	}
 	lapic->lvt_lint1 = entry;
 }

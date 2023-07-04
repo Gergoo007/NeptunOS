@@ -94,9 +94,6 @@ void kinit(void) {
 	setup_font();
 	cursor_x = cursor_y = 0;
 
-	// void* stack_base = malloc(mib_bytes(4));
-	// asm("movq %0, %%rsp" : "=r" (stack_base));
-
 	#ifdef USE_DOUBLE_BUFFERING
 		setup_back_buffer();
 	#endif
@@ -117,9 +114,5 @@ void kinit(void) {
 
 	init_acpi();
 
-	// asm("sti");
-
-	// // Return address was saved on the stack, so we have to manually jump
-	// void (*after_kinit)(void) = (void*)addr;
-	// after_kinit();
+	pic_init();
 }

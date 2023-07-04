@@ -10,7 +10,6 @@ u16 cursor_y = 0;
 #define wpixel(x, y, color) *(u32*)((u64)screen.fb_base + screen.pitch*y + screen.bpp/8*x) = color;
 
 void scroll_down(u8 lines) {
-	asm("cli");
 	// Start with the second line on the screen
 	u8 line = lines;
 	u8 num_lines = screen.height/16;
@@ -30,11 +29,9 @@ void scroll_down(u8 lines) {
 		0,
 		screen.pitch*16
 	);
-	asm("sti");
 }
 
 void scroll_up(void) {
-	asm("cli");
 	memcpy(
 		(void*)((u64)screen.fb_base + screen.pitch*0 + screen.bpp/8*0),
 		(void*)((u64)screen.fb_base + screen.pitch*16 + screen.bpp/8*0),
@@ -42,7 +39,6 @@ void scroll_up(void) {
 	);
 
 	cursor_y += 16;
-	asm("sti");
 }
 
 extern void _printk(const char *restrict fmt, va_list arg_list);

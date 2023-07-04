@@ -7,6 +7,10 @@
 
 #include <neptunos/graphics/panic.h>
 
+#include <neptunos/interrupts/pic/pic.h>
+
+#include <neptunos/time/pit.h>
+
 _attr_no_caller_saved_regs void safe_printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
@@ -30,6 +34,7 @@ _attr_int void invalid_opcode_flt_handler(int_frame_t* frame) {
 }
 
 _attr_int void general_protection_handler(int_frame_t* frame) {
+	safe_printk("err_code: %p, RIP: %p\nCS: %p, FLAGS: %p\nRSP: %p, SS: %p\n", frame->err_code, frame->rip, frame->cs, frame->flags, frame->rsp, frame->ss);
 	panic("General protection exception!");
 }
 
@@ -63,6 +68,13 @@ _attr_int void ps2_kb_press(int_frame_t* frame) {
 	lapic->eoi = eoi;
 }
 
+_attr_int void ps2_kb_press_pic(int_frame_t* frame) {
+	// Just send an EOI for now
+	safe_printk("Key pressed! (%02x)\n", safe_inb(0x60));
+
+	safe_outb(PIC_EOI, MPIC_CMD);
+}
+
 _attr_int void spurious_int(int_frame_t* frame) {
 	panic("Spurious int triggered!");
 	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
@@ -76,6 +88,32 @@ _attr_int void apic_test(int_frame_t* frame) {
 	u32 eoi = lapic->eoi;
 	eoi &= 0;
 	lapic->eoi = eoi;
+}
+
+_attr_int void nmi(int_frame_t* frame) {
+	safe_printk("NMI triggered!\n");
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
+	u32 eoi = lapic->eoi;
+	eoi &= 0;
+	lapic->eoi = eoi;
+}
+
+// Non-NMI LINT int
+_attr_int void lint(int_frame_t* frame) {
+	safe_printk("LINT triggered!\n");
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
+	u32 eoi = lapic->eoi;
+	eoi &= 0;
+	lapic->eoi = eoi;
+}
+
+_attr_int void pit_tick(int_frame_t* frame) {
+	safe_printk("PIT tick!\n");
+	volatile lapic_regs_t* lapic = (volatile lapic_regs_t*) cpus[0].lapic_base;
+	u32 eoi = lapic->eoi;
+	eoi &= 0;
+	lapic->eoi = eoi;
+	safe_outb(PIC_EOI, MPIC_CMD);
 }
 
 // These interrupts are always needed, regardless of
@@ -96,6 +134,10 @@ u64 exception_isrs[][2] = {
 	{
 		(u64)general_protection_handler,
 		0x0d
+	},
+	{
+		(u64)pit_tick,
+		0x60
 	},
 	{
 		(u64)spurious_int,

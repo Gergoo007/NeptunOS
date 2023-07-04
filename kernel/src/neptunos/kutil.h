@@ -21,6 +21,7 @@
 #include <neptunos/acpi/acpi.h>
 
 #include <neptunos/cpuid/cpuid.h>
+#include <neptunos/interrupts/pic/pic.h>
 
 extern uint16_t get_processor_id(void);
 

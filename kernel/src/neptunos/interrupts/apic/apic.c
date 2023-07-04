@@ -13,8 +13,10 @@ ioapic_t* ioapics = 0;
 
 void mask_pic(void) {
 	// Disable PIC
-	outb(0xff, 0x0021);
-	outb(0xff, 0x00a1);
+	outb(0xff, 0x21);
+	io_wait(2);
+	outb(0xff, 0xa1);
+	io_wait(2);
 }
 
 void apic_init(void) {

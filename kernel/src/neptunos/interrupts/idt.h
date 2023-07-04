@@ -29,3 +29,4 @@ extern idt_desc_t* idt;
 
 void idt_init(void);
 u8 idt_add_isr(void (*handler)(struct interrupt_frame*));
+void idt_add_entry(void (*handler)(struct interrupt_frame*), u8 vector);

@@ -4,6 +4,7 @@
 #include <neptunos/cpuid/cpuid.h>
 #include <neptunos/memory/paging.h>
 #include <neptunos/interrupts/irqs.h>
+#include <neptunos/interrupts/interrupts.h>
 
 typedef struct cpu_core_t {
 	u8 cpu_id;
