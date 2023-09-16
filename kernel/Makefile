@@ -1,52 +1,23 @@
-rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+CSRC :=	$(shell find src -name '*.c' -printf '%P\n')
+SSRC :=	$(shell find src -name '*.s' -printf '%P\n')
 
-CSRC := $(call rwildcard, src/neptunos, *.c)
-SSRC := $(call rwildcard, src/neptunos, *.s)
+COBJS := $(patsubst %.c,out/%.c.o,$(CSRC))
+SOBJS := $(patsubst %.s,out/%.s.o,$(SSRC))
 
-COBJ := $(patsubst src/neptunos/%.c, out/obj/neptunos/%.c.o, $(CSRC))
-SOBJ := $(patsubst src/neptunos/%.s, out/obj/neptunos/%.s.o, $(SSRC))
+CC ?= cc
+AS ?= as
+LD ?= ld.gold
 
-CC = gcc
-AS = as
-LD = ld.gold
+CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large -Wall -Wextra
+LDFLAGS := -static -T src/ldscript.ld
 
-_CFLAGS += -ffreestanding -fshort-wchar -Isrc -nostdinc \
-	-Wno-interrupt-service-routine -Wno-builtin-requires-header \
-	-Wno-incompatible-library-redeclaration -Wno-long-long -mno-red-zone -std=c17 \
-	-O0 $(CFLAGS)
-_LDFLAGS += -T link.ld -Bsymbolic -nostdlib -z max-page-size=0x1000 -static $(LDFLAGS)
+all: kernel
 
-k_all: k_clean info objdir $(COBJ) $(SOBJ) kernel
+out/%.c.o: src/%.c
+	$(CC) $(CFLAGS) -c $^ -o $@
 
-info:
-	@echo AS: $(AS), CC: $(CC), LD: $(LD)
+out/%.s.o: src/%.s
+	$(AS) -c $^ -o $@
 
-k_clean:
-	rm -rf out/*
-
-objdir:
-	rsync -a -f"+ */" -f"- *" src/neptunos out/obj/
-
-out/obj/font.o:
-	$(LD) -r -b binary -o $@ font.psf
-
-out/obj/neptunos/interrupts/interrupts.c.o: src/neptunos/interrupts/interrupts.c
-	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
-
-out/obj/neptunos/graphics/panic.c.o: src/neptunos/graphics/panic.c
-	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
-
-out/obj/neptunos/serial/com.c.o: src/neptunos/serial/com.c
-	$(CC) $(_CFLAGS) -mgeneral-regs-only -c $^ -o $@
-
-out/obj/%.c.o: src/%.c
-	$(CC) $(_CFLAGS) -c $^ -o $@
-
-out/obj/%.s.o: src/%.s
-	$(AS) $(NASMFLAGS) $^ -o $@
-
-kernel: $(COBJ) $(SOBJ) out/obj/font.o
-	$(LD) $(_LDFLAGS) $^ -o out/kernel
-	ld -r -b binary -o ../multiboot_pre/out/payload.o out/kernel
-
-.PHONY: kernel k_all objdir k_clean no_debug
+kernel: $(COBJS) $(SOBJS)
+	$(LD) $(LDFLAGS) $^ -o out/kernel

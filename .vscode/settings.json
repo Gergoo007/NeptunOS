@@ -1,8 +1,3 @@
 {
-	"clangd.fallbackFlags": [
-		"-I${workspaceFolder}/kernel/src",
-		"-I${workspaceFolder}/multiboot_pre/src",
-	],
-	"discord.enabled": true,
-	"debug.onTaskErrors": "debugAnyway",
+	"discord.enabled": true
 }

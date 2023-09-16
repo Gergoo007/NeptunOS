@@ -1,28 +1,22 @@
-.PHONY: all clean link build pack uefi run
+.PHONY: test build run
 
-RAMSIZE ?= 2G
-QEMU_ARGS ?= -machine q35 -m $(RAMSIZE) \
-	-net none -no-reboot -no-shutdown -rtc base=localtime \
-	-cdrom out.iso -drive file=raw.img,format=raw \
-	-enable-kvm -cpu SandyBridge,+avx2,enforce -smp 4
+QEMU ?= qemu-system-x86_64
+ISO ?= image.iso
+_QEMU_FLAGS_UEFI := -enable-kvm -machine q35 -cpu SandyBridge,+avx2 \
+				-cdrom $(ISO) \
+				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
+				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
 
-all: _kernel preloader pack uefi
+_QEMU_FLAGS_BIOS := -enable-kvm -machine q35 -cpu SandyBridge,+avx2 -cdrom $(ISO)
 
-_kernel:
-	make -C kernel
+test: run
 
-preloader:
-	make -C multiboot_pre
-	grub-mkrescue iso_content -o out.iso
+build:
+	$(MAKE) -C kernel
+	$(MAKE) -C preloader
 
-uefi:
-	qemu-system-x86_64 -bios ovmf/OVMF_CODE.fd $(QEMU_ARGS)
+run: build
+	$(QEMU) $(_QEMU_FLAGS_UEFI)
 
-run:
-	qemu-system-x86_64 $(QEMU_ARGS)
-
-debug_uefi:
-	qemu-system-x86_64 -bios ovmf/OVMF_CODE.fd $(QEMU_ARGS) -s -S
-
-debug:
-	qemu-system-x86_64 $(QEMU_ARGS) -s -S
+bios: build
+	$(QEMU) $(_QEMU_FLAGS_BIOS)
