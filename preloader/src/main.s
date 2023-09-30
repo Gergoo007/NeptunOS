@@ -1,5 +1,7 @@
 .global pmain
 
+.extern cmain
+
 .section .mbhdr
 .align 8
 header:
@@ -57,6 +59,10 @@ pdp:
 pml4:
 	.skip 0x1000
 
+stack:
+	.skip 0x1000
+stack_end:
+
 # Paging
 .section .text
 .code32
@@ -65,6 +71,10 @@ pmain:
 	# által lett bootolva a rendszer
 	cmpl $0x36d76289, %eax
 	jne fault
+
+	# Stack beállítása, még mielőtt
+	# bármi felkerülne rá
+	leal stack, %esp
 	
 	# AMD64 kompatibilis-e a processzor?
 	movl $0x80000001, %eax
@@ -86,7 +96,7 @@ pd1_kitolt:
 	mull %ecx
 	leal pd1, %edx
 	# present | rw | hugepage
-	orl $0b11000001, %eax
+	orl $0b10000011, %eax
 
 	# Entry kiírása
 	movl %eax, (%edx,%ecx,8)
@@ -114,10 +124,6 @@ pml4_kitolt:
 	movl %edx, %eax
 	movl %eax, %cr3
 
-	movl $0x20, %eax
-	movl $0x10, %ebx
-	add %ebx, %eax
-
 	# PAE bekapcsolása
 	mov %cr4, %eax
 	or $0x20, %eax
@@ -139,12 +145,24 @@ pml4_kitolt:
 
 	jmp $0x08,$long_mode
 
-	cli
-	hlt
-
 .code64
 long_mode:
-	jmp .
+	movw $0, %ax
+	movw %ax, %ds
+	movw %ax, %ss
+	movw %ax, %es
+	movw %ax, %fs
+	movw %ax, %gs
+
+	call cmain
+
+	# Jelezzük, hogy a program a végére ért
+	movq $0x6969696969696969, %rax
+	movq %rax, %rbx
+	movq %rax, %rcx
+	movq %rax, %rdx
+	cli
+	hlt
 
 fault:
 	# Hibakódok, így felismerem a hibát
