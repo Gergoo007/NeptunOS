@@ -8,7 +8,8 @@ CC ?= cc
 AS ?= as
 LD ?= ld.gold
 
-CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -Wall -Wextra
+CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone \
+	-Wall -Wextra -Isrc -Wno-unused-parameter -mgeneral-regs-only
 LDFLAGS := -static -T src/ldscript.ld
 
 all: preloader package
