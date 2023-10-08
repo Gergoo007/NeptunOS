@@ -3,6 +3,9 @@
 #include <strings.h>
 #include <serial.h>
 #include <multiboot.h>
+#include <memory.h>
+#include <paging.h>
+#include <loader.h>
 
 void __stack_chk_fail(void) {
 	printf("Stack smashing detected!\n\r");
@@ -10,28 +13,20 @@ void __stack_chk_fail(void) {
 
 void cmain(u32 mb2_header) {
 	mb_tag_base_t* tag = (mb_tag_base_t*)((u64)mb2_header+8);
-	u32 total_ram = 0;
+	u8 mmap_init = 0;
 
 	while(tag->type) {
-		printf("Tag type: %d, size: %d\n\r", tag->type, tag->size);
-
 		if (tag->type == MB_TAG_MEMMAP) {
 			mb_tag_memmap_t* mmap = (mb_tag_memmap_t*)tag;
 			u8 num_entries = mmap->base.size / mmap->entry_size;
 
 			for (u8 i = 0; i < num_entries; i++) {
-				switch (mmap->entries[i].type) {
-					// Ezek a típusok biztosan léteznek
-					// fizikailag, de a többi "reserved"
-					// valószínűleg csak MMIO
-					case 1:
-					case 3:
-					case 4:
-					case 5:
-						total_ram += mmap->entries[i].length;
-						break;
-					default:
-						break;
+				if (mmap->entries[i].type == 1) {
+					// Legyen 4 GiB alatt, de a BIOS meg társai felett
+					if (mmap->entries[i].addr < (u64)4*1024*1024*1024 && mmap->entries[i].addr >= 0x100000) {
+						mmap_init = 1;
+						bm_initialize(mmap->entries[i].addr);
+					}
 				}
 			}
 		} else if (tag->type == MB_TAG_FB) {
@@ -43,12 +38,6 @@ void cmain(u32 mb2_header) {
 
 			for (u8 x = 0; x < 200; x++) {
 				for (u8 y = 0; y < 200; y++) {
-					u64 pixel = fb->fb_addr + (x*4) + (y*4*fb->fb_width);
-					if (pixel > ((u64)4*1024*1024*1024)) {
-						printf("Ajajj\n\r");
-						asm volatile("cli");
-						asm volatile("hlt");
-					}
 					*(u32*)(fb->fb_addr + (x*4) + (y*4*fb->fb_width)) = 0xffffffff;
 				}
 			}
@@ -57,5 +46,20 @@ void cmain(u32 mb2_header) {
 		tag = (mb_tag_base_t*)((u64)tag + ((tag->size + 7) & ~7));
 	}
 
-	printf("Fun fact: osszesen %d MiB RAM all rendelkezesre.\n\r", total_ram / 1024 / 1024);
+	if (!mmap_init) {
+		printf("Nem sikerult jo helyet talalni!\n\r");
+		return;
+	}
+
+	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
+
+	load_kernel();
+
+	Elf64_Ehdr* ehdr = (Elf64_Ehdr*) &_binary_out_kernel_start;
+	printf("entry: %p\n\r", ehdr->e_entry);
+
+	// kmain lehívása
+	u8 (*kmain)(void) = (u8 (*)(void)) ehdr->e_entry;
+
+	printf("Return: %d\n\r", kmain());
 }

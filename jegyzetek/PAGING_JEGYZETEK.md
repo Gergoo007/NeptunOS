@@ -34,4 +34,8 @@
 | 6		| Dirty (RO)		|
 | 7		| Size (1 -> 2 MiB) |
 | 8		| Globál (?)		|
+| 9:10	| Nem számít		|
+| 11	| HLAT Restart		|
+| 12:47	| "Fizikai" cím		|
+| 48:51	| Cím felső bitei (PML5)|
 MAJD FOLYTATNI KELL

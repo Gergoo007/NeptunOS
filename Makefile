@@ -16,8 +16,10 @@ _QEMU_FLAGS_DEBUG := -m $(RAMSIZE) -d int -machine q35 -cpu SandyBridge,+avx2 \
 test: debug
 
 build:
-	$(MAKE) -C kernel
-	$(MAKE) -C preloader
+	@echo "Building the kernel..."
+	@$(MAKE) --quiet -C kernel
+	@echo "Building the preloader..."
+	@$(MAKE) --quiet -C preloader
 
 debug: build
 	$(QEMU) $(_QEMU_FLAGS_DEBUG)

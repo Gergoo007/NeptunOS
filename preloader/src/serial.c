@@ -12,8 +12,20 @@ void puts(const char* restrict s) {
 
 // TODO: negatív számok
 void int_to_str(i64 i, char* str) {
-	u8 negative = i < 0;
+	u8 negative = (i < 0) ? 1 : 0;
 	u8 len = 1;
+
+	if (negative)
+		i *= -1;
+
+	// Ha nulla, akkor egyszerű a dolgunk
+	// Ugyanakkor ez bypassel egy buggot:
+	// mivel a szám 0, a length is 0 lesz, ezért üres stringet kapunk
+	if (!i) {
+		str[0] = '0';
+		str[1] = '\0';
+		return;
+	}
 
 	// Számokat át konvertáljuk karakterekké
 	for (u8 j = 0; i > 0; j++, i /= 10) {
@@ -30,6 +42,14 @@ void int_to_str(i64 i, char* str) {
 	}
 
 	str[len-1] = '\0';
+
+	if (negative) {
+		// A kötőjelet oda kell rakni ha negatív
+		char tmp[256];
+		tmp[0] = '-';
+		strcpy(str, tmp+1);
+		strcpy(tmp, str);
+	}
 }
 
 void uint_to_str(u64 i, char* str) {
