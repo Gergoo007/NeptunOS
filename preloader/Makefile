@@ -1,3 +1,5 @@
+.PHONY: all clean preloader package
+
 CSRC :=	$(shell find src -name '*.c' -printf '%P\n')
 SSRC :=	$(shell find src -name '*.s' -printf '%P\n')
 

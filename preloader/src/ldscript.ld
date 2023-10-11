@@ -3,10 +3,6 @@ ENTRY(pmain)
 
 SECTIONS {
 	. = 0x10000;
-	.mbhdr : {
-		*(.*mbhdr*)
-	}
-
 	.text : {
 		*(.*text*)
 	}

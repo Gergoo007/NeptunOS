@@ -1,7 +1,7 @@
 #pragma once
 
-#include <int.h>
-#include <attrs.h>
+#include <lib/int.h>
+#include <lib/attrs.h>
 
 #pragma pack(1)
 

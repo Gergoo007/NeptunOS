@@ -1,4 +1,4 @@
-.PHONY: test build run
+.PHONY: test build run debug
 
 QEMU ?= qemu-system-x86_64
 ISO ?= image.iso

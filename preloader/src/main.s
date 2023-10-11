@@ -2,7 +2,11 @@
 
 .extern cmain
 
-.section .mbhdr
+.code32
+.section .text
+# Headert újonnan a .text-be kell rakni sajnos,
+# másképpen nem lehet elérni, hogy az első 32768
+# byte-ban legyen a Multiboot header
 .align 8
 header:
 	# Magic fields
@@ -10,12 +14,12 @@ header:
 	.long 0xE85250D6
 	# arch
 	.long 0
-	# hdr length
+	# hdr méret
 	.long header_end - header
 	# checksum
 	.long -(0xE85250D6 + 0 + (header_end - header))
 
-	# Tags
+	# Tagek
 .align 8
 fb_tag:
 	.short 5
@@ -29,7 +33,7 @@ fb_tag_end:
 
 .align 8
 end_tag:
-	# Termination tag
+	# Ez jelzi a tagek végét
 	.short 0
 	.short 0
 	.long 8
@@ -69,7 +73,6 @@ stack_end:
 
 # Paging
 .section .text
-.code32
 pmain:
 	# ha EAX értéke 0x36d76289, multiboot2 bootloader
 	# által lett bootolva a rendszer

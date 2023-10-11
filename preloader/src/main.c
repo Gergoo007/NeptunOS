@@ -11,6 +11,8 @@ void __stack_chk_fail(void) {
 	printf("Stack smashing detected!\n\r");
 }
 
+mb_tag_fb_t* fb = NULL;
+
 void cmain(u32 mb2_header) {
 	mb_tag_base_t* tag = (mb_tag_base_t*)((u64)mb2_header+8);
 	u8 mmap_init = 0;
@@ -30,7 +32,7 @@ void cmain(u32 mb2_header) {
 				}
 			}
 		} else if (tag->type == MB_TAG_FB) {
-			mb_tag_fb_t* fb = (mb_tag_fb_t*)tag;
+			fb = (mb_tag_fb_t*)tag;
 			if (fb->fb_addr > (u64)4*1024*1024*1024) {
 				printf("The framebuffer can't be used because it's above the mapping!\n\r");
 				continue;
@@ -58,8 +60,11 @@ void cmain(u32 mb2_header) {
 	Elf64_Ehdr* ehdr = (Elf64_Ehdr*) &_binary_out_kernel_start;
 	printf("entry: %p\n\r", ehdr->e_entry);
 
-	// kmain lehívása
-	u8 (*kmain)(void) = (u8 (*)(void)) ehdr->e_entry;
+	kernel_info_t info;
+	info.mb_hdr_addr = mb2_header;
 
-	printf("Return: %d\n\r", kmain());
+	// kmain lehívása
+	u8 (*kmain)(kernel_info_t*) = (u8 (*)(kernel_info_t*)) ehdr->e_entry;
+
+	printf("Return: %d\n\r", kmain(&info));
 }

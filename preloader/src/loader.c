@@ -14,11 +14,12 @@ void load_kernel(void) {
 			// Mindegyik page-et külön mappeljünk, ha már mappelve van akkor
 			// ne írjuk felül a fizikai címet
 			for (u8 j = 0; j < phdr->p_memsz/PAGESIZE+1; j++) {
-				map_page(0xfffffff800000000+(j*PAGESIZE), bm_get_free(), 0);
+				map_page(phdr->p_vaddr+(j*PAGESIZE), bm_get_free(), 0);
+				// printf("Cím: %p\n\r", phdr->p_vaddr+(j*PAGESIZE) & ~(PAGESIZE));
 			}
 
 			// Vonjuk ki a szegmenst a kernel fileból
-			memcpy((u8*) ((u64)ehdr + phdr->p_offset), (u8*) (phdr->p_vaddr), phdr->p_memsz);
+			// memcpy((u8*) ((u64)ehdr + phdr->p_offset), (u8*) (phdr->p_vaddr), phdr->p_memsz);
 		}
 	}
 }
