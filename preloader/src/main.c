@@ -8,7 +8,7 @@
 #include <loader.h>
 
 void __stack_chk_fail(void) {
-	printf("Stack smashing detected!\n\r");
+	printf("Stack smashing történt!\n\r");
 }
 
 mb_tag_fb_t* fb = NULL;
@@ -24,17 +24,19 @@ void cmain(u32 mb2_header) {
 
 			for (u8 i = 0; i < num_entries; i++) {
 				if (mmap->entries[i].type == 1) {
-					// Legyen 4 GiB alatt, de a BIOS meg társai felett
-					if (mmap->entries[i].addr < (u64)4*1024*1024*1024 && mmap->entries[i].addr >= 0x100000) {
-						mmap_init = 1;
-						bm_initialize(mmap->entries[i].addr);
+					if (mmap->entries[i].addr >= 0x100000 && mmap->entries[i].addr < 4ULL*1024*1024*1024 && mmap->entries[i].length >= PAGESIZE*20) {
+						if (!mmap_init) {
+							mmap_init = 1;
+							printf("Heap helye: %p\n\r", mmap->entries[i].addr);
+							bm_initialize(mmap->entries[i].addr);
+						}
 					}
 				}
 			}
 		} else if (tag->type == MB_TAG_FB) {
 			fb = (mb_tag_fb_t*)tag;
 			if (fb->fb_addr > (u64)4*1024*1024*1024) {
-				printf("The framebuffer can't be used because it's above the mapping!\n\r");
+				printf("A framebuffer a 4 GB-s határ felett van!\n\r");
 				continue;
 			}
 
@@ -49,22 +51,26 @@ void cmain(u32 mb2_header) {
 	}
 
 	if (!mmap_init) {
-		printf("Nem sikerult jo helyet talalni!\n\r");
+		printf("Nem sikerült jó helyet találni!\n\r");
+		for (u8 x = 0; x < 200; x++) {
+			for (u8 y = 0; y < 200; y++) {
+				*(u32*)(fb->fb_addr + (x*4) + (y*4*fb->fb_width)) = 0xffff0000;
+			}
+		}
 		return;
 	}
 
+	// PML4 betöltése
 	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
+	printf("PML4: %p\n\r", pml4);
 
-	load_kernel();
+	kernel_info_t kinfo;
+	kinfo.mb_hdr_addr = mb2_header;
 
-	Elf64_Ehdr* ehdr = (Elf64_Ehdr*) &_binary_out_kernel_start;
-	printf("entry: %p\n\r", ehdr->e_entry);
+	u64 entry = load_kernel();
+	u8 (*kmain)(kernel_info_t*) = (u8 (*)(kernel_info_t*)) entry;
 
-	kernel_info_t info;
-	info.mb_hdr_addr = mb2_header;
+	printf("Return: %d\n\r", kmain(&kinfo));
 
-	// kmain lehívása
-	u8 (*kmain)(kernel_info_t*) = (u8 (*)(kernel_info_t*)) ehdr->e_entry;
-
-	printf("Return: %d\n\r", kmain(&info));
+	printf("Preloader elérte a program végét?!\n\r");
 }

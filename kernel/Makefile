@@ -11,7 +11,7 @@ AS ?= as
 LD ?= ld.gold
 
 CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large -Wall -Wextra -Isrc -fno-stack-protector -mgeneral-regs-only
-LDFLAGS := -static -T ldscript.ld
+LDFLAGS := -static -T ldscript.ld -z max-page-size=0x200000
 
 all: clean kernel store
 

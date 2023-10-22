@@ -17,4 +17,4 @@ typedef struct page_table {
 
 extern page_table_t* pml4;
 
-void map_page(u64 virt, u64 phys, u8 overwrite);
+void map_page(u64 virt, u64 phys);

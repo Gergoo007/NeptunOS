@@ -33,3 +33,10 @@ void memcpy(const u8* src, u8* dest, u64 i) {
 		dest++;
 	}
 }
+
+void memset(u8* dest, const u8 src, u64 i) {
+	while (i--) {
+		*dest = src;
+		dest++;
+	}
+}

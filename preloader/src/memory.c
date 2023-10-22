@@ -7,7 +7,13 @@ u64 bitmap = 0;
 u64 heap_base = 0;
 
 void bm_initialize(u64 addr) {
-	heap_base = addr;
+	// A címet át kell alakítani, hogy page határhoz legyen
+	// igazítva
+	if (addr % PAGESIZE) {
+		heap_base = (addr+PAGESIZE) & ~(PAGESIZE-1);
+	} else {
+		heap_base = addr;
+	}
 }
 
 u8 bm_is_used(u8 i) {

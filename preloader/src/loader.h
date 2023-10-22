@@ -18,4 +18,4 @@ typedef struct kernel_info {
 	u64 mb_hdr_addr;
 } kernel_info_t;
 
-void load_kernel(void);
+u64 load_kernel(void);
