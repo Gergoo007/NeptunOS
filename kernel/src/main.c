@@ -2,18 +2,20 @@
 #include <lib/sprintf.h>
 #include <init/multiboot.h>
 #include <serial/serial.h>
+#include <graphics/console.h>
+#include <arch/x86/power.h>
 
 u8 kmain(kernel_info_t* info) {
-	char tmp[256];
-	sprintf(tmp, "qwertzui%s\n\rA szám: %d\n\rTMP címe: %p\n\r", "GHJF", 234);
-	puts(tmp);
-
-	sprintk("Hello world sprintk-ból! %d %x %p\n\r", 123, 0xabc, &tmp);
-
 	// Multiboot tag-ek feldolgozása
 	mb_parse_tags(info->mb_hdr_addr);
 
-	// Zöld téglalap
+	con_init(0xffffffff, 0xff180101);
+
+	printk("Hello world!\n");
+	printk("Felbontas: %d x %d\n", fb.width, fb.height);
+
+	// A processzor elaludhat a következő interruptig
+	while(1) halt();
 
 	return 88;
 }
