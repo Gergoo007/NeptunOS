@@ -19,12 +19,6 @@ u8 kmain(kernel_info_t* _info) {
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
 
-	// for (u64 i = 0; i < 800000000; i++) {
-	// 	u8* asd = (u8*)pmm_alloc_page();
-	// 	*asd = 0xff;
-	// 	sprintk("%p\n", asd);
-	// }
-
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();
 

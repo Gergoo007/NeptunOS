@@ -4,6 +4,8 @@
 
 #include <graphics/console.h>
 
+#include <memory/heap/pmm.h>
+
 #pragma pack(1)
 
 typedef struct page_table_entry {
@@ -21,4 +23,4 @@ extern page_table_t* pml4;
 
 void paging_init(void);
 u64 paging_lookup(u64 virt);
-void map_page(u64 virt, u64 phys);
+void map_page(u64 virt, u64 phys, u32 flags);
