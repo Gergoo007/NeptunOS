@@ -9,12 +9,14 @@ u64 load_kernel(void) {
 	}
 
 	Elf64_Phdr* phdr = (Elf64_Phdr*) ((u64)ehdr + ehdr->e_phoff);
-	map_page(phdr->p_vaddr, bm_get_free());
+	u64 kpage = bm_get_free();
+	map_page(phdr->p_vaddr, kpage);
 
 	for (u8 i = 0; i < ehdr->e_phnum; i++, phdr++) {
 		if (phdr->p_type != PT_LOAD)
 			continue;
 
+		// TODO: több page kell majd egyszer a kernelnek
 		// for (u64 addr = phdr->p_vaddr; addr < (phdr->p_vaddr+phdr->p_memsz); addr += PAGESIZE) {
 		// 	u64 page = bm_get_free();
 		// 	printf("%p -> %p\n\r", addr, page);

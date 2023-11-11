@@ -44,4 +44,8 @@ void map_page(u64 virt, u64 phys) {
 	
 	pd->entries[pdi].addr |= (phys & ~(PAGESIZE - 1));
 	pd->entries[pdi].flags |= 0b10000011;
+
+	// printf("%p\n\r", &pml4->entries[pml4i]);
+	// printf("%p\n\r", &pdp->entries[pdpi]);
+	// printf("%p\n\r", &pd->entries[pdi]);
 }

@@ -13,6 +13,9 @@ void __stack_chk_fail(void) {
 
 mb_tag_fb_t* fb = NULL;
 
+extern void* PRELOADER_START;
+extern void* PRELOADER_END;
+
 void cmain(u32 mb2_header) {
 	mb_tag_base_t* tag = (mb_tag_base_t*)((u64)mb2_header+8);
 	u8 mmap_init = 0;
@@ -27,7 +30,6 @@ void cmain(u32 mb2_header) {
 					if (mmap->entries[i].addr >= 0x100000 && mmap->entries[i].addr < 4ULL*1024*1024*1024 && mmap->entries[i].length >= PAGESIZE*20) {
 						if (!mmap_init) {
 							mmap_init = 1;
-							printf("Heap helye: %p\n\r", mmap->entries[i].addr);
 							bm_initialize(mmap->entries[i].addr);
 						}
 					}

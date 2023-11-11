@@ -1,5 +1,7 @@
 #include <lib/bitmap.h>
 
+#include <graphics/console.h>
+
 void bm_init(bitmap_t* bm) {
 	memset(bm->addr, 0, bm->size);
 }

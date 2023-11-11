@@ -41,11 +41,16 @@ void pmm_init(mb_tag_memmap_t* mmap) {
 	pmm_bm.size = 0x1000;
 	bm_init(&pmm_bm);
 
-	// A kernel, multiboot page-eit meg kell jelölni használtnak
-	printk("kernel address %p\n", info->kernel_addr);
-	bm_set(&pmm_bm, pmm_reverse_translate(0x100000)/PAGESIZE, 1);
+	// A kernel, multiboot és a bitmap page-eit meg kell jelölni használtnak
+	pmm_set_used(info->kernel_addr, 1);
+	pmm_set_used(info->mb_hdr_addr, 1);
+}
 
-	// printk("0x100000: %d\n", bm_get(&pmm_bm, pmm_reverse_translate(0x100000)/PAGESIZE));
+// Page-et ezen a címen beállít used-ra
+void pmm_set_used(u64 addr, u8 used) {
+	if (pmm_reverse_translate(addr) == -1ULL)
+		return;
+	bm_set(&pmm_bm, pmm_reverse_translate(addr)/PAGESIZE, used);
 }
 
 // A heap sajnos szét van szórva a memóriában, ezért

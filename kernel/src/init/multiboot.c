@@ -27,9 +27,14 @@ void mb_parse_tags(u32 hdrp) {
 
 	if (fb_tag) {
 		fb_init(fb_tag->fb_addr, fb_tag->fb_width, fb_tag->fb_height, fb_tag->fb_bpp);
+
 		con_init(0xffffffff, 0xff180101);
 	}
 
 	if (mmap_tag)
 		pmm_init(mmap_tag);
+
+	for (u64 page = 0; page < (fb_tag->fb_width*fb_tag->fb_height*fb_tag->fb_bpp/1024); page++) {
+		pmm_set_used(fb_tag->fb_addr+page*PAGESIZE, 1);
+	}
 }
