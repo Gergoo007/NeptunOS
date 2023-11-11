@@ -42,4 +42,4 @@ typedef struct font {
 void con_init(u32 fg, u32 bg);
 void kputc(char c);
 void kputs(char* s);
-_attr_printf void printk(const char* fmt, ...);
+void printk(const char* fmt, ...);

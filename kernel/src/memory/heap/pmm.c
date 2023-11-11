@@ -92,6 +92,6 @@ u64 pmm_reverse_translate(u64 physical_addr) {
 	return -1;
 }
 
-u64 pmm_alloc_page(void) {
-	return pmm_translate(bm_set_next_free(&pmm_bm)*PAGESIZE);
+void* pmm_alloc_page(void) {
+	return (void*)pmm_translate(bm_set_next_free(&pmm_bm)*PAGESIZE);
 }

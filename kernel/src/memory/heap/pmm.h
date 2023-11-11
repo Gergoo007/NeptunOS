@@ -6,6 +6,9 @@
 #include <lib/kinfo.h>
 #include <memory/paging/paging.h>
 
+extern void* KERNEL_START;
+extern void* KERNEL_END;
+
 typedef struct new_mmap_entry {
 	u64 addr;
 	u64 length;
@@ -15,5 +18,5 @@ typedef struct new_mmap_entry {
 void pmm_init(mb_tag_memmap_t* mmap);
 u64 pmm_translate(u64 pseudo_addr);
 u64 pmm_reverse_translate(u64 physical_addr);
-u64 pmm_alloc_page(void);
+void* pmm_alloc_page(void);
 void pmm_set_used(u64 addr, u8 used);

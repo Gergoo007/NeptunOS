@@ -57,7 +57,7 @@ void kputs(char* s) {
 // kimenet megy
 char buffer2[2048] = "";
 
-_attr_printf void printk(const char* fmt, ...) {
+void printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 

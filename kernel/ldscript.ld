@@ -9,6 +9,9 @@ PHDRS {
 
 SECTIONS {
 	. = 0xfffffff800000000;
+
+	KERNEL_START = .;
+
 	. += SIZEOF_HEADERS;
 	.text : ALIGN(0x1000) {
 		*(.*text*)
@@ -28,4 +31,6 @@ SECTIONS {
 		*(.comment)
 		*(.eh_frame)
 	}
+
+	KERNEL_END = .;
 }

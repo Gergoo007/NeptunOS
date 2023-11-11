@@ -4,4 +4,4 @@
 
 void putc(char c);
 void puts(const char *restrict s);
-_attr_printf void sprintk(const char* fmt, ...);
+void sprintk(const char* fmt, ...);

@@ -47,7 +47,7 @@ void map_page(u64 virt, u64 phys, u32 flags) {
 		pd = (page_table_t*)pmm_alloc_page();
 		memset((u64)pd, 0, 0x1000);
 		pdp->entries[pdpi].addr = (u64)pd;
-		pdp->entries[pdpi].flags = 3;
+		pdp->entries[pdpi].flags |= 3;
 	}
 
 	entry = &pd->entries[pdi];
@@ -57,14 +57,14 @@ void map_page(u64 virt, u64 phys, u32 flags) {
 		pt = (page_table_t*)pmm_alloc_page();
 		memset((u64)pt, 0, 0x1000);
 		pd->entries[pdi].addr = (u64)pt;
-		pd->entries[pdi].flags = 3;
+		pd->entries[pdi].flags |= 3;
 	}
 
 	entry = &pt->entries[pti];
 	if (entry->flags & 1) {
 	} else {
-		entry->addr = 0;
-		entry->flags = 3;
+		entry->addr = phys;
+		entry->flags |= 3;
 	}
 
 	asm volatile ("invlpg (%0)" :: "b"(virt));
