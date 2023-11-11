@@ -8,6 +8,7 @@
 enum MB_TAGS {
 	MB_TAG_MEMMAP = 6,
 	MB_TAG_FB = 8,
+	MB_TAG_KERNEL_ADDR = 21,
 };
 
 typedef struct mb_tag_base {
@@ -40,3 +41,9 @@ typedef struct mb_tag_memmap {
 	u32 entry_ver;
 	mb_memmap_entry_t entries[0];
 } mb_tag_memmap_t;
+
+typedef struct mb_tag_kaddr {
+	mb_tag_base_t base;
+	u32 size;
+	u32 addr;
+} mb_tag_kaddr_t;

@@ -4,6 +4,8 @@
 #include <serial/serial.h>
 #include <graphics/graphics.h>
 
+#include <lib/attrs.h>
+
 #pragma pack(1)
 
 #define PSF2_IDENT 0x864ab572
@@ -40,4 +42,4 @@ typedef struct font {
 void con_init(u32 fg, u32 bg);
 void kputc(char c);
 void kputs(char* s);
-void printk(const char* fmt, ...);
+_attr_printf void printk(const char* fmt, ...);

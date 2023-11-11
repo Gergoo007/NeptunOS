@@ -10,10 +10,6 @@ u64 load_kernel(void) {
 
 	Elf64_Phdr* phdr = (Elf64_Phdr*) ((u64)ehdr + ehdr->e_phoff);
 	map_page(phdr->p_vaddr, bm_get_free());
-	printf("%p\n\r", bm_get_free());
-	printf("%p\n\r", bm_get_free());
-	printf("%p\n\r", bm_get_free());
-	printf("%p\n\r", bm_get_free());
 
 	for (u8 i = 0; i < ehdr->e_phnum; i++, phdr++) {
 		if (phdr->p_type != PT_LOAD)
