@@ -10,7 +10,6 @@ void puts(const char* restrict s) {
 		putc(*(s++));
 }
 
-// TODO: negatív számok
 void int_to_str(i64 i, char* str) {
 	u8 negative = (i < 0) ? 1 : 0;
 	u8 len = 1;

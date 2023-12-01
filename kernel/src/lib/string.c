@@ -26,7 +26,6 @@ u8 strncmp(const char* s1, const char* s2, u32 chars) {
 	return 0;
 }
 
-// TODO: negatív számok
 void int_to_str(i64 i, char* str) {
 	u8 negative = (i < 0) ? 1 : 0;
 	u8 len = 1;

@@ -8,6 +8,17 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 			switch (*fmt) {
 				case 's': {
 					char* teszt = va_arg(args, char*);
+					if (!teszt) {
+						u8 len = strlen("(null)")-1;
+						char* null = "(null)";
+
+						while (len--) {
+							*out = *null;
+							out++;
+							null++;
+						}
+						break;
+					}
 					u8 len = strlen(teszt)-1;
 					
 					while (len--) {

@@ -5,6 +5,7 @@ void mb_parse_tags(u32 hdrp) {
 
 	mb_tag_fb_t* fb_tag = NULL;
 	mb_tag_memmap_t* mmap_tag = NULL;
+	mb_tag_rsdp_t* rsdp_tag = NULL;
 
 	while (tag->type) {
 		switch (tag->type) {
@@ -18,6 +19,16 @@ void mb_parse_tags(u32 hdrp) {
 			}
 			case MB_TAG_KERNEL_ADDR: {
 				info->preload_addr = ((mb_tag_kaddr_t*)tag)->addr;
+				break;
+			}
+			case MB_TAG_XSDP: {
+				rsdp_tag = (mb_tag_rsdp_t*)tag;
+				sprintk("asd %p\n", tag);
+				break;
+			}
+			case MB_TAG_rsdp: {
+				rsdp_tag = (mb_tag_rsdp_t*)tag;
+				sprintk("asd %p\n", tag);
 				break;
 			}
 		}
@@ -34,7 +45,9 @@ void mb_parse_tags(u32 hdrp) {
 	if (mmap_tag)
 		pmm_init(mmap_tag);
 
-	for (u64 page = 0; page < (fb_tag->fb_width*fb_tag->fb_height*fb_tag->fb_bpp/1024); page++) {
+	for (u64 page = 0; page < (fb_tag->fb_width*fb_tag->fb_height*fb_tag->fb_bpp/1024); page++)
 		pmm_set_used(fb_tag->fb_addr+page*PAGESIZE, 1);
-	}
+
+	if (rsdp_tag)
+		acpi_init(rsdp_tag);
 }
