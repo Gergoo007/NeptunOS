@@ -1,5 +1,7 @@
 #include <memory/heap/vmm.h>
 
+// VMM heap rögtön a kernel után következik, ami általában 0xfffffff800200000
+
 bitmap_t vmm_bm;
 
 void vmm_init(void) {
@@ -28,6 +30,13 @@ void* request_page(void) {
 	u64 addr = bm_set_next_free(&vmm_bm) * PAGESIZE + 0xfffffff800000000;
 	map_page(addr, (u64)pmm_alloc_page(), 0);
 	return (void*)addr;
+}
+
+void free_page(void* addr) {
+	// addr utolsó 16 bitének eltávolítása
+	addr = (void*) ((u64)addr & ~(0xfff));
+	bm_set(&vmm_bm, ((u64)addr - 0xfffffff800000000) / PAGESIZE, 0);
+	unmap_page((u64)addr);
 }
 
 void* vmalloc(void) {

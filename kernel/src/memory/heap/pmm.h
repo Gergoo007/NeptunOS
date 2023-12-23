@@ -20,3 +20,4 @@ u64 pmm_translate(u64 pseudo_addr);
 u64 pmm_reverse_translate(u64 physical_addr);
 void* pmm_alloc_page(void);
 void pmm_set_used(u64 addr, u8 used);
+void pmm_free_page(void* addr);

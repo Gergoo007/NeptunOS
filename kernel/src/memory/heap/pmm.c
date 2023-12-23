@@ -95,3 +95,8 @@ u64 pmm_reverse_translate(u64 physical_addr) {
 void* pmm_alloc_page(void) {
 	return (void*)pmm_translate(bm_set_next_free(&pmm_bm)*PAGESIZE);
 }
+
+void pmm_free_page(void* addr) {
+	u64 pseudo = pmm_reverse_translate((u64)addr);
+	bm_set(&pmm_bm, pseudo/PAGESIZE, 0);
+}

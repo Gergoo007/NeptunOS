@@ -24,3 +24,4 @@ extern page_table_t* pml4;
 void paging_init(void);
 u64 paging_lookup(u64 virt);
 void map_page(u64 virt, u64 phys, u32 flags);
+void unmap_page(u64 virt);
