@@ -10,10 +10,11 @@ CC ?= cc
 AS ?= as
 LD ?= ld.gold
 
-CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large -Wall -Wextra -Isrc -fno-stack-protector -mgeneral-regs-only
+CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large \
+	-Wall -Wextra -Isrc -fno-stack-protector -mgeneral-regs-only -Wno-unused-parameter
 LDFLAGS := -static -T ldscript.ld -z max-page-size=0x200000
 
-all: clean kernel store
+all: clean .WAIT kernel store
 
 clean:
 	@rm -rf out/*
@@ -37,6 +38,6 @@ kernel: $(COBJS) $(SOBJS) out/font.o
 	@$(LD) $(LDFLAGS) $^ -o out/kernel
 	@echo -e "  > $(LD) out/kernel"
 
-store:
+store: kernel
 	@$(LD) -r -b binary -o out/payload.o out/kernel
 	@echo -e "  > $(LD) out/payload.o"

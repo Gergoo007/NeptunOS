@@ -29,7 +29,7 @@ out/%.s.o: src/%.s
 
 preloader: $(COBJS) $(SOBJS)
 	@$(LD) $(LDFLAGS) $^ ../kernel/out/payload.o -o out/preloader
-	@echo -e "  > $(LD) $^ out/preloader"
+	@echo -e "  > $(LD) out/preloader"
 
 package:
 	@cp out/preloader disk/kernel
