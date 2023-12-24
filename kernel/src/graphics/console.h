@@ -3,6 +3,9 @@
 #include <lib/int.h>
 #include <serial/serial.h>
 #include <graphics/graphics.h>
+#include <memory/heap/vmm.h>
+
+#include <config.h>
 
 #include <lib/attrs.h>
 

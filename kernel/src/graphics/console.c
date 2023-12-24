@@ -53,16 +53,20 @@ void kputs(char* s) {
 	}
 }
 
-// Egy 2 KiB-os buffer amibe az ideiglenes sprintf
-// kimenet megy
-char buffer2[2048] = "";
-
 void printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	vsprintf(buffer2, fmt, args);
-	kputs(buffer2);
+	void* buffer = request_page();
+
+	vsprintf(buffer, fmt, args);
+	kputs(buffer);
+
+	#ifdef PRINTK_SERIAL
+	puts_translate(buffer);
+	#endif
+
+	free_page(buffer);
 
 	va_end(args);
 }

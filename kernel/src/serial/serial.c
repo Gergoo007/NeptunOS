@@ -1,15 +1,13 @@
 #include <serial/serial.h>
 
-// Egy 2 KiB-os buffer amibe az ideiglenes sprintf
-// kimenet megy
-char buffer[2048] = "";
-
 void sprintk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
+	void* buffer = request_page();
 	vsprintf(buffer, fmt, args);
 	puts(buffer);
+	free_page(buffer);
 
 	va_end(args);
 }
@@ -21,6 +19,17 @@ void putc(char c) {
 void puts(const char* s) {
 	while (*s) {
 		putc(*s);
+		s++;
+	}
+}
+
+// LF -> CRLF
+void puts_translate(const char* s) {
+	while (*s) {
+		if (*s == '\n')
+			puts("\n\r");
+		else
+			putc(*s);
 		s++;
 	}
 }

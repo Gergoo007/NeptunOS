@@ -64,7 +64,6 @@ void cmain(u32 mb2_header) {
 
 	// PML4 betöltése
 	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
-	printf("PML4: %p\n\r", pml4);
 
 	kernel_info_t kinfo;
 	kinfo.mb_hdr_addr = mb2_header;

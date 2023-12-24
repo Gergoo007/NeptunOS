@@ -3,7 +3,7 @@
 #include <graphics/console.h>
 
 void bm_init(bitmap_t* bm) {
-	memset(bm->addr, 0, bm->size);
+	memset((void*)bm->addr, 0, bm->size);
 }
 
 void bm_set(bitmap_t* bm, u64 i, u8 val) {

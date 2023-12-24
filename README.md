@@ -3,9 +3,11 @@
 ## TODO
 - [X] Bootable on UEFI
 - [X] Runs on both 256 MiB-s of RAM and 256 GiB
+- [X] Compile-time kernel configuration
 - [X] Paging, VMM, PMM, request_page, map_page, free_page
-- [ ] Early printk (runs before paging is set up) and full printk (faster, no limitations)
-- [ ] IDT, GDT
+- [X] Code should be mapped as RO, data as RW
+- [X] Better printk
+- [X] IDT, GDT
 - [ ] Kernel panic screen with backtrace, exception details and registers
 - [ ] TSS
 - [ ] Proper graphics routines (eg. draw_rect, draw_circle)

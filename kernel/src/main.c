@@ -8,6 +8,8 @@
 #include <graphics/console.h>
 
 #include <arch/x86/power.h>
+#include <arch/x86/gdt.h>
+#include <arch/x86/idt.h>
 
 #include <memory/paging/paging.h>
 #include <memory/heap/vmm.h>
@@ -24,24 +26,14 @@ u8 kmain(kernel_info_t* _info) {
 
 	vmm_init();
 
+	gdt_init();
+	idt_init();
+
+	// Page fault, IDT tesztelésére
+	*(u32*)0xffffffffffff0000 = 0xff;
+
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
-
-	// VMM tesztelése
-	u64* p = request_page();
-	*p = 0x2000;
-	printk("Allocated at %p\n", p);
-	free_page(p);
-
-	p = request_page();
-	*p = 0x4000;
-	printk("Allocated at %p\n", p);
-	free_page(p);
-
-	p = request_page();
-	*p = 0x7000;
-	printk("Allocated at %p\n", p);
-	free_page(p);
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

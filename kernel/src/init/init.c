@@ -23,12 +23,10 @@ void mb_parse_tags(u32 hdrp) {
 			}
 			case MB_TAG_XSDP: {
 				rsdp_tag = (mb_tag_rsdp_t*)tag;
-				sprintk("asd %p\n", tag);
 				break;
 			}
 			case MB_TAG_rsdp: {
 				rsdp_tag = (mb_tag_rsdp_t*)tag;
-				sprintk("asd %p\n", tag);
 				break;
 			}
 		}
