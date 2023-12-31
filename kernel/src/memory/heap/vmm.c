@@ -36,6 +36,7 @@ void free_page(void* addr) {
 	// addr utolsó 16 bitének eltávolítása
 	addr = (void*) ((u64)addr & ~(0xfff));
 	bm_set(&vmm_bm, ((u64)addr - 0xfffffff800000000) / PAGESIZE, 0);
+	pmm_free_page((void*)paging_lookup((u64)addr));
 	unmap_page((u64)addr);
 }
 

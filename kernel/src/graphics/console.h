@@ -13,13 +13,16 @@
 
 #define PSF2_IDENT 0x864ab572
 
+#define FONT_START _binary_zap_ext_light24_psf_start
+#define FONT_END _binary_zap_ext_light24_psf_end
+#define FONT_SIZE _binary_zap_ext_light24_psf_size
+
 extern u64 _binary_zap_ext_light24_psf_start;
 extern u64 _binary_zap_ext_light24_psf_end;
 extern u64 _binary_zap_ext_light24_psf_size;
 
-#define FONT_START _binary_zap_ext_light24_psf_start
-#define FONT_END _binary_zap_ext_light24_psf_end
-#define FONT_SIZE _binary_zap_ext_light24_psf_size
+extern u16 cx, cy;
+extern u32 bg, fg;
 
 typedef struct psf2_hdr {
 	u32 magic;

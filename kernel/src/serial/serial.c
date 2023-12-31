@@ -4,10 +4,9 @@ void sprintk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	void* buffer = request_page();
+	char buffer[128];
 	vsprintf(buffer, fmt, args);
 	puts(buffer);
-	free_page(buffer);
 
 	va_end(args);
 }

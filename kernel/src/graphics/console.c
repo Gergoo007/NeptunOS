@@ -57,7 +57,7 @@ void printk(const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	void* buffer = request_page();
+	char* buffer = request_page();
 
 	vsprintf(buffer, fmt, args);
 	kputs(buffer);

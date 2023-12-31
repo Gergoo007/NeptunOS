@@ -16,6 +16,8 @@ mb_tag_fb_t* fb = NULL;
 extern void* PRELOADER_START;
 extern void* PRELOADER_END;
 
+kernel_info_t kinfo;
+
 void cmain(u32 mb2_header) {
 	mb_tag_base_t* tag = (mb_tag_base_t*)((u64)mb2_header+8);
 	u8 mmap_init = 0;
@@ -65,7 +67,6 @@ void cmain(u32 mb2_header) {
 	// PML4 betöltése
 	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
 
-	kernel_info_t kinfo;
 	kinfo.mb_hdr_addr = mb2_header;
 
 	u64 entry = load_kernel();
