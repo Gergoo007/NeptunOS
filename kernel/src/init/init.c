@@ -46,6 +46,11 @@ void mb_parse_tags(u32 hdrp) {
 	for (u64 page = 0; page < (fb_tag->fb_width*fb_tag->fb_height*fb_tag->fb_bpp/1024); page++)
 		pmm_set_used(fb_tag->fb_addr+page*PAGESIZE, 1);
 
+	vmm_init();
+
+	gdt_init();
+	idt_init();
+
 	if (rsdp_tag)
 		acpi_init(rsdp_tag);
 }

@@ -20,6 +20,10 @@ void fb_draw_rect(framebuffer_t* _fb, u32 x, u32 y, u32 width, u32 height, u32 c
 	}
 }
 
+void fb_clear(framebuffer_t* fb, u32 color) {
+	fb_draw_rect(fb, 0, 0, fb->width, fb->height, color);
+}
+
 void fb_pixel(framebuffer_t* _fb, u32 x, u32 y, u32 color) {
 	if (_fb->bpp != 32) {
 		sprintk("A BPP érték még nem támogatott!\n\r");

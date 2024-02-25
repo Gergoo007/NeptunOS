@@ -3,8 +3,12 @@
 #include <lib/multiboot.h>
 
 #include <acpi/xsdt.h>
+#include <acpi/madt.h>
 
 #include <graphics/console.h>
+
+#include <apic/lapic.h>
+#include <apic/irqs.h>
 
 #pragma pack(1)
 

@@ -21,4 +21,20 @@ void acpi_init(void* tag) {
 
 	if (strncmp(rsdp->signature, "RSD PTR ", 8))
 		printk("Ervenytelen rsdp/XSDT alairas!\n");
+
+	madt_t* madt = (madt_t*)acpi_get_table("APIC");
+	if (madt) {
+		madt_parse(madt);
+	} else {
+		printk("E: MADT nincs!\n");
+	}
+
+	ioapic_write_entry(irq_to_gsi(IRQ_PIT), 0x20);
+	ioapic_set_mask(irq_to_gsi(IRQ_PIT), 1);
+	ioapic_write_entry(irq_to_gsi(IRQ_KB), 0x21);
+	ioapic_write_entry(irq_to_gsi(IRQ_MOUSE), 0x22);
+
+	// ioapic_write_entry(irq_to_gsi(IRQ_PIT), 0x21);
+
+	asm volatile ("sti");
 }

@@ -1,0 +1,19 @@
+#pragma once
+
+enum {
+	IRQ_PIT = 0,
+	IRQ_KB = 1,
+	IRQ_COM2 = 3,
+	IRQ_COM1 = 4,
+	IRQ_LPT2 = 5,
+	IRQ_FLOPPY = 6,
+	IRQ_SPURIOUS = 7,
+	IRQ_RTC = 8,
+	IRQ_LEGACY_SCSI = 9,
+	IRQ_SCSI1 = 10,
+	IRQ_SCSI2 = 11,
+	IRQ_MOUSE = 12,
+	IRQ_FPU = 13,
+	IRQ_ATA_HDD1 = 14,
+	IRQ_ATA_HDD2 = 15,
+};

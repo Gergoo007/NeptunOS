@@ -9,6 +9,10 @@ void idt_init(void) {
 	idt_create_entry(&entries[0xe], (u64)_0xe, 0, IDT_TYPE_TRAP);
 	idt_create_entry(&entries[0xd], (u64)_0xd, 0, IDT_TYPE_TRAP);
 
+	idt_create_entry(&entries[0x20], (u64)_irq_pit, 0, IDT_TYPE_INT);
+	idt_create_entry(&entries[0x21], (u64)_irq_kb, 0, IDT_TYPE_INT);
+	idt_create_entry(&entries[0x22], (u64)_irq_mouse, 0, IDT_TYPE_INT);
+
 	idtr_t idtr = {
 		.base = (u64)entries,
 		.limit = 256*16 - 1,

@@ -21,6 +21,12 @@ void con_init(u32 _fg, u32 _bg) {
 }
 
 void kputc(char c) {
+	if (cy >= (fb.height-font.height)) {
+		fb_clear(&fb, bg);
+		cx = 0;
+		cy = 0;
+	}
+
 	if (c == '\n') {
 		cy += font.height + 1;
 		cx = 0;
