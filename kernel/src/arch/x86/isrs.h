@@ -4,8 +4,8 @@
 
 #include <graphics/console.h>
 
-#include <apic/lapic.h>
-#include <apic/ioapic.h>
+#include <apic/apic.h>
+#include <apic/apic.h>
 
 #include <serial/com.h>
 
@@ -78,7 +78,7 @@ static _attr_int void _irq_kb(int_frame_t* int_frame) {
 }
 
 static _attr_saved_regs void irq_pit(int_frame_t* int_frame) {
-	printk("pit tick!!!!\n");
+	pit_tick += 1;
 
 	// Send EOI to the LAPIC
 	lapic_write_reg(0xb0, 0);
@@ -90,10 +90,7 @@ static _attr_int void _irq_pit(int_frame_t* int_frame) {
 
 static _attr_saved_regs void irq_mouse(int_frame_t* int_frame) {
 	printk("mouse event\n");
-			
-	// // Read scancode, which is sending an EOI as well
-	// inb(0x60);
-			
+
 	// Send EOI to the LAPIC
 	lapic_write_reg(0xb0, 0);
 }

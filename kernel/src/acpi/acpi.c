@@ -30,7 +30,7 @@ void acpi_init(void* tag) {
 	}
 
 	ioapic_write_entry(irq_to_gsi(IRQ_PIT), 0x20);
-	ioapic_set_mask(irq_to_gsi(IRQ_PIT), 1);
+	// ioapic_set_mask(irq_to_gsi(IRQ_PIT), 1);
 	ioapic_write_entry(irq_to_gsi(IRQ_KB), 0x21);
 	ioapic_write_entry(irq_to_gsi(IRQ_MOUSE), 0x22);
 

@@ -4,7 +4,7 @@
 
 #include <init/sysinfo.h>
 
-#include <apic/ioapic.h>
+#include <apic/apic.h>
 
 #pragma pack(1)
 

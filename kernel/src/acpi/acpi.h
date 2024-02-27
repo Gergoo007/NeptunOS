@@ -7,8 +7,7 @@
 
 #include <graphics/console.h>
 
-#include <apic/lapic.h>
-#include <apic/irqs.h>
+#include <apic/apic.h>
 
 #pragma pack(1)
 

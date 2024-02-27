@@ -16,6 +16,8 @@
 #include <memory/paging/paging.h>
 #include <memory/heap/vmm.h>
 
+#include <apic/pit/pit.h>
+
 kernel_info_t* info;
 
 u8 kmain(kernel_info_t* _info) {
@@ -32,6 +34,15 @@ u8 kmain(kernel_info_t* _info) {
 
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
+
+	sleep(3000);
+	printk("start\n");
+	sleep(10000);
+	printk("end\n");
+
+	// printk("start\n");
+	// sleep(10000);
+	// printk("end\n");
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

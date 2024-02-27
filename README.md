@@ -13,7 +13,7 @@
 - [ ] Proper graphics routines (eg. draw_rect, draw_circle)
 - [ ] Detect PCIe devices, use them
 - [X] ACPI tables
-- [ ] IOAPIC, LAPIC
+- [X] IOAPIC, LAPIC
 - [ ] AHCI read and write
 - [ ] USB
 - [ ] USB keyboard and mouse
