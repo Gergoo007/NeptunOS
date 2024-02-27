@@ -1,5 +1,7 @@
 #pragma once
 
+#include <lib/macros.h>
+
 #define NULL (void*)0
 
 typedef unsigned long long 	u64;

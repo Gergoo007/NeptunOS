@@ -108,12 +108,12 @@ void hex_to_str(u64 i, char* str) {
 	str[len-1] = '\0';
 }
 
-void ptr64_to_str(u64 i, char* str) {
+void hexn_to_str(u64 i, char* str, u8 num) {
 	const char* numbers = "0123456789abcdef";
 	u8 len = 1;
 
 	// Számokat át konvertáljuk karakterekké
-	for (u8 j = 0; j < 16; j++, i /= 16) {
+	for (u8 j = 0; j < num; j++, i /= 16) {
 		str[j] = *((i % 16) + numbers);
 		len++;
 	}

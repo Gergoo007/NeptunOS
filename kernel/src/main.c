@@ -28,21 +28,8 @@ u8 kmain(kernel_info_t* _info) {
 	// Multiboot tag-ek feldolgozása
 	mb_parse_tags(info->mb_hdr_addr);
 
-	for (int i = 0; i < 16; i++) {
-		printk("%d -> %d\n", i, ioapic_redirs[i]);
-	}
-
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
-
-	sleep(3000);
-	printk("start\n");
-	sleep(10000);
-	printk("end\n");
-
-	// printk("start\n");
-	// sleep(10000);
-	// printk("end\n");
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

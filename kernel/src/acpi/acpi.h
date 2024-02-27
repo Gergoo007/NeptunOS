@@ -4,6 +4,7 @@
 
 #include <acpi/xsdt.h>
 #include <acpi/madt.h>
+#include <acpi/mcfg.h>
 
 #include <graphics/console.h>
 

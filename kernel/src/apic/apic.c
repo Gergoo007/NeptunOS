@@ -11,7 +11,6 @@ void lapic_init() {
 	u32 reg = 0xff;
 	reg |= 0x100;
 	reg &= ~(1 << 12);
-	printk("reg: %p\n", reg);
 	lapic_write_reg(0xf0, reg);
 
 	pit_init();

@@ -42,7 +42,7 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 					break;
 				}
 				case 'x': {
-					char _tmp[256];
+					char _tmp[16];
 					char* tmp = _tmp;
 					hex_to_str(va_arg(args, u64), tmp);
 					u8 len = strlen(tmp)-1;
@@ -57,7 +57,7 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 				case 'p': {
 					char _tmp[16];
 					char* tmp = _tmp;
-					ptr64_to_str(va_arg(args, u64), tmp);
+					hexn_to_str(va_arg(args, u64), tmp, 16);
 					u8 len = 16;
 
 					while (len--) {
@@ -69,6 +69,32 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 				}
 				case 'c': {
 					putc((char) va_arg(args, int));
+					break;
+				}
+				default: {
+					if (*fmt >= '0' && *(fmt+1) <= '9') {
+						u8 num = 0;
+						num += (*fmt - '0') * 10;
+						num += (*(fmt+1) - '0');
+
+						fmt += 2;
+
+						switch (*fmt) {
+							case 'x': {
+								char _tmp[16];
+								char* tmp = _tmp;
+								hexn_to_str(va_arg(args, u64), tmp, num);
+								
+								while (num--) {
+									*out = *tmp;
+									out++;
+									tmp++;
+								}
+								break;
+							}
+						}
+					}
+					break;
 				}
 			}
 			fmt++;
