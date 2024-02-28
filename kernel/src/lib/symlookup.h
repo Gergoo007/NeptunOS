@@ -23,3 +23,4 @@ typedef struct stackframe {
 
 char* sym_at_addr(u64 addr);
 u64 sym_nearest_sym(u64 addr);
+void stacktrace(stackframe_t* rbp, char* buf);

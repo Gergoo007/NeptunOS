@@ -2,7 +2,7 @@
 
 #include <lib/attrs.h>
 
-#include <graphics/console.h>
+#include <graphics/panic.h>
 
 #include <apic/apic.h>
 #include <apic/apic.h>
@@ -12,11 +12,33 @@
 #include <lib/symlookup.h>
 
 typedef struct int_frame {
-
+	u64 err;
+	u64 rip;
+	u64 cs;
+	u64 rflags;
+	u64 rsp;
+	u64 ss;
 } int_frame_t;
+
+static void print_details(int_frame_t* int_frame) {
+	printk(
+		"RIP: %p CS: %p\nRFLAGS: %p RSP: %p\nSS: %p\n",
+		int_frame->rip, int_frame->cs, int_frame->rflags, int_frame->rsp, int_frame->ss
+	);
+
+	// char buf[1024];
+
+	// u64 rbp;
+	// asm volatile ("movq %%rbp, %0" : "=r"(rbp));
+
+	// stacktrace((stackframe_t*)rbp, buf);
+
+	// printk("%s", buf);
+}
 
 static _attr_saved_regs void invalid_opcode(int_frame_t* int_frame) {
 	printk("Invalid Opcode found, halting!\n");
+	print_details(int_frame);
 	asm volatile ("cli");
 	asm volatile ("hlt");
 }
@@ -42,7 +64,9 @@ static _attr_saved_regs void page_fault(int_frame_t* int_frame) {
 }
 
 static _attr_saved_regs void gp_fault(int_frame_t* int_frame) {
-	printk("General Protection Fault encountered, halting!\n");
+	printk("General Protection Fault [%p]\n", int_frame->err);
+	print_details(int_frame);
+
 	asm volatile ("cli");
 	asm volatile ("hlt");
 }

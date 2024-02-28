@@ -22,10 +22,16 @@ void madt_parse(madt_t* madt) {
 	memset(ioapics, 0, PAGESIZE);
 	num_ioapics = 0;
 
+	// MADT entry type 1 might not be provided,
+	// in that case use default settings
+	ioapics[0].base = 0xfec00000;
+	ioapics[0].gsi_base = 0;
+
 	for (u8 i = 0; i < 16; i++) ioapic_redirs[i] = i;
 	
 	for (;((u64)entry + entry->size) != table_end;
 		entry = (madt_entry_base_t*) ((u8*)entry + entry->size)) {
+		
 		switch (entry->type) {
 			case MADT_ENTRY_LAPIC: {
 				// Új processzor mag

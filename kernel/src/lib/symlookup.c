@@ -27,3 +27,21 @@ u64 sym_nearest_sym(u64 addr) {
 
 	return (addr - diff);
 }
+
+void stacktrace(stackframe_t* rbp, char* buf) {
+	u64 addr = 0;
+	u64 nearest = 0;
+
+	while (addr != (u64)kmain) {
+		addr = rbp->rip;
+		if (addr >= (u64)&KERNEL_END || addr <= (u64)&KERNEL_START) break;
+		nearest = sym_nearest_sym(addr);
+
+		sprintf(buf, "%s +0x%x\n", sym_at_addr(nearest), addr - nearest);
+		kputs(buf);
+		puts_translate(buf);
+
+		addr = nearest;
+		rbp = rbp->rbp;
+	}
+}

@@ -13,8 +13,8 @@ _QEMU_FLAGS_UEFI := -smp 4 -m $(RAMSIZE) -enable-kvm -machine q35 -cpu SandyBrid
 				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
 				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
 
-_QEMU_FLAGS_DEBUG := -smp 4 -m $(RAMSIZE) -d int -machine q35 -cpu SandyBridge,+avx2 \
-				-cdrom $(ISO) -no-reboot -no-shutdown \
+_QEMU_FLAGS_DEBUG := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
+				-cdrom $(ISO) -no-reboot -no-shutdown -s -S \
 				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
 				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
 

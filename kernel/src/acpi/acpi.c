@@ -30,9 +30,9 @@ void acpi_init(void* tag) {
 	}
 
 	ioapic_write_entry(irq_to_gsi(IRQ_PIT), 0x20);
-	// Disable KB for now because it's annoying
+	// // Disable KB for now because it's annoying
 	// ioapic_write_entry(irq_to_gsi(IRQ_KB), 0x21);
-	ioapic_write_entry(irq_to_gsi(IRQ_MOUSE), 0x22);
+	// ioapic_write_entry(irq_to_gsi(IRQ_MOUSE), 0x22);
 
 	mcfg_t* mcfg = (mcfg_t*)acpi_get_table("MCFG");
 	if (mcfg) {
