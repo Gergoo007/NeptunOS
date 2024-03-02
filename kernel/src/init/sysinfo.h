@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/int.h>
+#include <lib/types.h>
 
 typedef struct cpu_core {
 	u8 acpi_cpu_id;

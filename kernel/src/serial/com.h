@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/int.h>
+#include <lib/types.h>
 
 u8 inb(u16);
 u8 inw(u16);

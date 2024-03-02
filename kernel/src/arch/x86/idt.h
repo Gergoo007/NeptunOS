@@ -1,10 +1,10 @@
 #pragma once
 
-#include <lib/int.h>
+#include <lib/types.h>
 
 #include <memory/heap/vmm.h>
 
-#include <arch/x86/isrs.h>
+#include <arch/x86/interrupts.h>
 
 #pragma pack(1)
 

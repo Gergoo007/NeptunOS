@@ -21,6 +21,9 @@ void con_init(u32 _fg, u32 _bg) {
 }
 
 void kputc(char c) {
+	#ifdef PRINTK_SERIAL
+		putc_translate(c);
+	#endif
 	if (cy >= (fb.height-font.height)) {
 		fb_clear(&fb, bg);
 		cx = 0;
@@ -67,10 +70,6 @@ void printk(const char* fmt, ...) {
 
 	vsprintf(buffer, fmt, args);
 	kputs(buffer);
-
-	#ifdef PRINTK_SERIAL
-	puts_translate(buffer);
-	#endif
 
 	free_page(buffer);
 

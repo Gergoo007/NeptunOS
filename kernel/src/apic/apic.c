@@ -24,6 +24,10 @@ u32 lapic_read_reg(u32 offset) {
 	return *(u32*)(lapic_addr + offset);
 }
 
+void lapic_eoi() {
+	lapic_write_reg(0xb0, 0);
+}
+
 void ioapic_write(u16 reg, u32 val) {
 	u32 volatile* addr = (u32*)(ioapics[0].base);
 	u32 volatile* data = (u32*)(ioapics[0].base + 0x10);

@@ -4,10 +4,26 @@ void idt_init(void) {
 	idt_entry_t* entries = pmm_alloc_page();
 	memset(entries, 0, 256*16);
 
-	idt_create_entry(&entries[0x6], (u64)_0x6, 0, IDT_TYPE_TRAP);
-	idt_create_entry(&entries[0x8], (u64)_0x8, 0, IDT_TYPE_TRAP);
-	idt_create_entry(&entries[0xe], (u64)_0xe, 0, IDT_TYPE_TRAP);
-	idt_create_entry(&entries[0xd], (u64)_0xd, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[0], (u64)exc0, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[1], (u64)exc1, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[2], (u64)exc2, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[3], (u64)exc3, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[4], (u64)exc4, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[5], (u64)exc5, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[6], (u64)exc6, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[7], (u64)exc7, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[8], (u64)exc8, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[9], (u64)exc9, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[10], (u64)exc10, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[11], (u64)exc11, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[12], (u64)exc12, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[13], (u64)exc13, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[14], (u64)exc14, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[15], (u64)exc15, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[16], (u64)exc16, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[17], (u64)exc17, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[18], (u64)exc18, 0, IDT_TYPE_TRAP);
+	idt_create_entry(&entries[19], (u64)exc19, 0, IDT_TYPE_TRAP);
 
 	idt_create_entry(&entries[0x20], (u64)_irq_pit, 0, IDT_TYPE_INT);
 	idt_create_entry(&entries[0x21], (u64)_irq_kb, 0, IDT_TYPE_INT);

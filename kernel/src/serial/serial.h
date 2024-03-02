@@ -6,5 +6,5 @@
 
 void putc(char c);
 void puts(const char* s);
-void puts_translate(const char* s);
+void putc_translate(const char c);
 void sprintk(const char* fmt, ...);

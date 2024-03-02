@@ -27,7 +27,7 @@ u8 kmain(kernel_info_t* _info) {
 	info->kernel_addr = paging_lookup_2m(0xfffffff800000000);
 	// Multiboot tag-ek feldolgozása
 	mb_parse_tags(info->mb_hdr_addr);
-
+	
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
 

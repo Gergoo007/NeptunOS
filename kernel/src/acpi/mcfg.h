@@ -3,6 +3,7 @@
 #include <acpi/acpi.h>
 
 #include <pci/pci.h>
+#include <pci/strings.h>
 
 #pragma pack(1)
 

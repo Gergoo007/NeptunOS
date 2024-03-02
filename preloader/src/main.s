@@ -26,8 +26,8 @@ fb_tag:
 	.short 0
 	.long 20
 
-	.long 1280
-	.long 720
+	.long 960
+	.long 600
 	.long 32
 fb_tag_end:
 

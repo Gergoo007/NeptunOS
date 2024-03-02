@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/int.h>
+#include <lib/types.h>
 #include <lib/attrs.h>
 
 #pragma pack(1)

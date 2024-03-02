@@ -23,12 +23,8 @@ void puts(const char* s) {
 }
 
 // LF -> CRLF
-void puts_translate(const char* s) {
-	while (*s) {
-		if (*s == '\n')
-			puts("\n\r");
-		else
-			putc(*s);
-		s++;
-	}
+void putc_translate(const char c) {
+	if (c == '\n') putc('\r');
+
+	putc(c);
 }

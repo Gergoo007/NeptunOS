@@ -26,6 +26,18 @@ u8 strncmp(const char* s1, const char* s2, u32 chars) {
 	return 0;
 }
 
+void strcat(char* dest, char* src) {
+	while (*dest) dest++;
+
+	while (*src) {
+		*dest = *src;
+
+		src++;
+		dest++;
+	}
+	*dest = 0;
+}
+
 void int_to_str(i64 i, char* str) {
 	u8 negative = (i < 0) ? 1 : 0;
 	u8 len = 1;
@@ -88,6 +100,12 @@ void uint_to_str(u64 i, char* str) {
 }
 
 void hex_to_str(u64 i, char* str) {
+	if (i == 0) {
+		str[0] = '0';
+		str[1] = 0;
+		return;
+	}
+
 	const char* numbers = "0123456789abcdef";
 	u8 len = 1;
 

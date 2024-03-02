@@ -1,18 +1,18 @@
 #pragma once
 
-#include <lib/int.h>
+#include <graphics/console.h>
 
 #pragma pack(1)
 
 typedef struct pci_hdr {
 	u16 vendor;
-	u16 device;
+	u16 product;
 	u16 cmd;
 	u16 status;
 	u8 rev_id;
 	u8 prog_if;
 	u8 subclass;
-	u8 class_code;
+	u8 class;
 	u8 cache_size;
 	u8 latency_timer;
 	u8 hdr_type;
@@ -70,3 +70,5 @@ typedef struct pci_hdr {
 		} type2;
 	};
 } pci_hdr_t;
+
+void pci_add_device(pci_hdr_t* dev);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lib/int.h>
+#include <lib/types.h>
 
 #include <graphics/console.h>
 
@@ -87,3 +87,4 @@ __attribute__((unused)) inline static u32 irq_to_gsi(u8 irq) {
 void lapic_init();
 void lapic_write_reg(u32 offset, u32 value);
 u32 lapic_read_reg(u32 offset);
+void lapic_eoi();

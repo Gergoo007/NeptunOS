@@ -9,3 +9,5 @@
 
 #define _attr_int __attribute__ ((interrupt)) __attribute__((unused))
 #define _attr_saved_regs __attribute__ ((no_caller_saved_registers)) __attribute__((unused))
+
+#define _attr_unused __attribute__((unused))
