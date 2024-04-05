@@ -22,5 +22,40 @@ char* pci_class(u8 class) {
 }
 
 void pci_add_device(pci_hdr_t* dev) {
-	printk("PCI %s : %s %04x\n", pci_class(dev->class), pci_vendor(dev->vendor), dev->product);
+	if (dev->class == 0xc && dev->subclass == 0x3) {
+		switch (dev->prog_if) {
+			case 0: {
+				uhci_init_controller(dev);
+				printk("found uhci\n");
+				break;
+			}
+
+			case 0x10: {
+				// printk("PCI OHCI USB controller\n");
+				break;
+			}
+
+			case 0x20: {
+				// printk("PCI EHCI USB controller\n");
+				break;
+			}
+
+			case 0x30: {
+				// printk("PCI XHCI USB controller\n");
+				break;
+			}
+
+			case 0x80: {
+				// printk("PCI unknown USB controller\n");
+				break;
+			}
+
+			default: {
+				// printk("USB device\n");
+				break;
+			}
+		}
+	} else {
+		// printk("PCI %s : %s %04x\n", pci_class(dev->class), pci_vendor(dev->vendor), dev->product);
+	}
 }

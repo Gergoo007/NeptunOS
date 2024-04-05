@@ -45,6 +45,7 @@ typedef struct font {
 	u8 height;
 } font_t;
 
+void console_clear();
 void con_init(u32 fg, u32 bg);
 void kputc(char c);
 void kputs(char* s);

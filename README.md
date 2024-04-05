@@ -8,10 +8,10 @@
 - [X] Code should be mapped as RO, data as RW
 - [X] Better printk
 - [X] IDT, GDT
-- [ ] Kernel panic screen with backtrace, exception details and registers
+- [X] Kernel panic screen with backtrace, exception details and registers
 - [ ] TSS
 - [ ] Proper graphics routines (eg. draw_rect, draw_circle)
-- [ ] Detect PCIe devices, use them
+- [X] Detect PCIe devices, use them
 - [X] ACPI tables
 - [X] IOAPIC, LAPIC
 - [ ] AHCI read and write

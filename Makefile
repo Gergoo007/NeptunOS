@@ -3,22 +3,13 @@
 QEMU ?= qemu-system-x86_64
 ISO ?= image.iso
 RAMSIZE ?= 256M
-_QEMU_FLAGS_UEFI_TEST := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
-				-cdrom $(ISO) -no-reboot -no-shutdown -d int \
+_QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
+				-cdrom $(ISO) -no-reboot -no-shutdown -usb \
 				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
-				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
+				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS) \
+				-usb -usbdevice keyboard
 
-_QEMU_FLAGS_UEFI := -smp 4 -m $(RAMSIZE) -enable-kvm -machine q35 -cpu SandyBridge,+avx2 \
-				-cdrom $(ISO) -no-reboot -no-shutdown \
-				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
-				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
-
-_QEMU_FLAGS_DEBUG := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
-				-cdrom $(ISO) -no-reboot -no-shutdown -s -S \
-				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
-				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS)
-
-main: run
+main: build run
 
 build:
 	@echo "Building the kernel..."
@@ -26,11 +17,11 @@ build:
 	@echo "Building the preloader..."
 	@$(MAKE) --quiet -C preloader
 
-debug: build
-	$(QEMU) $(_QEMU_FLAGS_DEBUG)
+debug:
+	$(QEMU) $(_QEMU_FLAGS) -S -s
 
-run: build
-	$(QEMU) $(_QEMU_FLAGS_UEFI)
+run:
+	$(QEMU) -enable-kvm -cpu host $(_QEMU_FLAGS)
 
-test: build
-	$(QEMU) $(_QEMU_FLAGS_UEFI_TEST)
+test:
+	$(QEMU) $(_QEMU_FLAGS) -d int

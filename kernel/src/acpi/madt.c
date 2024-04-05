@@ -36,8 +36,6 @@ void madt_parse(madt_t* madt) {
 			case MADT_ENTRY_LAPIC: {
 				// Új processzor mag
 				madt_entry_lapic_t* e = (madt_entry_lapic_t*)entry;
-				printk("Found core %d, active %d; capable %d\n", e->acpi_cpu_id, e->cpu_enabled, e->online_cap);
-
 				cores[num_cores].acpi_cpu_id = e->acpi_cpu_id;
 				cores[num_cores].apic_id = e->apic_id;
 				cores[num_cores].cpu_enabled = e->cpu_enabled;

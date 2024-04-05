@@ -7,7 +7,7 @@ font_t font;
 void con_init(u32 _fg, u32 _bg) {
 	fg = _fg;
 	bg = _bg;
-	fb_draw_rect(&fb, 0, 0, fb.width, fb.height, _bg);
+	fb_clear(&fb, _bg);
 
 	psf2_hdr_t* psf2 = (psf2_hdr_t*) &FONT_START;
 
@@ -20,14 +20,18 @@ void con_init(u32 _fg, u32 _bg) {
 	font.height = psf2->height;
 }
 
+void console_clear() {
+	fb_clear(&fb, bg);
+	cx = 0;
+	cy = 0;
+}
+
 void kputc(char c) {
 	#ifdef PRINTK_SERIAL
 		putc_translate(c);
 	#endif
 	if (cy >= (fb.height-font.height)) {
-		fb_clear(&fb, bg);
-		cx = 0;
-		cy = 0;
+		console_clear();
 	}
 
 	if (c == '\n') {

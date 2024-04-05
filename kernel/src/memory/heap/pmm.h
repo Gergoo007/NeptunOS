@@ -9,6 +9,9 @@
 extern void* KERNEL_START;
 extern void* KERNEL_END;
 
+#define ptr_fits_32bit(ptr) (((u64)ptr >> 32) ? 1 : 0)
+#define ptr_32bit(ptr) if (ptr_fits_32bit(ptr)) printk("ERR: %s not 32bit! %s;L%d\n", #ptr, __FILE__, __LINE__)
+
 typedef struct new_mmap_entry {
 	u64 addr;
 	u64 length;
