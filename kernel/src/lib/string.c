@@ -9,8 +9,34 @@ u8 strlen(const char* str) {
 	return len;
 }
 
+// Szöveg hossza de a szöveg UTF-16/UCS-2
+u8 wstrlen(const wchar* str) {
+	u8 len = 1;
+	while (*(str++))
+		len++;
+
+	return len;
+}
+
+void utf16_to_ascii(wchar* in, char* out) {
+	while (*in) {
+		*out = *in;
+		out++;
+		in++;
+	}
+}
+
+void utf16_to_asciin(wchar* in, char* out, u32 n) {
+	out[n] = '\0';
+	while (n--) {
+		*out = *in;
+		out++;
+		in++;
+	}
+}
+
 void strcpy(const char* src, char* dest) {
-	while (*src != '\0') {
+	while (*src) {
 		*dest = *src;
 		src++;
 		dest++;

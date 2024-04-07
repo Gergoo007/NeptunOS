@@ -1,148 +1,246 @@
 #include <usb/uhci.h>
 
+uhci_t* uhcis = NULL;
+u64 num_uhcis;
+
+void uhci_stop(uhci_t* hc) {
+	u16 cmd = inw(hc->io + REG_CMD);
+	cmd &= ~CMD_RS;
+	outw(cmd, hc->io + REG_CMD);
+}
+
+void uhci_run(uhci_t* hc) {
+	u16 cmd = inw(hc->io + REG_CMD);
+	outw(cmd | CMD_RS, hc->io + REG_CMD);
+}
+
+void uhci_on_dev(uhci_t* hc, u8 ls) {
+	if (!usb_devs) usb_devs = request_page();
+
+	usb_desc_dev_t* dev_desc = pmm_alloc_page();
+	usb_request_t setup = {
+		.req_type = 0x80,
+		.req = 6,
+		.value = 0 | (USB_DESC_DEVICE << 8),
+		.index = 0,
+		.length = 18,
+	};
+	void* packet = pmm_alloc_page();
+	memcpy(&setup, (u64)packet, 8);
+	ptr_32bit(packet);
+	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, dev_desc, 18);
+
+	// Manufacturer hossz majd string lekérdezése
+	usb_desc_string_t* string_desc = pmm_alloc_page();
+	// US English: 0x0409
+	usb_request_t req = {
+		.req_type = 0x80,
+		.req = 6,
+		.value = (USB_DESC_STRING << 8) | dev_desc->manufacturer_index,
+		.index = 0x0409,
+		.length = 1,
+	};
+	memcpy(&req, (u64)packet, 8);
+	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
+
+	u8 manlen = string_desc->len;
+	req.length = manlen;
+	memcpy(&req, (u64)packet, 8);
+	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, manlen);
+	char* manufacturer = request_page();
+	utf16_to_asciin(string_desc->string, manufacturer, (manlen - 2) / 2);
+
+	// Product hossz majd string lekérdezése
+	req.value = (USB_DESC_STRING << 8) | dev_desc->product_index,
+	req.length = 1;
+	memcpy(&req, (u64)packet, 8);
+	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
+
+	u8 prodlen = string_desc->len;
+	req.length = prodlen;
+	memcpy(&req, (u64)packet, 8);
+	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, prodlen);
+	char* product = manufacturer + manlen + 1;
+	utf16_to_asciin(string_desc->string, product, (prodlen - 2) / 2);
+
+	pmm_free_page(packet);
+
+	// Eszköz hozzáadása a listához
+	usb_devs[num_usb_devs].addr = 0; // TODO: chnage
+	usb_devs[num_usb_devs].endp = 0; // TODO: chnage
+	usb_devs[num_usb_devs].hc = hc;
+	usb_devs[num_usb_devs].hc_type = HC_UHCI;
+	usb_devs[num_usb_devs].ls = ls;
+	usb_devs[num_usb_devs].manufacturer = manufacturer;
+	usb_devs[num_usb_devs].product = product;
+	num_usb_devs++;
+}
+
 void uhci_init_controller(pci_hdr_t* device) {
-	u16 io = device->type0.bar4 & ~((u32) 0b11);
+	if (!uhcis) {
+		uhcis = request_page();
+		memset(uhcis, 0, 0x1000);
+	}
+
+	uhci_t* hc = &uhcis[num_uhcis];
+	num_uhcis++;
+
+	hc->hdr = device;
+	hc->io = device->type0.bar4 & ~((u32) 0b11);
 
 	// Global reset
-	u16 cmd = inw(io + REG_CMD);
+	u16 cmd = inw(hc->io + REG_CMD);
 	cmd |= CMD_GRESET;
-	outw(cmd, io + REG_CMD);
+	outw(cmd, hc->io + REG_CMD);
 	sleep(15);
-	cmd = inw(io + REG_CMD);
+	cmd = inw(hc->io + REG_CMD);
 	cmd &= ~CMD_GRESET;
-	outw(cmd, io + REG_CMD);
+	outw(cmd, hc->io + REG_CMD);
 
 	// USB megszakítások kikapcsolása
-	outw(0, io + REG_INTR);
+	outw(0, hc->io + REG_INTR);
 
 	// Frame list létrehozása
-	u32* frame_list = pmm_alloc_page();
-	checkalign(frame_list, 0x1000);
-	ptr_32bit(frame_list);
+	hc->frame_list = pmm_alloc_page();
+	checkalign(hc->frame_list, 0x1000);
+	ptr_32bit(hc->frame_list);
 
 	// + kitöltése
 	for (u16 i = 0; i < 1024; i++) {
-		*(frame_list + i) = TD_LPTR_TERM;
+		*(hc->frame_list + i) = TD_LPTR_TERM;
 	}
 
-	outl((u32)(u64)frame_list, io + REG_FRBASEADD);
-	outw(0, io + REG_FRNUM);
-	outb(0x40, io + REG_SOFMOD);
+	outl((u32)(u64)hc->frame_list, hc->io + REG_FRBASEADD);
+	outw(0, hc->io + REG_FRNUM);
+	outb(0x40, hc->io + REG_SOFMOD);
+
+	// STS kitisztítása
+	outw(0xffff, hc->io + REG_STS);
 
 	// Futtatás
-	cmd = inw(io + REG_CMD);
+	cmd = inw(hc->io + REG_CMD);
 	cmd |= CMD_RS;
-	outw(cmd, io + REG_CMD);
+	outw(cmd, hc->io + REG_CMD);
 
 	// Port 1 vizsgálata
-	u16 port1 = inw(io + REG_PORT1);
+	u16 port = inw(hc->io + REG_PORT1);
 	// Ha nincs rákötve semmi akkor kihagyja
-	if (!(port1 & PORT_CONN)) goto port2;
-
-	printk("Found device on port!\n");
+	if (!(port & PORT_CONN)) goto port2;
 
 	// Port bekapcs.
-	port1 |= PORT_ENABLED;
-	outw(port1, io + REG_PORT1);
+	port |= PORT_ENABLED;
+	outw(port, hc->io + REG_PORT1);
 	sleep(50);
 
 	// Eszköz reset
-	port1 = inw(io + REG_PORT1);
-	u8 ls = (port1 & PORT_LOWSP) ? 1 : 0;
+	port = inw(hc->io + REG_PORT1);
+	u8 ls = (port & PORT_LOWSP) ? 1 : 0;
 
-	port1 |= PORT_DEV_RESET;
-	outw(port1, io + REG_PORT1);
+	port |= PORT_DEV_RESET;
+	outw(port, hc->io + REG_PORT1);
 	sleep(10);
-	port1 &= ~PORT_DEV_RESET;
-	outw(port1, io + REG_PORT1);
+	port &= ~PORT_DEV_RESET;
+	outw(port, hc->io + REG_PORT1);
 
-	u8 setup_packet[8] = { 0x80, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08 };
+	// Eszköz vizsgálata
+	uhci_on_dev(hc, ls);
+
+port2:
+	// Port 2 vizsgálata
+	port = inw(hc->io + REG_PORT2);
+	// // Ha nincs rákötve semmi akkor kihagyja
+	// if (!(port & PORT_CONN)) return;
+
+	// // Port bekapcs.
+	// port |= PORT_ENABLED;
+	// outw(port, hc->io + REG_PORT2);
+	// sleep(50);
+
+	// // Eszköz reset
+	// port = inw(hc->io + REG_PORT2);
+	// ls = (port & PORT_LOWSP) ? 1 : 0;
+
+	// port |= PORT_DEV_RESET;
+	// outw(port, hc->io + REG_PORT2);
+	// sleep(10);
+	// port &= ~PORT_DEV_RESET;
+	// outw(port, hc->io + REG_PORT2);
+
+	// // Eszköz vizsgálata
+	// uhci_on_dev(hc, ls);
+}
+
+void uhci_send_in(uhci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len) {
+	ptr_32bit(output);
+	ptr_32bit(packet);
 
 	// SETUP packet küldése
 	// Utána IN
 	// Végül OUT
-	uhci_qh_t* qhs = pmm_alloc_page();
-	ptr_32bit(qhs);
-	checkalign(&qhs[2], 16);
-	memset(qhs, 0, 0x1000);
 
-	uhci_td_t* tds = pmm_alloc_page();
-	ptr_32bit(tds);
-	checkalign(&qhs[2], 32);
-	memset(tds, 0, 0x1000);
+	if (!hc->qhs) {
+		hc->qhs = pmm_alloc_page();
+		ptr_32bit(hc->qhs);
+		checkalign(&hc->qhs[2], 16);
+		memset(hc->qhs, 0, 0x1000);
+	}
 
-	void* base = pmm_alloc_page();
-	ptr_32bit(base);
-	void* setup_storage = base;
-	void* in_storage = base + 2048;
-
-	memcpy(setup_packet, (u64)setup_storage, 8);
+	if (!hc->tds) {
+		hc->tds = pmm_alloc_page();
+		ptr_32bit(hc->tds);
+		checkalign(&hc->tds[2], 32);
+		memset(hc->tds, 0, 0x1000);
+	}
 
 	// SETUP TD
-	tds[0].buffer_ptr = (u32)(u64)setup_storage;
-	tds[0].link_ptr = (u32)(u64)&tds[1] | TD_LPTR_DEPTH;
-	tds[0]._ctrl_sts.ioc = 1; // ha nem jó
-	tds[0]._ctrl_sts.ls = ls;
-	tds[0]._ctrl_sts.active = 1;
-	tds[0]._token.addr = 0;
-	tds[0]._token.endp = 0;
-	tds[0]._token.data = 0;
-	tds[0]._token.maxlen = 7;
-	tds[0]._token.pid = TD_PACKET_SETUP;
+	hc->tds[0].buffer_ptr = (u32)(u64)packet;
+	hc->tds[0].link_ptr = (u32)(u64)&hc->tds[1] | TD_LPTR_DEPTH;
+	hc->tds[0]._ctrl_sts.ioc = 0; // ha nem jó
+	hc->tds[0]._ctrl_sts.ls = dev->ls;
+	hc->tds[0]._ctrl_sts.active = 1;
+	hc->tds[0]._token.addr = dev->addr;
+	hc->tds[0]._token.endp = dev->endp;
+	hc->tds[0]._token.data = 0;
+	hc->tds[0]._token.maxlen = 7;
+	hc->tds[0]._token.pid = TD_PACKET_SETUP;
 
-	// IN TD
-	tds[1].buffer_ptr = (u32)(u64)in_storage;
-	tds[1].link_ptr = TD_LPTR_TERM | TD_LPTR_DEPTH;
-	tds[1]._ctrl_sts.ioc = 1; // ha nem jó
-	tds[1]._ctrl_sts.ls = ls;
-	tds[1]._ctrl_sts.active = 1;
-	tds[1]._token.addr = 0;
-	tds[1]._token.endp = 0;
-	tds[1]._token.data = 1;
-	tds[1]._token.maxlen = 7;
-	tds[1]._token.pid = TD_PACKET_IN;
+	// IN TD-k
+	i8 remaining = len;
+	u8 i = 0;
+	u8 data = 0;
+	while (remaining > 0) {
+		data = !data;
+
+		hc->tds[i+1].buffer_ptr = (u32)(u64)output+(i*8);
+		hc->tds[i+1].link_ptr = (u32)(u64)&hc->tds[i+2] | TD_LPTR_DEPTH;
+		hc->tds[i+1]._ctrl_sts.ioc = 0;
+		hc->tds[i+1]._ctrl_sts.ls = dev->ls;
+		hc->tds[i+1]._ctrl_sts.active = 1;
+		hc->tds[i+1]._token.addr = dev->addr;
+		hc->tds[i+1]._token.endp = dev->endp;
+		hc->tds[i+1]._token.data = data;
+		hc->tds[i+1]._token.maxlen = 7;
+		hc->tds[i+1]._token.pid = TD_PACKET_IN;
+
+		remaining -= 8;
+		i++;
+	}
+
+	hc->tds[i]._ctrl_sts.ioc = 1;
+	hc->tds[i+1].link_ptr = TD_LPTR_TERM | TD_LPTR_DEPTH;
 
 	// QH létrehozása
-	qhs[0].element = (u32)(u64)&tds[0];
-	qhs[0].head = TD_LPTR_TERM;
+	hc->qhs[0].element = (u32)(u64)&hc->tds[0];
+	hc->qhs[0].head = TD_LPTR_TERM;
 
-	cmd = inw(io + REG_CMD);
-	cmd &= ~CMD_RS;
-	outw(cmd, io + REG_CMD);
+	// QH hozzáadása, futtatása
+	hc->frame_list[0] = (u32)(u64)&hc->qhs[0] | TD_LPTR_QH;
+	uhci_stop(hc);
+	outw(0, hc->io + REG_FRNUM);
+	uhci_run(hc);
 
-	sleep(50);
+	// Várakozás amíg el nem készül
+	while (!(inw(hc->io + REG_STS) & 1)) sleep(1);
 
-	// QH hozzáadása
-	frame_list[0] = (u32)(u64)&qhs[0] | TD_LPTR_QH;
-
-	outw(0, io + REG_FRNUM);
-
-	// STS kitisztítása
-	outw(0xffff, io + REG_STS);
-
-	cmd = inw(io + REG_CMD);
-	cmd |= CMD_RS;
-	outw(cmd, io + REG_CMD);
-
-	sleep(100);
-
-	// Eredmények
-	printk("cmd: %04x\n", inw(io + REG_CMD));
-	printk("status: %04x\n", inw(io + REG_STS));
-	printk("setup:..%02x\n", tds[0]._ctrl_sts.status);
-	printk("in:.....%02x\n", tds[1]._ctrl_sts.status);
-	printk("status:.%02x\n", tds[2]._ctrl_sts.status);
-
-	printk("buffer: %p\n", *(u64*)in_storage);
-	usb_desc_dev_t* response = in_storage;
-	printk("len %d\n", response->len);
-	printk("type %d\n", response->desc_type);
-	printk("USB ver %04x\n", response->usb_ver);
-	printk("class %d\n", response->class);
-	printk("subcl %d\n", response->subclass);
-	printk("prot %d\n", response->protocol);
-	printk("max size %d\n", response->max_packet_size);
-
-port2:
-	asm ("nop");
+	outw(0xffff, hc->io + REG_STS);
 }

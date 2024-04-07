@@ -12,7 +12,7 @@ LD ?= ld.gold
 
 CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large -Wshadow \
 	-Wall -Wextra -Isrc -fno-stack-protector -mgeneral-regs-only -Wno-unused-parameter -fno-omit-frame-pointer \
-	-g -O0 #-Wno-unused-function
+	-g -O0 -Wno-unused-variable #-Wno-unused-function
 LDFLAGS := -g -static -T ldscript.ld -z max-page-size=0x200000
 
 all: clean .WAIT kernel store

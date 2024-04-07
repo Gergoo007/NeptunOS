@@ -1,11 +1,8 @@
 #pragma once
 
 #include <lib/types.h>
-
 #include <graphics/console.h>
-
 #include <acpi/madt.h>
-
 #include <apic/pit/pit.h>
 
 extern u32 ioapic_redirs[16];

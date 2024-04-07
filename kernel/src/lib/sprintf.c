@@ -28,6 +28,32 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 					}
 					break;
 				}
+				// UTF-16 (UCS-2 inkább)
+				case 'l': {
+					fmt++;
+					if (*fmt != 's') puts("Invalid specifier!\n\r");
+
+					wchar* teszt = va_arg(args, wchar*);
+					if (!teszt) {
+						u8 len = strlen("(null)")-1;
+						char* null = "(null)";
+
+						while (len--) {
+							*out = *null;
+							out++;
+							null++;
+						}
+						break;
+					}
+					u8 len = wstrlen(teszt)-1;
+					
+					while (len--) {
+						*out = *teszt & 0x00ff;
+						out++;
+						teszt++;
+					}
+					break;
+				}
 				case 'd': {
 					char _tmp[256];
 					char* tmp = _tmp;

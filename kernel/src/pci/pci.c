@@ -25,8 +25,8 @@ void pci_add_device(pci_hdr_t* dev) {
 	if (dev->class == 0xc && dev->subclass == 0x3) {
 		switch (dev->prog_if) {
 			case 0: {
+				printk("found uhci, int %d pin %d\n", dev->type0.int_line, dev->type0.int_pin);
 				uhci_init_controller(dev);
-				printk("found uhci\n");
 				break;
 			}
 

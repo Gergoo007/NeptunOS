@@ -1,16 +1,16 @@
 #pragma once
 
 #include <lib/types.h>
-
 #include <apic/apic.h>
-
+#include <apic/pit/pit.h>
 #include <serial/com.h>
-
 #include <lib/symlookup.h>
 
 #pragma pack(1)
 
 typedef struct intf intf;
+
+void lapic_eoi();
 
 static _attr_saved_regs void irq_kb() {
 	printk("INT TRIG!!!!\n");

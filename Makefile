@@ -7,7 +7,7 @@ _QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
 				-cdrom $(ISO) -no-reboot -no-shutdown -usb \
 				-drive if=pflash,format=raw,unit=0,file="qemu_fw/OVMF_CODE.fd",readonly=on \
 				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS) \
-				-usb -usbdevice keyboard
+				-usb -usbdevice keyboard -usbdevice mouse
 
 main: build run
 

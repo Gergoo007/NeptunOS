@@ -3,6 +3,9 @@
 #include <lib/types.h>
 
 u8 strlen(const char* str);
+u8 wstrlen(const wchar* str);
+void utf16_to_ascii(wchar* in, char* out);
+void utf16_to_asciin(wchar* in, char* out, u32 n);
 void strcpy(const char* src, char* dest);
 u8 strncmp(const char* s1, const char* s2, u32 chars);
 void strcat(char* dest, char* src);

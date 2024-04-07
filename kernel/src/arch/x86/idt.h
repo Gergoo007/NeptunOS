@@ -32,8 +32,8 @@ typedef struct idt_entry {
 	u32 : 32;
 } idt_entry_t;
 
-// Callback
-
+u8 idt_reserve_vector(void* isr);
+void idt_attach_isr(u8 vector, void* isr);
 void idt_create_entry(idt_entry_t* entry, u64 addr, u8 dpl, u8 type);
 void idt_init(void);
 void idt_load(idtr_t* idtr);

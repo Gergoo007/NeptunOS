@@ -2,10 +2,10 @@
 
 #include <usb/usb.h>
 
+#include <apic/apic.h>
+#include <arch/x86/idt.h>
 #include <pci/pci.h>
-
 #include <serial/com.h>
-
 #include <apic/pit/pit.h>
 
 #pragma pack(1)
@@ -139,8 +139,12 @@ typedef struct uhci_qh {
 } __attribute__((aligned(16))) uhci_qh_t;
 
 typedef struct uhci {
-	u64 frame_list;
+	pci_hdr_t* hdr;
+	u32* frame_list;
+	uhci_td_t* tds;
+	uhci_qh_t* qhs;
 	u16 io;
 } uhci_t;
 
 void uhci_init_controller(pci_hdr_t* device);
+void uhci_send_in(uhci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len);
