@@ -51,6 +51,8 @@ void mb_parse_tags(u32 hdrp) {
 	gdt_init();
 	idt_init();
 
+	printk("Begin dev enumeration\n");
+
 	if (rsdp_tag)
 		acpi_init(rsdp_tag);
 }

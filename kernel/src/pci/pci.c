@@ -1,4 +1,4 @@
-#include <pci/strings.h>
+#include <pci/pci.h>
 
 char str[5];
 
@@ -25,33 +25,29 @@ void pci_add_device(pci_hdr_t* dev) {
 	if (dev->class == 0xc && dev->subclass == 0x3) {
 		switch (dev->prog_if) {
 			case 0: {
-				printk("found uhci, int %d pin %d\n", dev->type0.int_line, dev->type0.int_pin);
+				printk("UHCI USB controller\n");
 				uhci_init_controller(dev);
 				break;
 			}
 
 			case 0x10: {
-				// printk("PCI OHCI USB controller\n");
+				printk("OHCI USB controller\n");
+				ohci_init_controller(dev);
 				break;
 			}
 
 			case 0x20: {
-				// printk("PCI EHCI USB controller\n");
+				printk("EHCI USB controller\n");
 				break;
 			}
 
 			case 0x30: {
-				// printk("PCI XHCI USB controller\n");
+				printk("XHCI USB controller\n");
 				break;
 			}
 
 			case 0x80: {
 				// printk("PCI unknown USB controller\n");
-				break;
-			}
-
-			default: {
-				// printk("USB device\n");
 				break;
 			}
 		}

@@ -71,6 +71,7 @@ typedef struct pci_hdr {
 	};
 } pci_hdr_t;
 
-#include <usb/uhci.h>
+#include <usb/hci/uhci.h>
+#include <usb/hci/ohci.h>
 
 void pci_add_device(pci_hdr_t* dev);

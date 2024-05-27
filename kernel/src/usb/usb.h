@@ -1,6 +1,7 @@
 #pragma once
 
 #include <usb/types.h>
+#include <lib/bitmap.h>
 
 enum {
 	HC_UHCI = 0,
@@ -33,4 +34,6 @@ typedef struct usb_ta {
 extern usb_dev_t* usb_devs;
 extern u32 num_usb_devs;
 
-#include <usb/uhci.h>
+extern bitmap_t addr_bm;
+
+#include <usb/hci/uhci.h>
