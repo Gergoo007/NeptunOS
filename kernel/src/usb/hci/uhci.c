@@ -82,7 +82,33 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	usb_devs[num_usb_devs].ls = ls;
 	usb_devs[num_usb_devs].manufacturer = manufacturer;
 	usb_devs[num_usb_devs].product = product;
-	num_usb_devs++;
+
+	// // Ha kbd akkor küldök egy GetReport-ot
+	// void* out = pmm_alloc_page();
+	// req = (usb_request_t) {
+	// 	.req_type = 0xa1,
+	// 	.req = 1,
+	// 	.value = 0x0100,
+	// 	.index = 0x0000,
+	// 	.length = 1,
+	// };
+	// memcpy(&req, (u64)packet, 8);
+	// uhci_send_in(hc, &((usb_dev_t){ hc, "", "", HC_UHCI, 0, 1, ls, 0, }), packet, out, 8);
+	// printk("getRep %p\n", *(u64*)out);
+
+	// out = pmm_alloc_page();
+	// req = (usb_request_t) {
+	// 	.req_type = 0xa1,
+	// 	.req = 1,
+	// 	.value = 0x0100,
+	// 	.index = 0x0000,
+	// 	.length = 1,
+	// };
+	// memcpy(&req, (u64)packet, 8);
+	// uhci_send_in(hc, &((usb_dev_t){ hc, "", "", HC_UHCI, 0, 1, ls, 0, }), packet, out, 8);
+	// printk("getRep %p\n", *(u64*)out);
+
+	// num_usb_devs++;
 }
 
 void uhci_init_controller(pci_hdr_t* device) {

@@ -34,13 +34,39 @@ void kputc(char c) {
 		console_clear();
 	}
 
-	if (c == '\n') {
-		cy += font.height + 1;
-		cx = 0;
-		return;
-	} else if (c == '\r') {
-		cx = 0;
-		return;
+	switch (c) {
+		case '\n': {
+			for (u8 y = 0; y < font.height; y++)
+				for (u8 x = 0; x < font.width; x++)
+					fb_pixel(&fb, cx + x, cy + y, bg);
+
+			cy += font.height + 1;
+			cx = 0;
+
+			return;
+		}
+		case '\r': {
+			for (u8 y = 0; y < font.height; y++)
+				for (u8 x = 0; x < font.width; x++)
+					fb_pixel(&fb, cx + x, cy + y, bg);
+			cx = 0;
+			return;
+		}
+		case '\b': {
+			if (!cx) {
+				for (u8 y = 0; y < font.height; y++)
+					for (u8 x = 0; x < font.width*2+1; x++)
+						fb_pixel(&fb, cx + x, cy + y, bg);
+				cy -= font.height+1;
+				return;
+			}
+
+			cx -= font.width + 1;
+			for (u8 y = 0; y < font.height; y++)
+				for (u8 x = 0; x < font.width*2+1; x++)
+					fb_pixel(&fb, cx + x, cy + y, bg);
+			return;
+		}
 	}
 
 	u16* glyphs = (u16*) ((u64)&FONT_START + sizeof(psf2_hdr_t));

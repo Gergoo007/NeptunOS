@@ -5,6 +5,7 @@
 #include <apic/pit/pit.h>
 #include <serial/com.h>
 #include <lib/symlookup.h>
+#include <ps2/kbd.h>
 
 #pragma pack(1)
 
@@ -12,12 +13,23 @@ typedef struct intf intf;
 
 void lapic_eoi();
 
+static u8 key_release = 0;
+
 static _attr_saved_regs void irq_kb() {
-	printk("INT TRIG!!!!\n");
+	u8 scancode = inb(0x60);
 
-	// Read scancode, which is sending an EOI as well
-	inb(0x60);
+	if (scancode == 0xf0) {
+		key_release = 1;
+		goto end;
+	}
+	if (key_release) {
+		key_release = 0;
+		goto end;
+	}
 
+	sprintk("scanc %02x\n", scancode);
+	kputc(ps2_kbd_convert(scancode));
+end:
 	// Send EOI to the LAPIC
 	lapic_eoi();
 }

@@ -2,7 +2,7 @@
 
 #include <acpi/acpi.h>
 
-#include <init/sysinfo.h>
+#include <sysinfo.h>
 
 #include <apic/apic.h>
 
