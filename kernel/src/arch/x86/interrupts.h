@@ -27,8 +27,7 @@ static _attr_saved_regs void irq_kb() {
 		goto end;
 	}
 
-	sprintk("scanc %02x\n", scancode);
-	kputc(ps2_kbd_convert(scancode));
+	printk("%c", ps2_kbd_convert(scancode));
 end:
 	// Send EOI to the LAPIC
 	lapic_eoi();

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <lib/types.h>
+#include <serial/serial.h>
 
+void strdmp(char* s, u16 len);
 u8 strlen(const char* str);
 u8 wstrlen(const wchar* str);
 void utf16_to_ascii(wchar* in, char* out);

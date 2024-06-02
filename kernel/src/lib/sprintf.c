@@ -1,7 +1,7 @@
 #include <lib/sprintf.h>
 #include <serial/serial.h>
 
-void vsprintf(char* out, const char* fmt, va_list args) {
+char* vsprintf(char* out, const char* fmt, va_list args) {
 	while (*fmt) {
 		if (*fmt == '%') {
 			fmt++;
@@ -94,13 +94,14 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 					break;
 				}
 				case 'c': {
-					putc((char) va_arg(args, int));
+					*out = va_arg(args, int);
+					out++;
 					break;
 				}
 				default: {
-					if (*fmt >= '0' && *(fmt+1) <= '9') {
-						u8 num = 0;
-						num += (*fmt - '0') * 10;
+					if (*fmt >= '0' && *fmt <= '9' &&
+						*(fmt+1) >= '0' && *(fmt+1) <= '9') {
+						u8 num = (*fmt - '0') * 10;
 						num += (*(fmt+1) - '0');
 
 						fmt += 2;
@@ -116,6 +117,7 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 									out++;
 									tmp++;
 								}
+								// memcpy(tmp, (u64)out, num);
 								break;
 							}
 						}
@@ -124,18 +126,21 @@ void vsprintf(char* out, const char* fmt, va_list args) {
 				}
 			}
 			fmt++;
+		} else {
+			*out = *fmt;
+			fmt++;
+			out++;
 		}
-		*out = *fmt;
-		fmt++;
-		out++;
 	}
 
 	*out = '\0';
+	return out;
 }
 
-void sprintf(char* out, const char* fmt, ...) {
+char* sprintf(char* out, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
-	vsprintf(out, fmt, args);
+	char* r = vsprintf(out, fmt, args);
 	va_end(args);
+	return r;
 }

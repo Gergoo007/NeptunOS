@@ -24,6 +24,8 @@ extern u64 _binary_zap_ext_light24_psf_size;
 extern u16 cx, cy;
 extern u32 bg, fg;
 
+extern char* con_buffer;
+
 typedef struct psf2_hdr {
 	u32 magic;
 	u32 version;
@@ -49,6 +51,6 @@ extern font_t font;
 
 void console_clear();
 void con_init(u32 fg, u32 bg);
-void kputc(char c);
-void kputs(char* s);
 void printk(const char* fmt, ...);
+void con_draw();
+void con_append(char* after);

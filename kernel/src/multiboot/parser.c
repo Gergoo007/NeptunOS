@@ -34,11 +34,8 @@ void mb_parse_tags(u32 hdrp) {
 		tag = (mb_tag_base_t*)((u64)tag + ((tag->size + 7) & ~7));
 	}
 
-	if (fb_tag) {
+	if (fb_tag)
 		fb_init(fb_tag->fb_addr, fb_tag->fb_width, fb_tag->fb_height, fb_tag->fb_bpp);
-
-		con_init(0xffffffff, 0xff180101);
-	}
 
 	if (mmap_tag)
 		pmm_init(mmap_tag);
@@ -48,10 +45,10 @@ void mb_parse_tags(u32 hdrp) {
 
 	vmm_init();
 
+	con_init(0xffffffff, 0xff180101);
+
 	gdt_init();
 	idt_init();
-
-	printk("Begin dev enumeration\n");
 
 	if (rsdp_tag)
 		acpi_init(rsdp_tag);

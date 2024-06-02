@@ -1,5 +1,18 @@
 #include <lib/string.h>
 
+extern void printk(const char *fmt, ...);
+
+void strdmp(char* s, u16 len) {
+	while (len--) {
+		if (*s == '\0') {
+			sprintk("\'\\0\' ");
+		} else {
+			sprintk("\'%c\' ", *s);
+		}
+		s++;
+	}
+}
+
 // Szöveg hossza a null terminátor nélkül
 u8 strlen(const char* str) {
 	u8 len = 1;

@@ -7,15 +7,15 @@ void panic(const char* fmt, ...) {
 	cx = 0;
 	cy = 0;
 
-	kputs("Panic occured!\n");
+	printk("Panic occured!\n");
 
 	va_list list;
 	va_start(list, fmt);
 	char buf[128];
 	vsprintf(buf, fmt, list);
-	kputs(buf);
+	printk(buf);
 
-	kputs("Stacktrace:\n");
+	printk("Stacktrace:\n");
 
 	u64 addr = 0;
 	u64 nearest = 0;
@@ -27,7 +27,7 @@ void panic(const char* fmt, ...) {
 		nearest = sym_nearest_sym(addr);
 
 		sprintf(buf, "%s +0x%x\n", sym_at_addr(nearest), addr - nearest);
-		kputs(buf);
+		printk(buf);
 
 		addr = nearest;
 		rbp = rbp->rbp;

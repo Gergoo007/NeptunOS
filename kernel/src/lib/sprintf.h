@@ -6,5 +6,5 @@
 
 #include <lib/attrs.h>
 
-void sprintf(char* out, const char* fmt, ...);
-void vsprintf(char* out, const char* fmt, va_list args);
+char* sprintf(char* out, const char* fmt, ...);
+char* vsprintf(char* out, const char* fmt, va_list args);

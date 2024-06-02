@@ -39,16 +39,12 @@ u8 kmain(kernel_info_t* _info) {
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
 
-	printk("teszt\r");
+	for (u8 i = 0; i < 20; i++) {
+		printk("hulye");
+	}
 
 	// A processzor pihenhet a következő interruptig
-	// while(1) halt();
-	// Render loop
-	while (1) {
-		// Kurzor
-		kputc('_');
-		cx -= font.width + 1;
-	}
+	while(1) halt();
 
 	return 88;
 }
