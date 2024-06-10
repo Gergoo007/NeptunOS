@@ -22,6 +22,13 @@
 
 kernel_info_t* info;
 
+// TODO: konzisztens struct nevezés, typedef meg a '_t' eltávolítása
+// TODO: boot előtt lehessen választani melyik driver vagy akármi logoljon info-t
+// TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
+// TODO: vmm-hez normális malloc meg calloc
+
+extern hba_port* tmp;
+
 u8 kmain(kernel_info_t* _info) {
 	info = _info;
 
@@ -39,9 +46,11 @@ u8 kmain(kernel_info_t* _info) {
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
 
-	for (u8 i = 0; i < 20; i++) {
-		printk("hulye");
-	}
+	void* out = pmm_alloc_page();
+	printk("Olvasas %p-bol\n", tmp);
+	ahci_read(tmp, 0, 1, out);
+
+	printk("out: %s\n", out);
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

@@ -51,7 +51,9 @@ void pci_add_device(pci_hdr_t* dev) {
 				break;
 			}
 		}
-	} else {
+	} else if (dev->class == 0x01 && dev->subclass == 0x06) {
+		ahci_init(dev);
+	}else {
 		// printk("PCI %s : %s %04x\n", pci_class(dev->class), pci_vendor(dev->vendor), dev->product);
 	}
 }

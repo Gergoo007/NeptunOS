@@ -14,6 +14,8 @@ static const u8 kbd_set_3[] = {
 void ps2_kbd_init() {
 	clearint();
 
+	inb(PS2_DATA);
+
 	// translation kikapcs
 	// bit 6 a config byte-ban
 	outb(0x20, PS2_CMD);
@@ -26,9 +28,6 @@ void ps2_kbd_init() {
 	outb(config, PS2_DATA);
 	while (inb(PS2_STS) & 2);
 
-	outb(PS2_KBD_SCANCODE, PS2_DATA);
-	while (inb(PS2_STS) & 2);
-
 	// scancode készlet 3
 	outb(PS2_KBD_SCANCODE, PS2_DATA);
 	while (inb(PS2_STS) & 2);
@@ -36,8 +35,20 @@ void ps2_kbd_init() {
 	outb(3, PS2_DATA);
 	while (inb(PS2_STS) & 2);
 
-	printk("scancode %02x\n", inb(PS2_DATA));
-	printk("scancode %02x\n", inb(PS2_DATA));
+	// Jelenlegi készlet
+	u8 current_set;
+	outb(PS2_KBD_SCANCODE, PS2_DATA);
+	while (inb(PS2_STS) & 2);
+	if (inb(PS2_DATA) != 0xfa) printk("bad\n");
+	outb(0, PS2_DATA);
+	while (inb(PS2_STS) & 2);
+	if (inb(PS2_DATA) != 0xfa) printk("bad\n");
+	current_set = inb(PS2_DATA);
+
+	if (current_set != 0x3f && current_set != 0x03)
+		printk("scancode keszlet 3 nem elerheto! jelenlegi: %02x\n", current_set);
+
+	inb(PS2_DATA);
 
 	setint();
 }

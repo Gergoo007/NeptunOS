@@ -13,6 +13,9 @@ _QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
 				-drive if=pflash,format=raw,unit=1,file="qemu_fw/OVMF_VARS.fd" $(QEMU_FLAGS) \
 				-device usb-ehci,id=ehci -device ich9-usb-uhci1,id=uhci -device pci-ohci,id=ohci \
 				-device usb-tablet,bus=ehci.0 -device usb-mouse,bus=ohci.0 \
+				-drive id=disk,file=disk.img,if=none \
+				-device ahci,id=ahci \
+				-device ide-hd,drive=disk,bus=ahci.0
 
 main: build run
 

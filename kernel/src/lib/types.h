@@ -48,7 +48,7 @@ typedef struct regs {
 	u64 err;
 	u64 rip;
 	u64 cs;
-	u64 rflags;
+	u64 rfl;
 	u64 rsp;
 	u64 ss;
 } regs_t;

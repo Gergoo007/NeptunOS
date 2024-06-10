@@ -68,7 +68,7 @@ pml4:
 	.skip 0x1000
 
 stack:
-	.skip 0x8000
+	.skip 0xf000
 stack_end:
 
 # Paging
