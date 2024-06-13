@@ -45,7 +45,7 @@ void mb_parse_tags(u32 hdrp) {
 
 	vmm_init();
 
-	con_init(0xffffffff, 0xff180101);
+	con_init(0xffffffff, 0xff000000);
 
 	gdt_init();
 	idt_init();

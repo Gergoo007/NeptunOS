@@ -26,8 +26,10 @@ fb_tag:
 	.short 0
 	.long 20
 
-	.long 960
-	.long 600
+	# .long 960
+	# .long 600
+	.long 1024
+	.long 768
 	.long 32
 fb_tag_end:
 

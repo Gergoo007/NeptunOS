@@ -15,3 +15,4 @@ void int_to_str(i64 i, char* str);
 void uint_to_str(u64 i, char* str);
 void hex_to_str(u64 i, char* str);
 void hexn_to_str(u64 i, char* str, u8 num);
+u64 str_to_uint(const char* s);

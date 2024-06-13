@@ -1,5 +1,7 @@
 #include <ps2/kbd.h>
 
+#include <apic/apic.h>
+
 // betű - 'a' = index [betű scancode-jához]
 static const u8 kbd_set_3[] = {
 	// Betűk
@@ -51,6 +53,8 @@ void ps2_kbd_init() {
 	inb(PS2_DATA);
 
 	setint();
+
+	ioapic_set_mask(irq_to_gsi(IRQ_KB), 0);
 }
 
 char ps2_kbd_convert(u8 scancode) {

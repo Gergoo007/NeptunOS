@@ -20,14 +20,23 @@
 
 #include <ps2/kbd.h>
 
+#include <storage/interface.h>
+
 kernel_info_t* info;
 
-// TODO: konzisztens struct nevezés, typedef meg a '_t' eltávolítása
-// TODO: boot előtt lehessen választani melyik driver vagy akármi logoljon info-t
+// TODO: konzisztens struct nevezés, typedef meg a '_t' eltávolítása, _attr_packed és volatile MMIO-nál
+// TODO: boot előtt lehessen választani melyik driver vagy akármi logoljon info-t, dedikált log warn meg error
 // TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
 // TODO: vmm-hez normális malloc meg calloc
-
-extern hba_port* tmp;
+// TODO: forditto warningok kigyomlálása
+// TODO: konzol "revamp"
+// TODO: PS/2 bugfix
+// TODO: billentyűzet megszakítások maszkolása a driver betöltéséig
+// TODO: (AHCI többek közt) MMIO caching kikapcsolása
+// TODO: jobb ACPI kód
+// TODO: vsprintf string hossz pl. %10s
+// TODO: void* u64 helyett (Mi a faszt gondoltam? Sose lesz 32 bit kompatibilis...)
+// TODO: parallel build Makefile
 
 u8 kmain(kernel_info_t* _info) {
 	info = _info;
@@ -42,15 +51,9 @@ u8 kmain(kernel_info_t* _info) {
 	}
 
 	ps2_kbd_init();
-	
+
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
-
-	void* out = pmm_alloc_page();
-	printk("Olvasas %p-bol\n", tmp);
-	ahci_read(tmp, 0, 1, out);
-
-	printk("out: %s\n", out);
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

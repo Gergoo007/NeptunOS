@@ -185,3 +185,14 @@ void hexn_to_str(u64 i, char* str, u8 num) {
 
 	str[len-1] = '\0';
 }
+
+u64 str_to_uint(const char* s) {
+	u64 ret = 0;
+	while (*s >= '0' && *s <= '9') {
+		ret *= 10;
+		ret += *s - '0';
+
+		s++;
+	}
+	return ret;
+}
