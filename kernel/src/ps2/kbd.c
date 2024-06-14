@@ -33,7 +33,7 @@ void ps2_kbd_init() {
 	// scancode készlet 3
 	outb(PS2_KBD_SCANCODE, PS2_DATA);
 	while (inb(PS2_STS) & 2);
-	if (inb(PS2_DATA) != 0xfa) printk("bad\n");
+	if (inb(PS2_DATA) != 0xfa) error("Varatlan PS/2 valasz!");
 	outb(3, PS2_DATA);
 	while (inb(PS2_STS) & 2);
 
@@ -41,14 +41,14 @@ void ps2_kbd_init() {
 	u8 current_set;
 	outb(PS2_KBD_SCANCODE, PS2_DATA);
 	while (inb(PS2_STS) & 2);
-	if (inb(PS2_DATA) != 0xfa) printk("bad\n");
+	if (inb(PS2_DATA) != 0xfa) error("Varatlan PS/2 valasz!");
 	outb(0, PS2_DATA);
 	while (inb(PS2_STS) & 2);
-	if (inb(PS2_DATA) != 0xfa) printk("bad\n");
+	if (inb(PS2_DATA) != 0xfa) error("Varatlan PS/2 valasz!");
 	current_set = inb(PS2_DATA);
 
 	if (current_set != 0x3f && current_set != 0x03)
-		printk("scancode keszlet 3 nem elerheto! jelenlegi: %02x\n", current_set);
+		error("PS/2 scancode keszlet 3 nem elerheto! jelenlegi: %02x\n", current_set);
 
 	inb(PS2_DATA);
 

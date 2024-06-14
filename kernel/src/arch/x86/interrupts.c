@@ -7,7 +7,7 @@
 #define print_reg(st, reg) printk("%s: %p ", #reg, st->reg)
 #define sprint_reg(st, reg) sprintk("%s: %p ", #reg, st->reg)
 
-_attr_saved_regs void exception_handler(regs_t* frame) {
+_attr_saved_regs void exception_handler(regs* frame) {
 	asm volatile ("cli");
 
 	switch (frame->exc) {
@@ -28,7 +28,7 @@ _attr_saved_regs void exception_handler(regs_t* frame) {
 
 			// Stack trace
 			char buf[256];
-			stacktrace((stackframe_t*)frame->rbp, buf);
+			stacktrace((stackframe*)frame->rbp, buf);
 			sprintk("%s", buf);
 
 			break;
@@ -53,7 +53,7 @@ _attr_saved_regs void exception_handler(regs_t* frame) {
 
 			// Stack trace
 			char buf[256];
-			stacktrace((stackframe_t*)frame->rbp, buf);
+			stacktrace((stackframe*)frame->rbp, buf);
 			printk("%s", buf);
 
 			break;

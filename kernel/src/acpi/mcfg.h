@@ -13,12 +13,12 @@ typedef struct mcfg_entry {
 	u8 pci_bus_start;
 	u8 pci_bus_end;
 	u32 : 32;
-} mcfg_entry_t;
+} mcfg_entry;
 
 typedef struct mcfg {
-	sdt_base_t base;
+	sdt_base base;
 	u64 : 64;
-	mcfg_entry_t entries[0];
-} mcfg_t;
+	mcfg_entry entries[0];
+} mcfg;
 
-void mcfg_parse(mcfg_t* mcfg);
+void mcfg_parse(mcfg* mcfg);

@@ -21,8 +21,8 @@ extern u64 _binary_zap_ext_light24_psf_start;
 extern u64 _binary_zap_ext_light24_psf_end;
 extern u64 _binary_zap_ext_light24_psf_size;
 
-extern u16 cx, cy;
-extern u32 bg, fg;
+extern u16 con_cx, con_cy;
+extern u32 con_bg, con_fg;
 
 extern char* con_buffer;
 
@@ -35,7 +35,7 @@ typedef struct psf2_hdr {
 	u32 glyphsize; // Byte-okban
 	u32 height;
 	u32 width;
-} psf2_hdr_t;
+} psf2_hdr;
 
 typedef struct font {
 	u64 hdr_ptr;
@@ -45,12 +45,20 @@ typedef struct font {
 	u32 num_glyphs;
 	u8 width;
 	u8 height;
-} font_t;
+} font;
 
-extern font_t font;
+extern font con_font;
 
 void console_clear();
 void con_init(u32 fg, u32 bg);
 void printk(const char* fmt, ...);
 void con_draw();
 void con_append(char* after);
+
+void _report(const char* fmt, const char* file, ...);
+void _warn(const char* fmt, const char* file, ...);
+void _error(const char* fmt, const char* file, ...);
+
+#define report(f, ...) _report(f, __FILE_NAME__, ##__VA_ARGS__)
+#define warn(f, ...) _warn(f, __FILE_NAME__, ##__VA_ARGS__)
+#define error(f, ...) _error(f, __FILE_NAME__, ##__VA_ARGS__)

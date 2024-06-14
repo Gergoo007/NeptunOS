@@ -51,4 +51,4 @@ typedef struct regs {
 	u64 rfl;
 	u64 rsp;
 	u64 ss;
-} regs_t;
+} regs;

@@ -12,7 +12,7 @@ typedef struct kernel_info {
 	u64 strtab2;
 	u64 symtab;
 	u16 symtab_entries;
-} kernel_info_t;
+} kernel_info;
 
-extern kernel_info_t* info;
-u8 kmain(kernel_info_t* _info);
+extern kernel_info* kinfo;
+u8 kmain(kernel_info* _info);

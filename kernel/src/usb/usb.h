@@ -20,20 +20,20 @@ typedef struct usb_dev {
 	u8 addr : 7;
 	u8 ls : 1;
 	u8 endp : 4;
-} usb_dev_t;
+} usb_dev;
 
 // USB Transaction
 typedef struct usb_ta {
-	usb_request_t* req;
+	usb_request* req;
 	void* data;
 	u32 len;
 	u8 complete;
 	u8 success;
-} usb_ta_t;
+} usb_ta;
 
-extern usb_dev_t* usb_devs;
+extern usb_dev* usb_devs;
 extern u32 num_usb_devs;
 
-extern bitmap_t addr_bm;
+extern bitmap addr_bm;
 
 #include <usb/hci/uhci.h>

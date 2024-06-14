@@ -16,10 +16,10 @@ enum MB_TAGS {
 typedef struct mb_tag_base {
 	u32 type;
 	u32 size;
-} mb_tag_base_t;
+} mb_tag_base;
 
 typedef struct mb_tag_fb {
-	mb_tag_base_t base;
+	mb_tag_base base;
 	u64 fb_addr;
 	u32 fb_pitch;
 	u32 fb_width;
@@ -28,26 +28,26 @@ typedef struct mb_tag_fb {
 	u8 fb_type;
 	u8 res;
 	u8 color_info[0];
-} mb_tag_fb_t;
+} mb_tag_fb;
 
 typedef struct mb_memmap_entry {
 	u64 addr;
 	u64 length;
 	u32 type;
 	u32 _res;
-} mb_memmap_entry_t;
+} mb_memmap_entry;
 
 typedef struct mb_tag_memmap {
-	mb_tag_base_t base;
+	mb_tag_base base;
 	u32 entry_size;
 	u32 entry_ver;
-	mb_memmap_entry_t entries[0];
-} mb_tag_memmap_t;
+	mb_memmap_entry entries[0];
+} mb_tag_memmap;
 
 typedef struct mb_tag_kaddr {
-	mb_tag_base_t base;
+	mb_tag_base base;
 	u32 addr;
-} mb_tag_kaddr_t;
+} mb_tag_kaddr;
 
 typedef struct sdt_base {
 	char signature[4];
@@ -59,7 +59,7 @@ typedef struct sdt_base {
 	u32 oem_rev;
 	u32 creator_id;
 	u32 creator_rev;
-} sdt_base_t;
+} sdt_base;
 
 typedef struct rsdp {
 	char signature[8];
@@ -70,22 +70,22 @@ typedef struct rsdp {
 	u32 length;
 	u64 xsdt_addr;
 	u8 checksum_ext;
-} rsdp_t;
+} rsdp;
 
 typedef struct rsdt {
-	sdt_base_t base;
+	sdt_base base;
 	u32 ptrs[0];
-} rsdt_t;
+} rsdt;
 
 typedef struct xsdt {
-	sdt_base_t base;
+	sdt_base base;
 	u64 ptrs[0];
-} xsdt_t;
+} xsdt;
 
 typedef struct mb_tag_rsdp {
-	mb_tag_base_t base;
+	mb_tag_base base;
 	union {
-		xsdt_t xsdt;
-		rsdp_t rsdp;
+		xsdt xsdt;
+		rsdp rsdp;
 	};
-} mb_tag_rsdp_t;
+} mb_tag_rsdp;

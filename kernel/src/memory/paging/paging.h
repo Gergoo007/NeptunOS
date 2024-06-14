@@ -13,13 +13,13 @@ typedef struct page_table_entry {
 		u16 flags;
 		u64 addr;
 	};
-} page_table_entry_t;
+} page_table_entry;
 
 typedef struct page_table {
-	page_table_entry_t entries[512];
-} page_table_t;
+	page_table_entry entries[512];
+} page_table;
 
-extern page_table_t* pml4;
+extern page_table* pml4;
 
 void paging_init(void);
 u64 paging_lookup(u64 virt);

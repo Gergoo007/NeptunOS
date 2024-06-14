@@ -74,7 +74,7 @@ typedef struct usb_request {
 	u16 value;
 	u16 index;
 	u16 length;
-} usb_request_t;
+} usb_request;
 
 typedef struct usb_desc_dev {
 	u8 len;
@@ -91,7 +91,7 @@ typedef struct usb_desc_dev {
 	u8 product_index; // Index in STRING descriptor
 	u8 serial_num_index; // Index in STRING descriptor
 	u8 num_configs;
-} usb_desc_dev_t;
+} usb_desc_dev;
 
 typedef struct usb_desc_dev_qualifier {
 	u8 len;
@@ -103,7 +103,7 @@ typedef struct usb_desc_dev_qualifier {
 	u8 max_packet_size;
 	u8 num_configs;
 	u8 : 8; // reserved, must be zero
-} usb_desc_dev_qualifier_t;
+} usb_desc_dev_qualifier;
 
 typedef struct usb_desc_configuration {
 	u8 len;
@@ -118,7 +118,7 @@ typedef struct usb_desc_configuration {
 	u8 config_index; // Index in STRING descriptor
 	u8 attributes; // bitmap, TODO: break up into separate struct
 	u8 max_power; // in 2 mA's
-} usb_desc_configuration_t;
+} usb_desc_configuration;
 
 typedef struct usb_desc_interface {
 	u8 len;
@@ -130,7 +130,7 @@ typedef struct usb_desc_interface {
 	u8 subclass;
 	u8 protocol;
 	u8 interface_index; // Index in STRING descriptor
-} usb_desc_interface_t;
+} usb_desc_interface;
 
 typedef struct usb_desc_endpoint {
 	u8 len;
@@ -139,10 +139,10 @@ typedef struct usb_desc_endpoint {
 	u8 attributes; // bitmap, TODO: break up into separate struct
 	u16 max_packet_size; // bitmap, TODO: break up into separate struct
 	u8 interval; // Polling interval, in microframes or frames
-} usb_desc_endpoint_t;
+} usb_desc_endpoint;
 
 typedef struct usb_desc_string {
 	u8 len;
 	u8 desc_type; // STRING
 	wchar string[0]; // Unicode-encoded, non-null terminated string
-} usb_desc_string_t;
+} usb_desc_string;

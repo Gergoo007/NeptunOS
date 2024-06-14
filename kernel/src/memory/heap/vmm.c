@@ -2,7 +2,7 @@
 
 // VMM heap rögtön a kernel után következik, ami általában 0xfffffff800200000
 
-bitmap_t vmm_bm;
+bitmap vmm_bm;
 
 void vmm_init(void) {
 	// VMM-hez a bitmap 8192 page = 32 MiB méretű (kurva nagy, cserébe 1 TiB-nyi helyet tud kezelni)

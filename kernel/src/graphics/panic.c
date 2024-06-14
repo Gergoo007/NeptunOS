@@ -1,11 +1,11 @@
 #include <graphics/panic.h>
 
 void panic(const char* fmt, ...) {
-	bg = 0xff000000;
-	fg = 0xffffffff;
+	con_bg = 0xff000000;
+	con_fg = 0xffffffff;
 
-	cx = 0;
-	cy = 0;
+	con_cx = 0;
+	con_cy = 0;
 
 	printk("Panic occured!\n");
 
@@ -19,7 +19,7 @@ void panic(const char* fmt, ...) {
 
 	u64 addr = 0;
 	u64 nearest = 0;
-	stackframe_t* rbp;
+	stackframe* rbp;
 	asm volatile ("movq %%rbp, %0" : "=r"(rbp));
 	
 	while (addr != (u64)kmain) {

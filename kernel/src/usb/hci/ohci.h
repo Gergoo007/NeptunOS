@@ -32,7 +32,7 @@ typedef volatile struct {
 
 typedef struct {
 	u32 mmio;
-} ohci_t;
+} ohci;
 
 enum {
 	OHCI_ED_DIR_OUT = 0b01,
@@ -67,7 +67,7 @@ typedef struct {
 		};
 	};
 	u32 next_ed;
-} ohci_ed_t;
+} ohci_ed;
 
 typedef volatile struct {
 	struct {
@@ -82,7 +82,7 @@ typedef volatile struct {
 	u32 current_buf;
 	u32 next_td;
 	u32 buf_end;
-} ohci_td_t;
+} ohci_td;
 
 typedef volatile struct ohci_hcca {
 	u32 int_table[32];
@@ -91,9 +91,9 @@ typedef volatile struct ohci_hcca {
 	u32 done_head;
 } ohci_hcca;
 
-extern ohci_t* ohcis;
+extern ohci* ohcis;
 extern u64 num_ohcis;
 
-void ohci_init_controller(pci_hdr_t* device);
-void ohci_send_in(ohci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len);
-void ohci_send_address(ohci_t* hc, usb_dev_t* dev, u8 addr);
+void ohci_init_controller(pci_hdr* device);
+void ohci_send_in(ohci* hc, usb_dev* dev, u8* packet, void* output, u8 len);
+void ohci_send_address(ohci* hc, usb_dev* dev, u8 addr);

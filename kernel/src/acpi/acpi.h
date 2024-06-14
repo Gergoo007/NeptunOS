@@ -13,4 +13,4 @@
 #pragma pack(1)
 
 void acpi_init(void* tag);
-sdt_base_t* acpi_get_table(const char* name);
+sdt_base* acpi_get_table(const char* name);

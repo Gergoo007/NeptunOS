@@ -1,14 +1,14 @@
 #include <acpi/acpi.h>
 
-rsdp_t* rsdp;
+rsdp* _rsdp;
 
-sdt_base_t* acpi_get_table(const char* name) {
+sdt_base* acpi_get_table(const char* name) {
 	// RSDT
-	sdt_base_t* rsdt = (sdt_base_t*)(u64)rsdp->rsdt_addr;
+	sdt_base* _rsdt = (sdt_base*)(u64)_rsdp->rsdt_addr;
 
-	u64 num_entries = (rsdt->len - sizeof(sdt_base_t)) / 4;
+	u64 num_entries = (_rsdt->len - sizeof(sdt_base)) / 4;
 	for (u64 i = 0; i < num_entries; i++) {
-		sdt_base_t* table = (sdt_base_t*)(u64)((rsdt_t*)rsdt)->ptrs[i];
+		sdt_base* table = (sdt_base*)(u64)((rsdt*)_rsdt)->ptrs[i];
 		if (!strncmp(table->signature, name, 4))
 			return table;
 	}
@@ -17,16 +17,16 @@ sdt_base_t* acpi_get_table(const char* name) {
 }
 
 void acpi_init(void* tag) {
-	rsdp = &((mb_tag_rsdp_t*)tag)->rsdp;
+	_rsdp = &((mb_tag_rsdp*)tag)->rsdp;
 
-	if (strncmp(rsdp->signature, "RSD PTR ", 8))
-		printk("Ervenytelen rsdp/XSDT alairas!\n");
+	if (strncmp(_rsdp->signature, "RSD PTR ", 8))
+		error("Ervenytelen rsdp/XSDT alairas!");
 
-	madt_t* madt = (madt_t*)acpi_get_table("APIC");
-	if (madt) {
-		madt_parse(madt);
+	madt* _madt = (madt*)acpi_get_table("APIC");
+	if (_madt) {
+		madt_parse(_madt);
 	} else {
-		printk("E: MADT nincs!\n");
+		error("MADT nincs!");
 	}
 
 	ioapic_write_entry(irq_to_gsi(IRQ_PIT), 0x20);
@@ -34,11 +34,11 @@ void acpi_init(void* tag) {
 	ioapic_set_mask(irq_to_gsi(IRQ_KB), 1);
 	// ioapic_write_entry(irq_to_gsi(IRQ_MOUSE), 0x22);
 
-	mcfg_t* mcfg = (mcfg_t*)acpi_get_table("MCFG");
-	if (mcfg) {
-		mcfg_parse(mcfg);
+	mcfg* _mcfg = (mcfg*)acpi_get_table("MCFG");
+	if (_mcfg) {
+		mcfg_parse(_mcfg);
 	} else {
-		printk("E: MCFG nincs!\n");
+		error("MCFG nincs!");
 	}
 
 	asm volatile ("sti");

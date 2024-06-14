@@ -35,7 +35,7 @@ enum {
 	ATA_READ_DMA_EX = 0x25,
 };
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed fis_reg_h2d {
 	u8 type;
 
 	u8 port_multi : 4;
@@ -64,7 +64,7 @@ typedef volatile struct _attr_packed {
 	u32 : 32;
 } fis_reg_h2d;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed fis_reg_d2h {
 	u8 type;
 
 	u8 port_multi : 4;
@@ -93,7 +93,7 @@ typedef volatile struct _attr_packed {
 	u32 : 32;
 } fis_reg_d2h;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed hba_port {
 	u32 cmd_listl;
 	u32 cmd_listu;
 
@@ -169,7 +169,7 @@ typedef volatile struct _attr_packed {
 	u32 res[15];
 } hba_port;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed hba_mem {
 	u32 host_capability;
 	u32 global_host_ctrl;
 	u32 intr_sts;
@@ -187,7 +187,7 @@ typedef volatile struct _attr_packed {
 	hba_port ports[32];
 } hba_mem;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed hba_cmd_hdr {
 	u8 fis_len : 5; // FIS hossz * 32 bit
 	u8 satapi : 1;
 	u8 write : 1;
@@ -208,7 +208,7 @@ typedef volatile struct _attr_packed {
 	u32 _[4];
 } hba_cmd_hdr;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed hba_prdt_entry {
 	u32 data_base_addrl;
 	u32 data_base_addru;
 	u32 : 32;
@@ -218,7 +218,7 @@ typedef volatile struct _attr_packed {
 	u32 ioc : 1;
 } hba_prdt_entry;
 
-typedef volatile struct _attr_packed {
+typedef volatile struct _attr_packed hba_cmd_table {
 	u8 cmd_fis[64];
 	u8 satapi_cmd[16];
 	u8 _[48];
@@ -226,11 +226,11 @@ typedef volatile struct _attr_packed {
 	hba_prdt_entry prdt_entry[1]; // Lehet belőle semennyi meg 65535 is
 } hba_cmd_table;
 
-typedef struct {
+typedef struct ahci {
 	u32 pi;
 } ahci;
 
-typedef struct _attr_packed {
+typedef struct _attr_packed ata_identity {
 	u16 flags;
 	u16 _1[9];
 	char serial[20];
@@ -250,6 +250,6 @@ typedef struct _attr_packed {
 	u16 _6[152];
 } ata_identity;
 
-void ahci_init(pci_hdr_t* pci);
+void ahci_init(pci_hdr* pci);
 void ahci_read(hba_port* port, u64 start, u64 count, void* buf);
 void ahci_identify(hba_port* port);

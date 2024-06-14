@@ -28,7 +28,7 @@ enum {
 typedef struct ioapic {
 	u64 base;
 	u64 gsi_base;
-} ioapic_t;
+} ioapic;
 
 typedef struct ioapic_redir_entry {
 	union {
@@ -61,7 +61,7 @@ typedef struct ioapic_redir_entry {
 
 		u64 raw;
 	};
-} ioapic_redir_entry_t;
+} ioapic_redir_entry;
 
 enum {
 	IOAPIC_ID = 0x00,
@@ -69,7 +69,7 @@ enum {
 	IOAPIC_ARB_PRI = 0x02,
 };
 
-extern ioapic_t* ioapics;
+extern ioapic* ioapics;
 extern u16 num_ioapics;
 
 void ioapic_write(u16 reg, u32 val);

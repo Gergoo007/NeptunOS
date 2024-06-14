@@ -1,6 +1,6 @@
 #include <arch/x86/idt.h>
 
-idt_entry_t* idt_entries;
+idt_entry* idt_entries;
 
 void idt_init(void) {
 	idt_entries = pmm_alloc_page();
@@ -35,7 +35,7 @@ void idt_init(void) {
 	idt_attach_isr(0x21, _irq_kb);
 	idt_attach_isr(0x22, _irq_mouse);
 
-	idtr_t idtr = {
+	idtr idtr = {
 		.base = (u64)idt_entries,
 		.limit = 256*16 - 1,
 	};
@@ -43,7 +43,7 @@ void idt_init(void) {
 	idt_load(&idtr);
 }
 
-void idt_create_entry(idt_entry_t* entry, u64 addr, u8 dpl, u8 type) {
+void idt_create_entry(idt_entry* entry, u64 addr, u8 dpl, u8 type) {
 	entry->gate_type = type;
 	entry->dpl = dpl;
 	entry->ist = 0;
@@ -70,6 +70,6 @@ u8 idt_reserve_vector(void* isr) {
 		idt_attach_isr(i, isr);
 		return i;
 	}
-	printk("idt_reserve_vector: No free vector!\n");
+	error("No free vector!");
 	return 0xff;
 }

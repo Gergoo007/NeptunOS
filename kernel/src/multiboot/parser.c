@@ -1,37 +1,37 @@
 #include <multiboot/parser.h>
 
 void mb_parse_tags(u32 hdrp) {
-	mb_tag_base_t* tag = (mb_tag_base_t*)((u64)hdrp+8);
+	mb_tag_base* tag = (mb_tag_base*)((u64)hdrp+8);
 
-	mb_tag_fb_t* fb_tag = NULL;
-	mb_tag_memmap_t* mmap_tag = NULL;
-	mb_tag_rsdp_t* rsdp_tag = NULL;
+	mb_tag_fb* fb_tag = NULL;
+	mb_tag_memmap* mmap_tag = NULL;
+	mb_tag_rsdp* rsdp_tag = NULL;
 
 	while (tag->type) {
 		switch (tag->type) {
 			case MB_TAG_FB: {
-				fb_tag = (mb_tag_fb_t*)tag;
+				fb_tag = (mb_tag_fb*)tag;
 				break;
 			}
 			case MB_TAG_MEMMAP: {
-				mmap_tag = (mb_tag_memmap_t*)tag;
+				mmap_tag = (mb_tag_memmap*)tag;
 				break;
 			}
 			case MB_TAG_KERNEL_ADDR: {
-				info->preload_addr = ((mb_tag_kaddr_t*)tag)->addr;
+				kinfo->preload_addr = ((mb_tag_kaddr*)tag)->addr;
 				break;
 			}
 			case MB_TAG_XSDP: {
-				rsdp_tag = (mb_tag_rsdp_t*)tag;
+				rsdp_tag = (mb_tag_rsdp*)tag;
 				break;
 			}
 			case MB_TAG_rsdp: {
-				rsdp_tag = (mb_tag_rsdp_t*)tag;
+				rsdp_tag = (mb_tag_rsdp*)tag;
 				break;
 			}
 		}
 
-		tag = (mb_tag_base_t*)((u64)tag + ((tag->size + 7) & ~7));
+		tag = (mb_tag_base*)((u64)tag + ((tag->size + 7) & ~7));
 	}
 
 	if (fb_tag)

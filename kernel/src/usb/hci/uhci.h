@@ -139,13 +139,13 @@ typedef volatile struct uhci_qh {
 } __attribute__((aligned(16))) uhci_qh_t;
 
 typedef struct uhci {
-	pci_hdr_t* hdr;
+	pci_hdr* hdr;
 	u32* frame_list;
 	uhci_td_t* tds;
 	uhci_qh_t* qhs;
 	u16 io;
 } uhci_t;
 
-void uhci_init_controller(pci_hdr_t* device);
-void uhci_send_in(uhci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len);
-void uhci_send_address(uhci_t* hc, usb_dev_t* dev, u8 addr);
+void uhci_init_controller(pci_hdr* device);
+void uhci_send_in(uhci_t* hc, usb_dev* dev, u8* packet, void* output, u8 len);
+void uhci_send_address(uhci_t* hc, usb_dev* dev, u8 addr);

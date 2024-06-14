@@ -17,8 +17,8 @@ void uhci_run(uhci_t* hc) {
 void uhci_on_dev(uhci_t* hc, u8 ls) {
 	if (!usb_devs) usb_devs = request_page();
 
-	usb_desc_dev_t* dev_desc = pmm_alloc_page();
-	usb_request_t setup = {
+	usb_desc_dev* dev_desc = pmm_alloc_page();
+	usb_request setup = {
 		.req_type = 0x80,
 		.req = 6,
 		.value = 0 | (USB_DESC_DEVICE << 8),
@@ -28,12 +28,12 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	void* packet = pmm_alloc_page();
 	memcpy(&setup, (u64)packet, 8);
 	ptr_32bit(packet);
-	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, dev_desc, 18);
+	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, dev_desc, 18);
 
 	// Manufacturer hossz majd string lekérdezése
-	usb_desc_string_t* string_desc = pmm_alloc_page();
+	usb_desc_string* string_desc = pmm_alloc_page();
 	// US English: 0x0409
-	usb_request_t req = {
+	usb_request req = {
 		.req_type = 0x80,
 		.req = 6,
 		.value = (USB_DESC_STRING << 8) | dev_desc->manufacturer_index,
@@ -41,12 +41,12 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 		.length = 1,
 	};
 	memcpy(&req, (u64)packet, 8);
-	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
+	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
 
 	u8 manlen = string_desc->len;
 	req.length = manlen;
 	memcpy(&req, (u64)packet, 8);
-	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, manlen);
+	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, manlen);
 	char* manufacturer = request_page();
 	utf16_to_asciin(string_desc->string, manufacturer, (manlen - 2) / 2);
 
@@ -54,12 +54,12 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	req.value = (USB_DESC_STRING << 8) | dev_desc->product_index,
 	req.length = 1;
 	memcpy(&req, (u64)packet, 8);
-	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
+	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
 
 	u8 prodlen = string_desc->len;
 	req.length = prodlen;
 	memcpy(&req, (u64)packet, 8);
-	uhci_send_in(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, prodlen);
+	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, prodlen);
 	char* product = manufacturer + manlen + 1;
 	utf16_to_asciin(string_desc->string, product, (prodlen - 2) / 2);
 
@@ -72,7 +72,7 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	addr++;
 
 	// Address küldése az eszköznek
-	uhci_send_address(hc, &((usb_dev_t) { .addr = 0, .endp = 0, .ls = ls }), addr);
+	uhci_send_address(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), addr);
 
 	// Eszköz hozzáadása a listához
 	usb_devs[num_usb_devs].addr = addr;
@@ -111,7 +111,7 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	// num_usb_devs++;
 }
 
-void uhci_init_controller(pci_hdr_t* device) {
+void uhci_init_controller(pci_hdr* device) {
 	if (!addr_bm.addr) {
 		addr_bm.addr = (u64)request_page();
 		addr_bm.size = 128;
@@ -211,7 +211,7 @@ port2:
 	uhci_on_dev(hc, ls);
 }
 
-void uhci_send_in(uhci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len) {
+void uhci_send_in(uhci_t* hc, usb_dev* dev, u8* packet, void* output, u8 len) {
 	ptr_32bit(output);
 	ptr_32bit(packet);
 
@@ -297,11 +297,11 @@ void uhci_send_in(uhci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len) 
 	outw(0xffff, hc->io + REG_STS);
 }
 
-void uhci_send_address(uhci_t* hc, usb_dev_t* dev, u8 addr) {
+void uhci_send_address(uhci_t* hc, usb_dev* dev, u8 addr) {
 	void* packet = pmm_alloc_page();
 	ptr_32bit(packet);
 
-	usb_request_t req = {
+	usb_request req = {
 		.req_type = 0,
 		.req = 5,
 		.value = addr,

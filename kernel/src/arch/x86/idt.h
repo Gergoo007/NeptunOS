@@ -16,7 +16,7 @@ enum {
 typedef struct idtr {
 	u16 limit;
 	u64 base;
-} idtr_t;
+} idtr;
 
 typedef struct idt_entry {
 	u16 base0;
@@ -30,10 +30,10 @@ typedef struct idt_entry {
 	u16 base1;
 	u32 base2;
 	u32 : 32;
-} idt_entry_t;
+} idt_entry;
 
 u8 idt_reserve_vector(void* isr);
 void idt_attach_isr(u8 vector, void* isr);
-void idt_create_entry(idt_entry_t* entry, u64 addr, u8 dpl, u8 type);
+void idt_create_entry(idt_entry* entry, u64 addr, u8 dpl, u8 type);
 void idt_init(void);
-void idt_load(idtr_t* idtr);
+void idt_load(idtr* idtr);

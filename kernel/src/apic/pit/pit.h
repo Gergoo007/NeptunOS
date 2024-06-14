@@ -23,7 +23,7 @@ typedef union pit_cmd_reg {
 		u8 ch : 2;
 	};
 	u8 raw;
-} pit_cmd_reg_t;
+} pit_cmd_reg;
 
 enum {
 	PIT_INT_ON_COUNT = 0b000,

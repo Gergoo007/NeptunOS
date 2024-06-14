@@ -1,16 +1,16 @@
 #include <memory/heap/pmm.h>
 
 // 512 byte egy saját mmap-nek
-new_mmap_entry_t new_mmap[64];
+new_mmap_entry new_mmap[64];
 // Mennyi bejegyzés van az új mmap-ben
 u8 entries;
 
-bitmap_t pmm_bm;
+bitmap pmm_bm;
 // Ideiglenes, majd át lesz a bitmap
 // költöztetve a heap-be
 u8 tmp_bitmap[0x1000];
 
-void pmm_init(mb_tag_memmap_t* mmap) {
+void pmm_init(mb_tag_memmap* mmap) {
 	// Meg kell találni a szabad szegmenseket
 	u8 num_entries = mmap->base.size / mmap->entry_size;
 
@@ -42,8 +42,8 @@ void pmm_init(mb_tag_memmap_t* mmap) {
 	bm_init(&pmm_bm);
 
 	// A kernel, multiboot és a bitmap page-eit meg kell jelölni használtnak
-	pmm_set_used(info->kernel_addr, 1);
-	pmm_set_used(info->mb_hdr_addr, 1);
+	pmm_set_used(kinfo->kernel_addr, 1);
+	pmm_set_used(kinfo->mb_hdr_addr, 1);
 }
 
 // Page-et ezen a címen beállít used-ra

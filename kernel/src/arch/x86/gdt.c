@@ -1,29 +1,29 @@
 #include <arch/x86/gdt.h>
 
 void gdt_init(void) {
-	gdt_t* gdt = pmm_alloc_page();
+	gdt* _gdt = pmm_alloc_page();
 
-	memset(&(gdt->kcode), 0, sizeof(gdt_entry_t));
-	gdt->kcode.readable = 1;
-	gdt->kcode.executable = 1;
-	gdt->kcode.type = 1;
-	gdt->kcode.dpl = 0;
-	gdt->kcode.present = 1;
-	gdt->kcode.longmode = 1;
-	gdt->kcode.granularity = 1;
+	memset(&(_gdt->kcode), 0, sizeof(gdt_entry));
+	_gdt->kcode.readable = 1;
+	_gdt->kcode.executable = 1;
+	_gdt->kcode.type = 1;
+	_gdt->kcode.dpl = 0;
+	_gdt->kcode.present = 1;
+	_gdt->kcode.longmode = 1;
+	_gdt->kcode.granularity = 1;
 
-	gdt->kdata = gdt->kcode;
-	gdt->kdata.executable = 0;
+	_gdt->kdata = _gdt->kcode;
+	_gdt->kdata.executable = 0;
 
-	gdt->ucode = gdt->kcode;
-	gdt->udata = gdt->kdata;
+	_gdt->ucode = _gdt->kcode;
+	_gdt->udata = _gdt->kdata;
 
-	memset(&(gdt->knull), 0, sizeof(gdt_entry_t));
-	memset(&(gdt->unull), 0, sizeof(gdt_entry_t));
+	memset(&(_gdt->knull), 0, sizeof(gdt_entry));
+	memset(&(_gdt->unull), 0, sizeof(gdt_entry));
 
-	gdtr_t gdtr = {
-		.limit = sizeof(gdt_t)-1,
-		.base = (u64)gdt,
+	gdtr gdtr = {
+		.limit = sizeof(gdt)-1,
+		.base = (u64)_gdt,
 	};
 
 	gdt_load(&gdtr);

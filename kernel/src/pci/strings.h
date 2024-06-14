@@ -7,10 +7,10 @@
 typedef struct pci_pair {
 	u16 id;
 	char* name;
-} pci_pair_t;
+} pci_pair;
 
 _attr_unused
-static pci_pair_t vendors[] = {
+static pci_pair vendors[] = {
 	{ 0x8086, "Intel" },
 	{ 0x80ee, "VirtualBox" },
 	{ 0x1234, "Bochs" },

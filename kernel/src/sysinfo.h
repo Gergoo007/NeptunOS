@@ -7,7 +7,7 @@ typedef struct cpu_core {
 	u8 apic_id;
 	u8 cpu_enabled : 1;
 	u8 online_cap : 1;
-} cpu_core_t;
+} cpu_core;
 
 extern u16 num_cores;
-extern cpu_core_t* cores;
+extern cpu_core* cores;

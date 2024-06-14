@@ -1,6 +1,6 @@
 #include <apic/apic.h>
 
-ioapic_t* ioapics;
+ioapic* ioapics;
 u16 num_ioapics;
 
 // For 16 IRQs
@@ -43,7 +43,7 @@ u32 ioapic_read(u16 reg) {
 }
 
 void ioapic_write_entry(u32 gsi, u8 vector) {
-	ioapic_redir_entry_t base = {
+	ioapic_redir_entry base = {
 		.vector = vector,
 		.delivery = 0,
 		.dest_mode = 0,
@@ -60,7 +60,7 @@ void ioapic_write_entry(u32 gsi, u8 vector) {
 
 void ioapic_set_mask(u32 gsi, u8 mask) {
 	gsi *= 2;
-	ioapic_redir_entry_t entry;
+	ioapic_redir_entry entry;
 	entry.first_part = ioapic_read(0x10 + gsi);
 	entry.mask = mask;
 	ioapic_write(0x10 + gsi, entry.first_part);

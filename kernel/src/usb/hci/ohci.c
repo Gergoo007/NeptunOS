@@ -1,14 +1,14 @@
 #include <usb/hci/ohci.h>
 
-ohci_t* ohcis = NULL;
+ohci* ohcis = NULL;
 u64 num_ohcis;
 
-void ohci_init_controller(pci_hdr_t* device) {
+void ohci_init_controller(pci_hdr* device) {
 	if (!ohcis) ohcis = request_page();
 
 	ohci_regs* regs = (ohci_regs*)((u64)device->type0.bar0 & ~((u32) 0b11));
 	
-	printk("OHCI rev: %02x\n", io32r(regs->revision));
+	report("OHCI rev: %02x", io32r(regs->revision));
 
 	// Reset
 	io32w(regs->cmd_sts, 1 << 0);
@@ -18,7 +18,7 @@ void ohci_init_controller(pci_hdr_t* device) {
 		to--;
 	}
 
-	if (to == 0) printk("OHCI reset timeout!\n");
+	if (to == 0) error("OHCI reset timeout!");
 
 	// HCCA beállítása
 	ohci_hcca* hcca = pmm_alloc_page();
@@ -26,10 +26,10 @@ void ohci_init_controller(pci_hdr_t* device) {
 	io32w(regs->hcca, (u64)hcca);
 }
 
-void ohci_send_in(ohci_t* hc, usb_dev_t* dev, u8* packet, void* output, u8 len) {
+void ohci_send_in(ohci* hc, usb_dev* dev, u8* packet, void* output, u8 len) {
 
 }
 
-void ohci_send_address(ohci_t* hc, usb_dev_t* dev, u8 addr) {
+void ohci_send_address(ohci* hc, usb_dev* dev, u8 addr) {
 
 }

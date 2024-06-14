@@ -12,7 +12,7 @@ void sleep(u32 time) {
 void pit_init() {
 	clearint();
 
-	pit_cmd_reg_t cmd = {
+	pit_cmd_reg cmd = {
 		.bcd = 0,
 		.operation = PIT_RATE_GEN,
 		.access = PIT_LOHIBYTE,

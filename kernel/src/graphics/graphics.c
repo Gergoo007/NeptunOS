@@ -1,6 +1,6 @@
 #include <graphics/graphics.h>
 
-framebuffer_t fb;
+framebuffer fb;
 
 // Beállít egy framebuffer structot a releváns
 // információkkal
@@ -11,7 +11,7 @@ void fb_init(u64 base, u32 width, u32 height, u8 bpp) {
 	fb.bpp = bpp;
 }
 
-void fb_draw_rect(framebuffer_t* _fb, u32 x, u32 y, u32 width, u32 height, u32 color) {
+void fb_draw_rect(framebuffer* _fb, u32 x, u32 y, u32 width, u32 height, u32 color) {
 	// Csak úgy működik ha balról jobbra írjuk ki a pixeleket
 	for (u32 i = 0; i < width; i++) {
 		for (u32 j = 0; j < height; j++) {
@@ -20,11 +20,11 @@ void fb_draw_rect(framebuffer_t* _fb, u32 x, u32 y, u32 width, u32 height, u32 c
 	}
 }
 
-void fb_clear(framebuffer_t* _fb, u32 color) {
+void fb_clear(framebuffer* _fb, u32 color) {
 	fb_draw_rect(_fb, 0, 0, _fb->width, _fb->height, color);
 }
 
-void fb_pixel(framebuffer_t* _fb, u32 x, u32 y, u32 color) {
+void fb_pixel(framebuffer* _fb, u32 x, u32 y, u32 color) {
 	if (_fb->bpp != 32) {
 		sprintk("A BPP érték még nem támogatott!\n\r");
 		return;

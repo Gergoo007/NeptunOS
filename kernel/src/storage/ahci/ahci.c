@@ -21,7 +21,7 @@ void ahci_start_cmds(hba_port* port) {
 	while (!port->cmd.fis_rx_enable);
 }
 
-void ahci_init(pci_hdr_t* pci) {
+void ahci_init(pci_hdr* pci) {
 	ahcis = request_page();
 
 	hba_mem* regs = (hba_mem*)(u64)pci->type0.bar5;
@@ -37,11 +37,11 @@ void ahci_init(pci_hdr_t* pci) {
 
 		switch (regs->ports[port].sig) {
 			case AHCI_SIG_SATA: {
-				printk("SATA eszkoz!\n");
+				report("SATA eszkoz!");
 
 				break;
 			}
-			case AHCI_SIG_SATAPI: printk("SATAPI eszkoz!\n"); break;
+			case AHCI_SIG_SATAPI: report("SATAPI eszkoz!"); break;
 		}
 
 		// Port előkészítése
@@ -95,7 +95,7 @@ void ahci_init(pci_hdr_t* pci) {
 		printk("Olvasas...\n");
 		void* out = pmm_alloc_page();
 		ahci_read(&(regs->ports[i]), 0, 1, out);
-		printk("Eszkoz eleje: %s\n", out);
+		printk("Eszkoz eleje: %s", out);
 		ahci_identify(&(regs->ports[i]));
 	}
 }
@@ -107,7 +107,7 @@ u32 ahci_find_cmd_slot(hba_port* port) {
 
 		slots >>= 1;
 	}
-	printk("Nincs szabad slot!\n");
+	error("Nincs szabad slot!");
 	return -1;
 }
 
@@ -167,16 +167,16 @@ void ahci_read(hba_port* port, u64 start, u64 count, void* buf) {
 	while ((port->task_file_data & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000) {
 		spin++;
 	}
-	if (spin == 1000000) printk("Port elakadt!\n");
+	if (spin == 1000000) error("Port elakadt!");
 
 	port->cmd_issue = 1 << slot;
 
 	while (1) {
 		if ((port->cmd_issue & (1 << slot)) == 0) break;
-		if (port->int_sts.task_file_error) { printk("Ajajj\n"); break; }
+		if (port->int_sts.task_file_error) { error("Ajajj"); break; }
 	}
 
-	if (port->int_sts.task_file_error) printk("Ajajj2\n");
+	if (port->int_sts.task_file_error) error("Ajajj2");
 }
 
 void ahci_identify(hba_port* port) {
@@ -212,7 +212,7 @@ void ahci_identify(hba_port* port) {
 	// Meg kell várni amíg a port szabad lesz
 	u64 spin = 0;
 	while ((port->task_file_data & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000) spin++;
-	if (spin == 1000000) printk("Port elakadt!\n");
+	if (spin == 1000000) error("Port elakadt!");
 
 	port->cmd_issue = 1 << slot;
 
@@ -220,11 +220,11 @@ void ahci_identify(hba_port* port) {
 		if ((port->cmd_issue & (1 << slot)) == 0) break;
 
 		if (port->int_sts.task_file_error) {
-			printk("Ajajj\n");
+			error("Ajajj\n");
 		}
 	}
 
-	if (port->int_sts.task_file_error) printk("Ajajj2\n");
+	if (port->int_sts.task_file_error) error("Ajajj2");
 
 	// Stringek valamiért hülyén vannak írva
 	// Minden második betű az azelőttivel fel van cserélve

@@ -21,28 +21,28 @@ char* pci_class(u8 class) {
 	return classes[class];
 }
 
-void pci_add_device(pci_hdr_t* dev) {
+void pci_add_device(pci_hdr* dev) {
 	if (dev->class == 0xc && dev->subclass == 0x3) {
 		switch (dev->prog_if) {
 			case 0: {
-				printk("UHCI USB controller\n");
+				report("UHCI USB controller");
 				uhci_init_controller(dev);
 				break;
 			}
 
 			case 0x10: {
-				printk("OHCI USB controller\n");
+				report("OHCI USB controller");
 				ohci_init_controller(dev);
 				break;
 			}
 
 			case 0x20: {
-				printk("EHCI USB controller\n");
+				report("EHCI USB controller");
 				break;
 			}
 
 			case 0x30: {
-				printk("XHCI USB controller\n");
+				report("XHCI USB controller");
 				break;
 			}
 
