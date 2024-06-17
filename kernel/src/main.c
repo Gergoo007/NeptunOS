@@ -29,7 +29,6 @@ kernel_info* kinfo;
 // TODO: (AHCI többek közt) MMIO caching kikapcsolása
 // TODO: jobb ACPI kód
 // TODO: parallel build Makefile
-// TODO: PS/2 kontroller érzékelése
 
 u8 kmain(kernel_info* _info) {
 	kinfo = _info;
