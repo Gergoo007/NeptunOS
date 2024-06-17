@@ -150,6 +150,27 @@ void uint_to_str(u64 i, char* str) {
 	str[len-1] = '\0';
 }
 
+void uintn_to_str(u64 i, char* str, u8 num) {
+	u8 len = 1;
+	memset(str, '0', num);
+
+	// Számokat át konvertáljuk karakterekké
+	for (u8 j = 0; i > 0; j++, i /= 10) {
+		str[j] = (i % 10) + '0';
+		len++;
+	}
+
+	// Stringet megfordítjuk
+	u8 cycles = len / 2;
+	for (u8 j = 0; j < cycles; j++) {
+		char tmp = str[j];
+		str[j] = str[len-j-2];
+		str[len-j-2] = tmp;
+	}
+
+	str[num] = '\0';
+}
+
 void hex_to_str(u64 i, char* str) {
 	if (i == 0) {
 		str[0] = '0';

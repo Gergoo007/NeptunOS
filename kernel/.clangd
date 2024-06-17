@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: [ -xc, -std=gnu17, -nostdinc, -Wshadow, -Wall, -Wextra, -Wno-pragma-pack, -Wno-incompatible-library-redeclaration, -Wno-unused-parameter, -I/mnt/et_cetera/projects/NeptunOS/kernel/src ]
+  Add: [ -xc, -std=gnu17, -nostdinc, -Wshadow, -Wall, -Wextra, -Wno-pragma-pack, -Wno-incompatible-library-redeclaration, -Wno-unused-parameter, -I/mnt/et_cetera/projects/NeptunOS/kernel/src, -Wsign-compare ]

@@ -20,18 +20,16 @@
 
 #include <ps2/kbd.h>
 
-#include <storage/interface.h>
+#include <storage/storage.h>
 
 kernel_info* kinfo;
 
-// TODO: konzisztens struct nevezés, typedef meg a '_t' eltávolítása, _attr_packed és volatile MMIO-nál
 // TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
 // TODO: vmm-hez normális malloc meg calloc
-// TODO: forditto warningok kigyomlálása
 // TODO: (AHCI többek közt) MMIO caching kikapcsolása
 // TODO: jobb ACPI kód
-// TODO: vsprintf string hossz pl. %10s
 // TODO: parallel build Makefile
+// TODO: PS/2 kontroller érzékelése
 
 u8 kmain(kernel_info* _info) {
 	kinfo = _info;
@@ -43,6 +41,10 @@ u8 kmain(kernel_info* _info) {
 
 	for (u8 i = 0; i < num_usb_devs; i++) {
 		printk("dev %d: %s: %s\n", i, usb_devs[i].manufacturer, usb_devs[i].product);
+	}
+
+	for (u8 i = 0; i < num_drives; i++) {
+		printk("Meghajto #%d: %s: %s; %d GiB\n", i, storage_id(&drives[i]), drives[i].model, drives[i].size / 1024 / 1024 / 1024);
 	}
 
 	ps2_kbd_init();

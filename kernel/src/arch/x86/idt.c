@@ -35,12 +35,12 @@ void idt_init(void) {
 	idt_attach_isr(0x21, _irq_kb);
 	idt_attach_isr(0x22, _irq_mouse);
 
-	idtr idtr = {
+	idtr _idtr = {
 		.base = (u64)idt_entries,
 		.limit = 256*16 - 1,
 	};
 
-	idt_load(&idtr);
+	idt_load(&_idtr);
 }
 
 void idt_create_entry(idt_entry* entry, u64 addr, u8 dpl, u8 type) {

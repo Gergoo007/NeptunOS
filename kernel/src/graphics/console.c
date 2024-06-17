@@ -81,7 +81,7 @@ void kputc(char c) {
 		}
 	}
 
-	if (con_cx + con_font.width*2 + 2 >= fb.width) {
+	if ((u32)con_cx + con_font.width*2 + 2 >= fb.width) {
 		// Sortörés
 		for (u8 y = 0; y < con_font.height; y++)
 			for (u8 x = 0; x < con_font.width; x++)

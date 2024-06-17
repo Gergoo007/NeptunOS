@@ -120,6 +120,15 @@ char* vsprintf(char* out, const char* fmt, va_list args) {
 								// memcpy(tmp, (u64)out, num);
 								break;
 							}
+							case 's': {
+								char* s = va_arg(args, char*);
+								while (num--) {
+									*out = *s;
+									out++;
+									s++;
+								}
+								break;
+							}
 						}
 					}
 					break;

@@ -6,7 +6,7 @@ void memset(void* addr, u8 val, u64 size) {
 	}
 }
 
-void memcpy(void* src, u64 dest, u64 size) {
+void memcpy(void* src, void* dest, u64 size) {
 	for (; size; size--) {
 		*(u8*)(dest++) = *(u8*)(src++);
 	}

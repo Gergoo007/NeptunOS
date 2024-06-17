@@ -27,7 +27,7 @@ typedef __builtin_va_list 	__gnuc_va_list;
 #define __va_copy(dest,source)		__builtin_va_copy(dest,source)
 #define va_copy(dest, source)		__builtin_va_copy(dest, source)
 
-typedef struct regs {
+typedef struct cpu_regs {
 	u64 r15;
 	u64 r14;
 	u64 r13;
@@ -51,4 +51,4 @@ typedef struct regs {
 	u64 rfl;
 	u64 rsp;
 	u64 ss;
-} regs;
+} cpu_regs;

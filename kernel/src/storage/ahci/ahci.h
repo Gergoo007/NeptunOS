@@ -6,6 +6,8 @@
 #include <pci/pci.h>
 #include <graphics/console.h>
 
+#include <storage/storage.h>
+
 enum {
 	AHCI_FIS_REG_H2D	= 0x27,
 	AHCI_FIS_REG_D2H	= 0x34,
@@ -239,8 +241,22 @@ typedef struct _attr_packed ata_identity {
 	char model[40];
 	u16 sectors_per_int;
 	u16 : 16;
-	u16 capabilities[2];
-	u16 _3[2];
+	union {
+		u32 value;
+		struct {
+			u8 phys_sector_alignment : 2;
+			u8 : 6;
+			u8 dma_support : 1;
+			u8 lba_support : 1;
+			u8 io_rdy_disable : 1;
+			u8 io_rdy_supported : 1;
+			u8 : 1;
+			u8 standby_timer_support : 1;
+			u8 : 2;
+			u16 : 16;
+		};
+	} caps;
+	u32 : 32;
 	u16 valid_ext_data;
 	u16 _4[5];
 	u16 size_of_rw_mult;
@@ -252,4 +268,4 @@ typedef struct _attr_packed ata_identity {
 
 void ahci_init(pci_hdr* pci);
 void ahci_read(hba_port* port, u64 start, u64 count, void* buf);
-void ahci_identify(hba_port* port);
+ata_identity* ahci_identify(hba_port* port);

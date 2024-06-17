@@ -21,10 +21,10 @@ void gdt_init(void) {
 	memset(&(_gdt->knull), 0, sizeof(gdt_entry));
 	memset(&(_gdt->unull), 0, sizeof(gdt_entry));
 
-	gdtr gdtr = {
+	gdtr _gdtr = {
 		.limit = sizeof(gdt)-1,
 		.base = (u64)_gdt,
 	};
 
-	gdt_load(&gdtr);
+	gdt_load(&_gdtr);
 }

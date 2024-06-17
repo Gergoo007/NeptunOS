@@ -26,7 +26,7 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 		.length = 18,
 	};
 	void* packet = pmm_alloc_page();
-	memcpy(&setup, (u64)packet, 8);
+	memcpy(&setup, packet, 8);
 	ptr_32bit(packet);
 	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, dev_desc, 18);
 
@@ -40,12 +40,12 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 		.index = 0x0409,
 		.length = 1,
 	};
-	memcpy(&req, (u64)packet, 8);
+	memcpy(&req, packet, 8);
 	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
 
 	u8 manlen = string_desc->len;
 	req.length = manlen;
-	memcpy(&req, (u64)packet, 8);
+	memcpy(&req, packet, 8);
 	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, manlen);
 	char* manufacturer = request_page();
 	utf16_to_asciin(string_desc->string, manufacturer, (manlen - 2) / 2);
@@ -53,12 +53,12 @@ void uhci_on_dev(uhci_t* hc, u8 ls) {
 	// Product hossz majd string lekérdezése
 	req.value = (USB_DESC_STRING << 8) | dev_desc->product_index,
 	req.length = 1;
-	memcpy(&req, (u64)packet, 8);
+	memcpy(&req, packet, 8);
 	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, 1);
 
 	u8 prodlen = string_desc->len;
 	req.length = prodlen;
-	memcpy(&req, (u64)packet, 8);
+	memcpy(&req, packet, 8);
 	uhci_send_in(hc, &((usb_dev) { .addr = 0, .endp = 0, .ls = ls }), packet, string_desc, prodlen);
 	char* product = manufacturer + manlen + 1;
 	utf16_to_asciin(string_desc->string, product, (prodlen - 2) / 2);
@@ -223,14 +223,14 @@ void uhci_send_in(uhci_t* hc, usb_dev* dev, u8* packet, void* output, u8 len) {
 		hc->qhs = pmm_alloc_page();
 		ptr_32bit(hc->qhs);
 		checkalign(&hc->qhs[2], 16);
-		memset(hc->qhs, 0, 0x1000);
+		memset((void*)hc->qhs, 0, 0x1000);
 	}
 
 	if (!hc->tds) {
 		hc->tds = pmm_alloc_page();
 		ptr_32bit(hc->tds);
 		checkalign(&hc->tds[2], 32);
-		memset(hc->tds, 0, 0x1000);
+		memset((void*)hc->tds, 0, 0x1000);
 	}
 
 	// SETUP TD
@@ -309,7 +309,7 @@ void uhci_send_address(uhci_t* hc, usb_dev* dev, u8 addr) {
 		.length = 0,
 	};
 
-	memcpy(&req, (u64)packet, 8);
+	memcpy(&req, packet, 8);
 
 	// SETUP packet küldése
 	// Végül STATUS
@@ -318,14 +318,14 @@ void uhci_send_address(uhci_t* hc, usb_dev* dev, u8 addr) {
 		hc->qhs = pmm_alloc_page();
 		ptr_32bit(hc->qhs);
 		checkalign(&hc->qhs[2], 16);
-		memset(hc->qhs, 0, 0x1000);
+		memset((void*)hc->qhs, 0, 0x1000);
 	}
 
 	if (!hc->tds) {
 		hc->tds = pmm_alloc_page();
 		ptr_32bit(hc->tds);
 		checkalign(&hc->tds[2], 32);
-		memset(hc->tds, 0, 0x1000);
+		memset((void*)hc->tds, 0, 0x1000);
 	}
 
 	// SETUP TD

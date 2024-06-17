@@ -24,6 +24,9 @@ void ahci_start_cmds(hba_port* port) {
 void ahci_init(pci_hdr* pci) {
 	ahcis = request_page();
 
+	// Tárhely alrendszer előkészítése
+	storage_init();
+
 	hba_mem* regs = (hba_mem*)(u64)pci->type0.bar5;
 
 	for (u32 port = 0; port < 32; port++) {
@@ -88,15 +91,19 @@ void ahci_init(pci_hdr* pci) {
 		if (regs->ports[i].ssts.spd == 0x00) continue;
 		if (regs->ports[i].ssts.ipm == 0x00) continue;
 
-		// Nem SATA port
-		if (regs->ports[i].sig != AHCI_SIG_SATA) continue;
+		if (regs->ports[i].sig != AHCI_SIG_SATA
+			&& regs->ports[i].sig != AHCI_SIG_SATAPI) continue;
 
-		// Olvasás megkísérlése
-		printk("Olvasas...\n");
-		void* out = pmm_alloc_page();
-		ahci_read(&(regs->ports[i]), 0, 1, out);
-		printk("Eszkoz eleje: %s", out);
-		ahci_identify(&(regs->ports[i]));
+		// Eszköz hozzáadása a jegyzékhez
+		ata_identity* id = ahci_identify(&(regs->ports[i]));
+		storage_register(
+			regs->ports[i].sig != AHCI_SIG_SATA ? STG_ATAPI : STG_ATA,
+			id->sectors_48 * 512,
+			id->firmware,
+			id->model,
+			id->serial,
+			(void*)&regs->ports[i]
+		);
 	}
 }
 
@@ -127,7 +134,7 @@ void ahci_read(hba_port* port, u64 start, u64 count, void* buf) {
 
 	// 16 szektor per PRDT
 	u32 i = 0;
-	for (; i < hdr->prdt_num_entries-1; i++) {
+	for (; i < (u32)hdr->prdt_num_entries-1; i++) {
 		table->prdt_entry[i].data_base_addrl = (u64)buf & 0xffffffff;
 		table->prdt_entry[i].data_base_addru = (u64)buf << 32;
 
@@ -173,14 +180,18 @@ void ahci_read(hba_port* port, u64 start, u64 count, void* buf) {
 
 	while (1) {
 		if ((port->cmd_issue & (1 << slot)) == 0) break;
-		if (port->int_sts.task_file_error) { error("Ajajj"); break; }
+		if (port->int_sts.task_file_error) { error("ATA read task file error 1"); break; }
 	}
 
-	if (port->int_sts.task_file_error) error("Ajajj2");
+	if (port->int_sts.task_file_error) error("ATA read task file error 2");
 }
 
-void ahci_identify(hba_port* port) {
+ata_identity* ahci_identify(hba_port* port) {
 	ata_identity* id = pmm_alloc_page();
+	if (port->sig == AHCI_SIG_SATAPI) {
+		memset(id, 0, sizeof(ata_identity));
+		return id;
+	}
 
 	port->int_sts.value = (u32)-1;
 
@@ -220,23 +231,43 @@ void ahci_identify(hba_port* port) {
 		if ((port->cmd_issue & (1 << slot)) == 0) break;
 
 		if (port->int_sts.task_file_error) {
-			error("Ajajj\n");
+			error("ATA identify task file error 1\n");
 		}
 	}
 
-	if (port->int_sts.task_file_error) error("Ajajj2");
+	if (port->int_sts.task_file_error) error("ATA identify task file error 2");
 
-	// Stringek valamiért hülyén vannak írva
+	// Stringek letisztítása (A betűk visszacserélése és NUL terminátor beillesztése)
 	// Minden második betű az azelőttivel fel van cserélve
 	for (u32 j = 0; j < 20; j += 2) {
 		char tmp = id->model[j];
 		id->model[j] = id->model[j+1];
 		id->model[j+1] = tmp;
 	}
+	for (u8 i = sizeof(id->model)-1; i != 255; i--) {
+		if (id->model[i] == ' ')
+			id->model[i] = 0;
+		else
+			break;
+	}
+
+	for (u8 i = sizeof(id->firmware)-1; i != 255; i--) {
+		if (id->firmware[i] == ' ')
+			id->firmware[i] = 0;
+		else
+			break;
+	}
 	for (u32 j = 0; j < 4; j += 2) {
 		char tmp = id->firmware[j];
 		id->firmware[j] = id->firmware[j+1];
 		id->firmware[j+1] = tmp;
+	}
+
+	for (u8 i = sizeof(id->serial)-1; i != 255; i--) {
+		if (id->serial[i] == ' ')
+			id->serial[i] = 0;
+		else
+			break;
 	}
 	for (u32 j = 0; j < 10; j += 2) {
 		char tmp = id->serial[j];
@@ -244,5 +275,5 @@ void ahci_identify(hba_port* port) {
 		id->serial[j+1] = tmp;
 	}
 
-	printk("%d GiB %s\n", id->sectors_48 * 512 / 1024 / 1024 / 1024, id->model);
+	return id;
 }

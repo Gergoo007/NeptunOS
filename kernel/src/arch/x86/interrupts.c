@@ -7,7 +7,7 @@
 #define print_reg(st, reg) printk("%s: %p ", #reg, st->reg)
 #define sprint_reg(st, reg) sprintk("%s: %p ", #reg, st->reg)
 
-_attr_saved_regs void exception_handler(regs* frame) {
+_attr_saved_regs void exception_handler(cpu_regs* frame) {
 	asm volatile ("cli");
 
 	switch (frame->exc) {
