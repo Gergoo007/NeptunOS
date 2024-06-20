@@ -12,6 +12,7 @@
 typedef struct kernel_info {
 	u64 kernel_addr;
 	u64 preload_addr;
+	u64 preload_end;
 	u64 mb_hdr_addr;
 	u64 strtab1;
 	u64 strtab2;

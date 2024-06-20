@@ -17,7 +17,10 @@ _QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
 				-device ahci,id=ahci \
 				-device ide-hd,drive=disk,bus=ahci.0
 
-main: build run
+main: returner build run
+
+returner:
+	make -C userspace/returner
 
 build:
 	@echo "Building the kernel..."

@@ -70,12 +70,12 @@ void ahci_init(pci_hdr* pci) {
 			hdr[i].prdt_num_entries = 8;
 			
 			// Parancs táblázat létrehozása
-			// TODO: a command table 8 KiB de itt csak 4 KiB-ot foglalok le
 			void* cmd_table = pmm_alloc_page();
+			if (pmm_alloc_page() != cmd_table + 0x1000) error("Rossz alloc");
 			hdr[i].cmd_table_desc_l = (u64)cmd_table & 0xffffffff;
 			hdr[i].cmd_table_desc_u = (u64)cmd_table >> 32;
 
-			// memset(cmd_table, 0, 256);
+			memset(cmd_table, 0, 256);
 		}
 
 		ahci_start_cmds(&regs->ports[port]);
@@ -127,28 +127,31 @@ void ahci_read(hba_port* port, u64 start, u64 count, void* buf) {
 	hdr += slot;
 	hdr->fis_len = sizeof(fis_reg_h2d) / sizeof(u32);
 	hdr->write = 0;
-	hdr->prdt_num_entries = (u16) ((count - 1) >> 4) + 1;
+	// hdr->prdt_num_entries = (u16) ((count - 1) >> 4);
+	// Egy PRDT 8192 SZEKTORT, nem byte-ot tárol
+	hdr->prdt_num_entries = count / 8192 + 1;
+	printk("prdt num %d\n", hdr->prdt_num_entries);
 
 	hba_cmd_table* table = (hba_cmd_table*)(hdr->cmd_table_desc_l | ((u64)hdr->cmd_table_desc_u << 32));
 	memset((void*)table, 0, sizeof(hba_cmd_table) + (hdr->prdt_num_entries-1) * sizeof(hba_prdt_entry));
 
-	// 16 szektor per PRDT
+	// 8192 szektor per PRDT
 	u32 i = 0;
 	for (; i < (u32)hdr->prdt_num_entries-1; i++) {
 		table->prdt_entry[i].data_base_addrl = (u64)buf & 0xffffffff;
 		table->prdt_entry[i].data_base_addru = (u64)buf << 32;
 
-		table->prdt_entry[i].num_bytes = 8 * 1024 - 1;
+		table->prdt_entry[i].num_bytes = 16 * 512 - 1;
 		table->prdt_entry[i].ioc = 1;
 
-		buf += 0x2000; // 16 szektor * 512 byte
-		count -= 16;
+		buf += 8192 * 512; // 8192 szektor * 512 byte
+		count -= 8192;
 	}
 
 	table->prdt_entry[i].data_base_addrl = (u64)buf & 0xffffffff;
 	table->prdt_entry[i].data_base_addru = (u64)buf << 32;
 
-	table->prdt_entry[i].num_bytes = (count << 9) - 1;
+	table->prdt_entry[i].num_bytes = count * 512 - 1;
 	table->prdt_entry[i].ioc = 1;
 
 	// Setup parancs

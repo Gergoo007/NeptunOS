@@ -6,13 +6,13 @@ u64 abs64(i64 num) {
 }
 
 char* sym_at_addr(u64 addr) {
-	elf64_sym* sym = (elf64_sym*)kinfo->symtab;
+	symbol* sym = (symbol*)kinfo->symtab;
 	while (sym->st_value != addr) { sym++; }
 	return (char*)kinfo->strtab1+sym->st_name;
 }
 
 u64 sym_nearest_sym(u64 addr) {
-	elf64_sym* sym = (elf64_sym*)kinfo->symtab;
+	symbol* sym = (symbol*)kinfo->symtab;
 	u64 diff = 0xffffffffffffffff;
 
 	for (u16 i = 0; i < kinfo->symtab_entries; i++, sym++) {

@@ -24,7 +24,7 @@ _attr_unused static char* storage_types[] = {
 
 typedef struct stg_dev {
 	void* port;
-	u64 size; // Byte
+	u64 size; // Byte, 512 többszöröse
 
 	u8 num;
 	u8 type;

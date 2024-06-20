@@ -22,6 +22,8 @@
 
 #include <storage/storage.h>
 
+#include <loader/loader.h>
+
 kernel_info* kinfo;
 
 // TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
@@ -50,6 +52,16 @@ u8 kmain(kernel_info* _info) {
 
 	printk("Hello world!\n");
 	printk("Felbontas: %d x %d\n", fb.width, fb.height);
+
+	void* program = pmm_alloc_page();
+	// QEMU HARDDISK megkeresése, azon van a program
+	for (u8 i = 0; i < num_drives; i++) {
+		if (strncmp(drives[i].model, "QEMU HARDDISK", 13)) continue;
+
+		ahci_read(drives[i].port, 0, drives[i].size / 512, program);
+	}
+
+	loader_static(program);
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();

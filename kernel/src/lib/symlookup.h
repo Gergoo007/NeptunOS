@@ -7,14 +7,14 @@
 
 #pragma pack(1)
 
-typedef struct elf64_sym {
+typedef struct symbol {
 	u32 st_name;
 	u8 st_info;
 	u8 st_other;
 	u16 st_shndx;
 	u64 st_value;
 	u64 st_size;
-} elf64_sym;
+} symbol;
 
 typedef struct stackframe {
 	struct stackframe* rbp;

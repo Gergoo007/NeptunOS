@@ -68,10 +68,10 @@ void cmain(u32 mb2_header) {
 	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
 
 	kinfo.mb_hdr_addr = mb2_header;
+	kinfo.preload_end = (u64)&PRELOADER_END;
 
 	u64 entry = load_kernel();
 	u8 (*kmain)(kernel_info_t*) = (u8 (*)(kernel_info_t*)) entry;
-
 	printf("Return: %d\n\r", kmain(&kinfo));
 
 	printf("Preloader elérte a program végét?!\n\r");

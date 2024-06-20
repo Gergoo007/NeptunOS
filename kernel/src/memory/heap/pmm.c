@@ -44,6 +44,11 @@ void pmm_init(mb_tag_memmap* mmap) {
 	// A kernel, multiboot és a bitmap page-eit meg kell jelölni használtnak
 	pmm_set_used(kinfo->kernel_addr, 1);
 	pmm_set_used(kinfo->mb_hdr_addr, 1);
+
+	// A preloader adatait is, mivel itt van még mindig a stack,
+	// különböző page table-ek stb.
+	for (u64 a = 0; a < kinfo->preload_end; a += 0x1000)
+		pmm_set_used(a, 1);
 }
 
 // Page-et ezen a címen beállít used-ra
