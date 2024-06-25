@@ -1,3 +1,4 @@
-int main() {
-	return 88;
-}
+// int _start() {
+// 	while (1);
+// 	return 88;
+// }

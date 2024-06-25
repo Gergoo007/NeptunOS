@@ -108,7 +108,7 @@ pd1_kitolt:
 	mull %ecx
 	leal pd1, %edx
 	# present | rw | hugepage
-	orl $0b10000011, %eax
+	orl $0b10000111, %eax
 
 	# Entry kiírása
 	movl %eax, (%edx,%ecx,8)
@@ -131,7 +131,7 @@ pd2_kitolt:
 
 	leal pd2, %edx
 	# present | rw | hugepage
-	orl $0b10000011, %eax
+	orl $0b10000111, %eax
 
 	# Entry kiírása
 	movl %eax, (%edx,%ecx,8)
@@ -154,7 +154,7 @@ pd3_kitolt:
 
 	leal pd3, %edx
 	# present | rw | hugepage
-	orl $0b10000011, %eax
+	orl $0b10000111, %eax
 
 	# Entry kiírása
 	movl %eax, (%edx,%ecx,8)
@@ -177,7 +177,7 @@ pd4_kitolt:
 
 	leal pd4, %edx
 	# present | rw | hugepage
-	orl $0b10000011, %eax
+	orl $0b10000111, %eax
 
 	# Entry kiírása
 	movl %eax, (%edx,%ecx,8)
@@ -194,31 +194,31 @@ pdp_kitolt:
 	# PD1 betöltése
 	leal pd1, %eax
 	# present | rw
-	orl $0b11, %eax
+	orl $0b111, %eax
 	movl %eax, (%edx)
 
 	# PD2 betöltése
 	leal pd2, %eax
 	# present | rw
-	orl $0b11, %eax
+	orl $0b111, %eax
 	movl %eax, 8(%edx)
 
 	# PD3 betöltése
 	leal pd3, %eax
 	# present | rw
-	orl $0b11, %eax
+	orl $0b111, %eax
 	movl %eax, 16(%edx)
 
 	# PD4 betöltése
 	leal pd4, %eax
 	# present | rw
-	orl $0b11, %eax
+	orl $0b111, %eax
 	movl %eax, 24(%edx)
 pml4_kitolt:
 	leal pdp, %eax
 	leal pml4, %edx
 	# present | rw
-	orl $0b11, %eax
+	orl $0b111, %eax
 	movl %eax, (%edx)
 
 	# PML4 betöltése a CR3-ba
@@ -233,7 +233,10 @@ pml4_kitolt:
 	# Long mode bekapcsolása
 	movl $0xc0000080, %ecx
 	rdmsr
+	# Long mode bit
 	orl $0x100, %eax
+	# SYSCALL / SYSRET bit
+	orl $0x1, %eax
 	wrmsr
 
 	# Paging bekapcsolása
@@ -257,7 +260,7 @@ long_mode:
 
 	call cmain
 
-	// # Jelezzük, hogy a program a végére ért
+	# Jelezzük, hogy a program a végére ért
 	movq $0x6969696969696969, %rax
 	movq %rax, %rbx
 	movq %rax, %rcx

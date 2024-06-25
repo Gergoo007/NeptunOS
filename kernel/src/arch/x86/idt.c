@@ -52,7 +52,7 @@ void idt_create_entry(idt_entry* entry, u64 addr, u8 dpl, u8 type) {
 	if (dpl == 0)
 		entry->ss = 0x08; // kcode
 	else
-		entry->ss = 0x20; // ucode
+		entry->ss = 0x18; // ucode
 
 	entry->base0 =	addr & 0x000000000000ffff;
 	entry->base1 = (addr & 0x00000000ffff0000) >> 16;

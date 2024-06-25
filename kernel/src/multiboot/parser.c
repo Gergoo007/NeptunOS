@@ -49,6 +49,7 @@ void mb_parse_tags(u32 hdrp) {
 
 	gdt_init();
 	idt_init();
+	tss_init();
 
 	if (rsdp_tag)
 		acpi_init(rsdp_tag);

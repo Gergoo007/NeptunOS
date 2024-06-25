@@ -29,7 +29,7 @@ build:
 	@$(MAKE) --quiet -C preloader
 
 debug:
-	$(QEMU) $(_QEMU_FLAGS) -S -s
+	$(QEMU) $(_QEMU_FLAGS) -S -s > /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 run:
 	$(QEMU) -enable-kvm -cpu host $(_QEMU_FLAGS)

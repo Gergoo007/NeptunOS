@@ -7,5 +7,6 @@
 #include <acpi/acpi.h>
 #include <arch/x86/gdt.h>
 #include <arch/x86/idt.h>
+#include <arch/x86/tss.h>
 
 void mb_parse_tags(u32 hdr);

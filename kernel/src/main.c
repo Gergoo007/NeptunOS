@@ -24,6 +24,8 @@
 
 #include <loader/loader.h>
 
+#include <arch/x86/syscalls/teszt.h>
+
 kernel_info* kinfo;
 
 // TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
@@ -31,6 +33,7 @@ kernel_info* kinfo;
 // TODO: (AHCI többek közt) MMIO caching kikapcsolása
 // TODO: jobb ACPI kód
 // TODO: parallel build Makefile
+// TODO: Elrendezés
 
 u8 kmain(kernel_info* _info) {
 	kinfo = _info;
@@ -61,7 +64,10 @@ u8 kmain(kernel_info* _info) {
 		ahci_read(drives[i].port, 0, drives[i].size / 512, program);
 	}
 
-	loader_static(program);
+	void (*ent)(void) = loader_static(program);
+	printk("Teszt elott\n");
+	teszt(ent, pmm_alloc_page());
+	printk("Teszt utan\n");
 
 	// A processzor pihenhet a következő interruptig
 	while(1) halt();
