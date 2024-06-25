@@ -28,8 +28,7 @@ teszt:
 	// wrmsr
 
 	# %rip
-	// mov %rdi, %rcx
-	movabs $user_func, %rcx
+	mov %rdi, %rcx
 	# %eflags
 	mov $0x202, %r11
 	// mov $0x002, %r11

@@ -1,5 +1,3 @@
-.PHONY: test build run debug
-
 QEMU ?= qemu-system-x86_64
 ISO ?= image.iso
 RAMSIZE ?= 256M
@@ -17,7 +15,8 @@ _QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
 				-device ahci,id=ahci \
 				-device ide-hd,drive=disk,bus=ahci.0
 
-main: returner build run
+run: build returner
+	$(QEMU) -enable-kvm -cpu host $(_QEMU_FLAGS)
 
 returner:
 	make -C userspace/returner
@@ -28,11 +27,8 @@ build:
 	@echo "Building the preloader..."
 	@$(MAKE) --quiet -C preloader
 
-debug:
+debug: build returner
 	$(QEMU) $(_QEMU_FLAGS) -S -s > /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
-run:
-	$(QEMU) -enable-kvm -cpu host $(_QEMU_FLAGS)
-
-test:
+test: build returner
 	$(QEMU) $(_QEMU_FLAGS) -d int

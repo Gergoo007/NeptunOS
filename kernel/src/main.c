@@ -32,7 +32,6 @@ kernel_info* kinfo;
 // TODO: vmm-hez normális malloc meg calloc
 // TODO: (AHCI többek közt) MMIO caching kikapcsolása
 // TODO: jobb ACPI kód
-// TODO: parallel build Makefile
 // TODO: Elrendezés
 
 u8 kmain(kernel_info* _info) {
