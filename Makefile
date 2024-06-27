@@ -15,11 +15,11 @@ _QEMU_FLAGS := -smp 4 -m $(RAMSIZE) -machine q35 -cpu SandyBridge,+avx2 \
 				-device ahci,id=ahci \
 				-device ide-hd,drive=disk,bus=ahci.0
 
-run: build returner
+run: returner build
 	$(QEMU) -enable-kvm -cpu host $(_QEMU_FLAGS)
 
 returner:
-	make -C userspace/returner
+	make -C userland/returner
 
 build:
 	@echo "Building the kernel..."
@@ -27,8 +27,8 @@ build:
 	@echo "Building the preloader..."
 	@$(MAKE) --quiet -C preloader
 
-debug: build returner
+debug:
 	$(QEMU) $(_QEMU_FLAGS) -S -s > /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
-test: build returner
+test:
 	$(QEMU) $(_QEMU_FLAGS) -d int

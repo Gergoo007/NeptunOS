@@ -34,8 +34,6 @@ idt_load:
 	ret
 
 pushall:
-	# Put all GPRs on the stack for use later in a "central" fault handler
-
 	push %rax
 	push %rbx
 	push %rcx

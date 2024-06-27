@@ -24,15 +24,16 @@
 
 #include <loader/loader.h>
 
-#include <arch/x86/syscalls/teszt.h>
-
-kernel_info* kinfo;
+#include <arch/x86/syscalls/syscall.h>
 
 // TODO: normális paging, bugmentes procedúrákkal, identity paging elhagyása
 // TODO: vmm-hez normális malloc meg calloc
 // TODO: (AHCI többek közt) MMIO caching kikapcsolása
 // TODO: jobb ACPI kód
 // TODO: Elrendezés
+
+kernel_info* kinfo;
+extern void khang();
 
 u8 kmain(kernel_info* _info) {
 	kinfo = _info;
@@ -69,7 +70,7 @@ u8 kmain(kernel_info* _info) {
 	printk("Teszt utan\n");
 
 	// A processzor pihenhet a következő interruptig
-	while(1) halt();
+	khang();
 
 	return 88;
 }
