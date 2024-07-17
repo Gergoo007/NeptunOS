@@ -1,0 +1,13 @@
+{
+	"disksize": 0,
+	"config": "bootstuff/config",
+	"initrd": {
+		"type": "cpio",
+		"gzip": false,
+		"directory": "bootstuff/initrd"
+	},
+	"iso9660": true,
+	"partitions": [
+		{ "type": "boot", "size": 16 }
+	]
+}

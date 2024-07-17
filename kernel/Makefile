@@ -1,42 +1,40 @@
-.PHONY: clean
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-CSRC :=	$(shell find src -name '*.c' -printf '%P\n')
-SSRC :=	$(shell find src -name '*.s' -printf '%P\n')
+CSRCS := $(subst src/,,$(call rwildcard,src,*.c))
+COBJS := $(patsubst %.c,out/%.c.o,$(CSRCS))
 
-COBJS := $(patsubst %.c,out/%.c.o,$(CSRC))
-SOBJS := $(patsubst %.s,out/%.s.o,$(SSRC))
+SSRCS := $(subst src/,,$(call rwildcard,src,*.s))
+SOBJS := $(patsubst %.s,out/%.s.o,$(SSRCS))
 
-CC ?= cc
+CC ?= gcc
 AS ?= as
 LD ?= ld.gold
 
-CFLAGS := -xc -std=gnu17 -ffreestanding -nostdinc -nostdlib -mno-red-zone -mcmodel=large -Wshadow \
-	-Wall -Wextra -Isrc -fno-stack-protector -mgeneral-regs-only -Wno-unused-parameter -fno-omit-frame-pointer \
-	-g -O0 -Wno-unused-variable -Wdiscarded-qualifiers -Wno-unused-function
-LDFLAGS := -g -static -T ldscript.ld -z max-page-size=0x200000
+CFLAGS := -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
+	-Isrc -xc -std=gnu17 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
+	-Wno-incompatible-library-redeclaration -Wno-unused-parameter -fno-stack-protector
+ASFLAGS :=
+LDFLAGS := -T src/link.ld
 
-store: kernel
-	@$(LD) -r -b binary -o out/payload.o out/kernel
-	@echo -e "  > $(LD) out/payload.o"
+kernel: clean
+	@$(MAKE) --no-print-directory link
 
-kernel: $(COBJS) $(SOBJS) out/font.o
-	@$(LD) $(LDFLAGS) $^ -o out/kernel
-	@echo -e "  > $(LD) out/kernel"
+link: $(SOBJS) $(COBJS) out/font.o
+	@echo "  > $(LD) $@"
+	@$(LD) $(LDFLAGS) out/*.o -o out/kernel
 
-out/%.c.o: src/%.c clean
-	@$(CC) $(CFLAGS) -c $< -o $@
-	@echo -e "  > $(CC) $<"
+out/%.c.o: src/%.c
+	@echo "  > $(CC) $^"
+	@$(CC) $(CFLAGS) -c $^ -o out/$(notdir $@)
 
-out/%.s.o: src/%.s clean
-	@$(AS) -c $< -o $@
-	@echo -e "  > $(AS) $<"
+out/%.s.o: src/%.s
+	@echo "  > $(AS) $^"
+	@$(AS) $(ASFLAGS) -c $^ -o out/$(notdir $@)
 
-out/font.o: zap-ext-light24.psf clean
-	@$(LD) -r -b binary -o $@ $<
-	@echo -e "  > $(LD) $<"
+out/font.o: src/font.psf
+	@echo "  > $(LD) $^"
+	@$(LD) -r -b binary $^ -o $@
 
 clean:
-	@rm -rf out/*
-	@find src -type d -exec mkdir -p "out/{}" \;
-	@mv out/src/* out/
-	@rmdir out/src
+	@rm -rf out
+	@mkdir out

@@ -1,10 +1,17 @@
 #pragma once
 
-#include <lib/sprintf.h>
+#include <util/types.h>
 
-#include <memory/heap/vmm.h>
+#include <util/printf.h>
+#define sprintk(fmt, ...) printf(sputc, sputs, fmt, ##__VA_ARGS__);
 
-void putc(char c);
-void puts(const char* s);
-void putc_translate(const char c);
-void sprintk(const char* fmt, ...);
+void outb(u8 b, u16 port);
+void outw(u16 b, u16 port);
+void outl(u32 b, u16 port);
+
+u8 inb(u16 port);
+u16 inw(u16 port);
+u32 inl(u16 port);
+
+void sputc(char c);
+void sputs(char* str);
