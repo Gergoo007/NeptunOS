@@ -3,6 +3,11 @@
 #include <util/types.h>
 #include <util/attrs.h>
 
+#define mmap_ptr(a)  ((a)->ptr)
+#define mmap_size(a) ((a)->size & 0xFFFFFFFFFFFFFFF0)
+#define mmap_type(a) ((a)->size & 0xF)
+#define mmap_free(a) (((a)->size&0xF)==1)
+
 typedef struct _attr_packed {
 	/* first 64 bytes is platform independent */
 	u32 magic;		// "BOOT"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gfx/framebuffer.h>
+#include <util/printf.h>
 
 typedef struct psf2_hdr {
 	u32 magic; // 0x72b54a86
@@ -19,7 +20,7 @@ extern psf2_hdr _binary_src_font_psf_start;
 extern u8 _binary_src_font_psf_end;
 #define fontend _binary_src_font_psf_end
 
-#define printk(fmt, ...) printf(cputc, cputs, fmt, ##__VA_ARGS__);
+#define printk(fmt, ...) printf(cputc, cputs, fmt, ##__VA_ARGS__)
 
 void con_init();
 void cputc(const char c);

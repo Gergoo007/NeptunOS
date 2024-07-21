@@ -2,7 +2,13 @@
 #include <gfx/console.h>
 #include <util/mem.h>
 #include <serial/serial.h>
-#include <util/printf.h>
+#include <mm/pmm.h>
+#include <mm/vmm.h>
+#include <mm/paging.h>
+#include <arch/x86/idt.h>
+#include <arch/x86/gdt.h>
+
+// TODO: CPU bővítmények felderítése/feljegyzése, SSE/AVX engedélyezése
 
 _attr_noret void kmain() {
 	// Fő magon fut? Ha nem, akkor while(1)
@@ -17,10 +23,14 @@ _attr_noret void kmain() {
 	fb_main.height = bootboot.fb_height;
 	con_init();
 
-	printk("Hello from Arzene\be\n");
-	for (u8 i = 0; i < 29; i++) {
-		printk("teszt sor %d\n", i);
-	}
+	pmm_init();
+	asm volatile ("movq %%cr3, %0" : "=r"(pml4));
+	vmm_init();
+
+	gdt_init();
+	idt_init();
+
+	*(u8*)0x8000000000000000 = 0xff;
 
 	asm volatile ("cli");
 	while (1) { asm volatile ("hlt"); }
