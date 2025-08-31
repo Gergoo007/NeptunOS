@@ -1,62 +1,67 @@
 # Disable idiotic invisible default variables like CC
 MAKEFLAGS += --no-builtin-variables
 
-rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+ARCH ?= AMD64
 
-CSRCS := $(subst src/,,$(call rwildcard,src,*.c))
-COBJS := $(patsubst %.c,out/%.c.o,$(CSRCS))
+CCSRCS += $(subst src/,,$(shell find src -name *.cc -not -path 'src/arch/*')) arch/arch.cc
 
-SSRCS := $(subst src/,,$(call rwildcard,src,*.s))
-SOBJS := $(patsubst %.s,out/%.s.o,$(SSRCS))
+ifeq ($(ARCH),AMD64)
+include amd64.mk
+else ifeq ($(ARCH),AARCH64)
+include aarch64.mk
+else
+$(error Available targets: AMD64, AARCH64)
+endif
 
-# no-red-zone: painful addition
-_CFLAGS := $(CFLAGS) -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
-	-Isrc -xc -std=gnu23 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
-	-Wno-unused-parameter -fno-stack-protector -mno-red-zone -O0 -g -Wno-multichar \
-	-Wno-packed-bitfield-compat -msse -msse2 -fno-omit-frame-pointer
-_ASFLAGS :=
-_LDFLAGS := -T ldscript -z max-page-size=0x1000 --no-gc-sections
+CCOBJS += $(patsubst %.cc,out/%.cc.o,$(CCSRCS))
+CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
 
-CC := gcc
-LD ?= ld.gold
-AS ?= gcc
+# Ha ezek a fájlok változnak, az egész kernel újra lesz fordítva
+EXTRADEPS := Makefile amd64.mk aarch64.mk
 
-RECOMPILE_ACPI ?= 0
+CXXFLAGS += -MMD -MP
 
-kernel: clean
+kernel:
+# $(ARCH) fájl létrehozása, ez mutatja,
+# hogy az előző build objektum fájljai
+# kompatibilisek-e a mostaniéval
+ifeq ($(ARCH),AMD64)
+	-test -f out/AARCH64 && $(MAKE) clean
+else ifeq ($(ARCH),AARCH64)
+	-test -f out/AMD64 && $(MAKE) clean
+endif
+	touch out/$(ARCH)
 	$(MAKE) --no-print-directory link
 	$(MAKE) --no-print-directory modules
 
-link: $(SOBJS) $(COBJS) out/font.o
+link: $(SOBJS) $(CCOBJS) out/font.o
 	echo "  > $(LD) $@"
-	$(LD) $(_LDFLAGS) $^ -o out/kernel
+	echo $(SOBJS)
+	$(LD) $(LDFLAGS) $^ -o out/kernel
 
 modules:
 #	$(MAKE) -C modules
 
-out/acpi/lai/%.c.o: src/acpi/lai/%.c
-	echo LAI
-	echo "  > $(CC) $^"
-	$(CC) $(_CFLAGS) -c $^ -o $@
+-include $(CCDEPS)
 
-out/%.c.o: src/%.c
-	echo "  > $(CC) $^"
-	$(CC) $(_CFLAGS) -c $^ -o $@
+out/acpi/%.cc.o: src/acpi/%.cc $(EXTRADEPS)
+	echo "  > $(CC) $<"
+	$(CC) $(CXXFLAGS) -Wno-format -Wno-shadow -Wno-sign-compare -Wno-unused-but-set-variable -c $< -o $@
 
-out/%.s.o: src/%.s
-	echo "  > $(AS) $^"
-	$(AS) $(_ASFLAGS) -c $^ -o $@
+out/%.cc.o: src/%.cc $(EXTRADEPS)
+	echo "  > $(CC) $<"
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
-out/font.o: src/font.psf
-	echo "  > $(LD) $^"
-	$(LD) -r -b binary $^ -o $@
+out/%.s.o: src/%.s $(EXTRADEPS)
+	echo "  > $(AS) $<"
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+out/font.o: src/font.psf $(EXTRADEPS)
+	echo "  > $(LD) $<"
+	$(LD) -r -b binary $< -o $@
 
 clean:
-ifeq ($(RECOMPILE_ACPI),1)
 	rm -rf out/*
-else
-	find out/ -mindepth 1 -maxdepth 1 -not -path 'out/acpi*' -exec rm -rf {} +
-endif
 	find src -type d -exec mkdir -p "out/{}" \;
 	cp -r out/src/* out/
 	rm -rf out/src

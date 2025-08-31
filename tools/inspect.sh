@@ -1,2 +1,2 @@
-objdump --disassemble preloader/out/preloader --disassembler-color=on --visualize-jumps=color -S | less -r
+objdump --disassemble kernel/out/kernel --disassembler-color=on --visualize-jumps=color -S --demangle=auto | less -r
 
