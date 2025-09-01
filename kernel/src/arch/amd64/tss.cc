@@ -6,7 +6,7 @@ namespace arch::tss {
 	tss* tss_actual;
 
 	void init() {
-		tss_actual = (tss*)vmm::alloc_aligned(sizeof(tss), 0x1000);
+		tss_actual = (tss*)pmm::alloc();
 		memset(tss_actual, 0, sizeof(tss));
 
 		tss_actual->io_bm_offset = offsetof(tss, io_bm);

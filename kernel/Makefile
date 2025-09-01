@@ -44,10 +44,6 @@ modules:
 
 -include $(CCDEPS)
 
-out/acpi/%.cc.o: src/acpi/%.cc $(EXTRADEPS)
-	echo "  > $(CC) $<"
-	$(CC) $(CXXFLAGS) -Wno-format -Wno-shadow -Wno-sign-compare -Wno-unused-but-set-variable -c $< -o $@
-
 out/%.cc.o: src/%.cc $(EXTRADEPS)
 	echo "  > $(CC) $<"
 	$(CC) $(CXXFLAGS) -c $< -o $@
@@ -67,4 +63,4 @@ clean:
 	rm -rf out/src
 
 .PHONY: modules
-$(V).SILENT:
+# $(V).SILENT:

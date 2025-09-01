@@ -19,11 +19,11 @@
 
 #pragma pack(1)
 
+#include <types.hh>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <types.hh>
 
 /* Misc */
 

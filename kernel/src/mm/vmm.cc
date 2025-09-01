@@ -5,15 +5,12 @@ namespace vmm {
 	Link* first;
 	Bitmap bm;
 	u64 capacity;
-	u64 heap_base;
 
 	void init() {
 		links = first = (Link*)pmm::alloc();
 		memset(links, 0, pmm::pagesize);
 		capacity = pmm::pagesize / sizeof(Link);
 		bm.init((u64*)pmm::alloc(), capacity);
-
-		heap_base = (u64)VIRTUAL(pmm::heap_base);
 
 		links[0] = Link {
 			.next = nullptr,
@@ -22,6 +19,10 @@ namespace vmm {
 			.free = true,
 		};
 		bm.set(0, true);
+
+		#ifdef TRACE_ALLOCS
+		report("vmm init\n");
+		#endif
 	}
 
 	void delete_link(Link* l) {
@@ -110,6 +111,10 @@ namespace vmm {
 		// current átállítása a used linkké, majd egy új free link beillesztése utána
 		allocate_into_free(current, size, 0);
 
+		#ifdef TRACE_ALLOCS
+		report("alloc %llx\n", size);
+		#endif
+
 		return (void*)address;
 	}
 
@@ -153,6 +158,10 @@ namespace vmm {
 			address += l->length;
 			l = l->next;
 		}
+
+		#ifdef TRACE_ALLOCS
+		report("alloc aligned %llx (%x)\n", size, align);
+		#endif
 
 		return (void*)address;
 	}

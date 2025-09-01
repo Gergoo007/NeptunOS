@@ -1,20 +1,43 @@
 #pragma once
 
-#include <mm/pmm.hh>
+#include <mm/vmm.hh>
 #include <util/bitmap.hh>
 
 template <typename T>
-struct List {
-	struct Link {
-		Link* next = nullptr;
-		Link* prev = nullptr;
-		T data;
-	};
+struct Vector {
+	T* data;
+	u64 capacity = 8;
+	u64 size = 0;
 
-	Link* links;
-	u64 capacity;
-	Bitmap bm;
+	Vector() {
+		data = (T*)vmm::alloc(capacity * sizeof(T));
+	}
 
-	void init_pmm();
-	void insert();
+	Vector(u64 cap): capacity(cap) {
+		data = (T*)vmm::alloc(capacity * sizeof(T));
+	}
+
+	void reserve(u64 cap) {
+		// vmm::realloc();
+	}
+
+	T& operator[](u64 idx) {
+		#ifdef DEBUG
+		if (idx > size)
+			error("Vector (%p) out of bounds!\n", this);
+		#endif
+		return data[idx];
+	}
+
+	void push_back(T asd) {
+		if (size >= capacity) {
+			reserve(capacity*capacity);
+		}
+		data[size++] = asd;
+	}
+
+	~Vector() {
+		vmm::free(data);
+		data = (T*)0x6767676767676767;
+	}
 };

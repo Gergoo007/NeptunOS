@@ -4,20 +4,25 @@
 #include <gfx/console.hh>
 #include <mm/pmm.hh>
 #include <mm/vmm.hh>
+#include <pci/pci.hh>
+#include <acpi/acpi.hh>
+#include <arch/amd64/paging.hh>
 
 extern "C" noret void khang();
 
 extern "C" void kmain() {
-	cpp_construct_objects();
+	// Korai inicializáció
 	arch::init();
 	arch::read_boot_info();
 	console::init(FONTFILE_START);
 	pmm::init();
-	vmm::init();
 	arch::late_init();
+	vmm::init();
 
-	vmm::dump();
-	while (1);
+	// Itt már az alapvető rendszerek működnek
+	cpp_construct_objects();
+	acpi::init();
+	pci::init();
 
 	printk(
 		"Framebuffer: %dx%dx%d; betu %dx%d; %llu MiBs; Heap itt: %llu MiB, ekkora: %llu MiB\n",
@@ -28,8 +33,6 @@ extern "C" void kmain() {
 	);
 
 	printk("ennyi\n");
-
-	*(u8*)0x6969696969696969 = 0xff;
 
 	khang();
 }

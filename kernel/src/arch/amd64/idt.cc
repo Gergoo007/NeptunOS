@@ -1,11 +1,16 @@
 #include <arch/amd64/idt.hh>
+#include <arch/amd64/paging.hh>
 #include <mm/vmm.hh>
 
 #define print_reg(st, reg) printk("%s: %p ", #reg, st->reg)
 #define sprint_reg(st, reg) sprintk("%s: %p ", #reg, st->reg)
 
 extern "C" void onInterrupt(arch::idt::cpu_regs* frame) {
-	fatal("EXCEPTION\n");
+	if (frame->exc == EXC::PF) {
+		arch::map_page(frame->cr2, (u64)PHYSICAL(pmm::alloc()), (u32)arch::FLAGS::KDATA);
+		return;
+	}
+	fatal("EXCEPTION %02x\n", frame->exc);
 }
 
 namespace arch::idt {
@@ -23,7 +28,7 @@ namespace arch::idt {
 	}
 
 	void init() {
-		idt = (idt_entry*)vmm::alloc_aligned(0x1000, 0x1000);
+		idt = (idt_entry*)pmm::alloc();
 		printk("idt @ %p\n", idt);
 		memset(idt, 0, 0x1000);
 

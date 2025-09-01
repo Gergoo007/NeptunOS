@@ -1,5 +1,7 @@
 #pragma once
 
+// #define TRACE_ALLOCS
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -84,7 +86,7 @@ extern void* higherhalf;
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
 #define VIRTUAL(a) ((typeof(a))(u64(a) | u64(higherhalf)))
-#define PHYSICAL(a) ((typeof(a))(u64(a) & u64(~higherhalf)))
+#define PHYSICAL(a) ((typeof(a))(u64(a) & ~u64(higherhalf)))
 
 __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...);

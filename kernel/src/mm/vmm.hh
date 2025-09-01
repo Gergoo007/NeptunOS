@@ -14,6 +14,9 @@ namespace vmm {
 		bool free;
 	};
 
+	// 16 terabyte-al a HHDM után
+	constexpr u64 heap_base = 0xffff900000000000;
+
 	void init();
 	void* alloc(u64 size);
 	void* alloc_aligned(u64 size, u32 align);

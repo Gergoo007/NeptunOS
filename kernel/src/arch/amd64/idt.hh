@@ -4,6 +4,31 @@
 
 #define DECL_ISR(n) extern "C" interrupt void exc##n(int_frame* i)
 
+enum struct EXC : u64 {
+	DE,
+	DB,
+	NMI,
+	BP,
+	OF,
+	BR,
+	UD,
+	NM,
+	DF,
+	_1,
+	TS,
+	NP,
+	SS,
+	GP,
+	PF,
+	_2,
+	MF,
+	AC,
+	MC,
+	XF,
+	VE,
+	CP,
+};
+
 namespace arch::idt {
 	pstruct idt_entry {
 		u16 base0;
@@ -41,7 +66,7 @@ namespace arch::idt {
 		u64 rcx;
 		u64 rbx;
 		u64 rax;
-		u64 exc;
+		EXC exc;
 		u64 rflexc;
 		u64 err;
 		u64 rip;

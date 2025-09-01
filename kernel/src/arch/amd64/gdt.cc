@@ -6,7 +6,7 @@ namespace arch::gdt {
 
 	extern "C" void gdt_load(gdtr* g);
 	void init() {
-		gdt = (gdt_entry*)vmm::alloc_aligned(0x1000, 0x1000);
+		gdt = (gdt_entry*)pmm::alloc();
 		memset(gdt, 0, 0x1000);
 
 		// Kernel kód (0x08)
