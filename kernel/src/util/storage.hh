@@ -5,9 +5,24 @@
 
 template <typename T>
 struct Vector {
+	struct Iterator {
+		T* ptr;
+
+		Iterator(T* p): ptr(p) {  }
+		T& operator*() { return *ptr; }
+		T* operator->() { return ptr; }
+		Iterator operator++() { ptr++; return *this; }
+		Iterator operator--() { ptr--; return *this; }
+		Iterator operator++(int prev) { Iterator tmp = *this; ++(*this); return tmp; }
+		Iterator operator--(int prev) { Iterator tmp = *this; --(*this); return tmp; }
+
+		friend bool operator==(const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
+		friend bool operator!=(const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
+	};
+
 	T* data;
 	u64 capacity = 8;
-	u64 size = 0;
+	u64 sizeVar = 0;
 
 	Vector() {
 		data = (T*)vmm::alloc(capacity * sizeof(T));
@@ -30,10 +45,25 @@ struct Vector {
 	}
 
 	void push_back(T asd) {
-		if (size >= capacity) {
+		if (sizeVar >= capacity)
 			reserve(capacity*capacity);
-		}
-		data[size++] = asd;
+		data[sizeVar++] = asd;
+	}
+
+	void find() {
+
+	}
+
+	u64 size() {
+		return sizeVar;
+	}
+
+	Iterator begin() {
+		return Iterator(data);
+	}
+
+	Iterator end() {
+		return Iterator(&data[sizeVar]);
 	}
 
 	~Vector() {

@@ -26,7 +26,7 @@ extern "C" void kmain() {
 
 	printk(
 		"Framebuffer: %dx%dx%d; betu %dx%d; %llu MiBs; Heap itt: %llu MiB, ekkora: %llu MiB\n",
-		g_info.fbs[0].fb_width, g_info.fbs[0].fb_height, g_info.fbs[0].fb_bpp,
+		machine.fbs[0].fb_width, machine.fbs[0].fb_height, machine.fbs[0].fb_bpp,
 		console::glyphw, console::glyphh,
 		bytes2mibs(pmm::free + pmm::used + pmm::reserved),
 		bytes2mibs((u64)pmm::heap_base), bytes2mibs(pmm::heap_size)

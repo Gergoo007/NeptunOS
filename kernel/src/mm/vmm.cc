@@ -1,16 +1,21 @@
 #include <mm/vmm.hh>
+#include <cppcompat.hh>
 
 namespace vmm {
 	Link* links;
 	Link* first;
-	Bitmap bm;
+	u8 bitmapStorage[sizeof(Bitmap)];
+	Bitmap* bm;
 	u64 capacity;
 
 	void init() {
 		links = first = (Link*)pmm::alloc();
 		memset(links, 0, pmm::pagesize);
 		capacity = pmm::pagesize / sizeof(Link);
-		bm.init((u64*)pmm::alloc(), capacity);
+
+		bm = new (bitmapStorage) Bitmap;
+
+		bm->init((u64*)pmm::alloc(), capacity);
 
 		links[0] = Link {
 			.next = nullptr,
@@ -18,7 +23,7 @@ namespace vmm {
 			.length = pmm::free,
 			.free = true,
 		};
-		bm.set(0, true);
+		bm->set(0, true);
 
 		#ifdef TRACE_ALLOCS
 		report("vmm init\n");
@@ -30,13 +35,13 @@ namespace vmm {
 		u64 offset = (u64)l - (u64)links;
 		u64 index = offset / sizeof(Link);
 
-		bm.set(index, false);
+		bm->set(index, false);
 		l->next = (Link*)0x6966969696969669;
 		l->prev = (Link*)0x6966969696969669;
 	}
 
 	Link* create_link() {
-		return &links[bm.find_and_set()];
+		return &links[bm->find_and_set()];
 	}
 
 	void merge(Link* l) {

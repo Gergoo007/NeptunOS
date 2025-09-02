@@ -1,6 +1,6 @@
 #include <cppcompat.hh>
-
 #include <gfx/console.hh>
+#include <mm/vmm.hh>
 
 extern "C" {
 	int __cxa_atexit(void (*)(void*), void*, void*) { return 0; }
@@ -17,27 +17,25 @@ void cpp_construct_objects() {
 }
 
 void* operator new(size_t size) {
-	printk("!!! new NINCS IMPLEMENTÁLVA\n");
-	return (void*)67;
-}
-
-void operator delete(void* ptr, size_t size) throw () {
-	printk("!!! delete NINCS IMPLEMENTÁLVA\n");
-}
-
-void operator delete(void* ptr) throw () {
-	printk("!!! delete NINCS IMPLEMENTÁLVA\n");
+	return vmm::alloc(size);
 }
 
 void* operator new[](size_t size) {
-	printk("!!! new[] NINCS IMPLEMENTÁLVA\n");
-	return (void*)67;
+	return vmm::alloc(size);
 }
 
-void operator delete[](void* ptr, size_t size) throw () {
-	printk("!!! delete[] NINCS IMPLEMENTÁLVA\n");
+void operator delete(void* ptr, size_t size) noexcept {
+	vmm::free(ptr);
 }
 
-void operator delete[](void* ptr) throw () {
-	printk("!!! delete[] NINCS IMPLEMENTÁLVA\n");
+void operator delete(void* ptr) noexcept {
+	vmm::free(ptr);
+}
+
+void operator delete[](void* ptr, size_t size) noexcept {
+	vmm::free(ptr);
+}
+
+void operator delete[](void* ptr) noexcept {
+	vmm::free(ptr);
 }

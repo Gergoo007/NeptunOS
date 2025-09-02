@@ -37,7 +37,7 @@ void memcpy(void* a, void* b) {
 
 bool memcmp(void* a, void* b, u64 count) {
 	while (count--) {
-		if (((u8*)a)[count] != ((u8*)b)[count]) return 1;
+		if (((u8*)a)[count] != ((u8*)b)[count]) return true;
 	}
-	return 0;
+	return false;
 }

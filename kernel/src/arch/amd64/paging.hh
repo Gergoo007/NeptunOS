@@ -5,7 +5,7 @@
 #include <types.hh>
 
 namespace arch {
-	enum struct FLAGS : u64 {
+	enum struct MFLAGS : u64 {
 		// Saját flagek a 2M és 1G-osok megkülönböztetésére
 		s1G	=		(1ULL << 31),
 		s2M	=		(1ULL << 30),
@@ -17,10 +17,15 @@ namespace arch {
 
 		UDATA = USER | RW | PRESENT,
 		KDATA = RW | PRESENT,
+	};
 
-		PAT0_SHIFT = 3,
-		PAT1_SHIFT = 4,
-		PAT2_SHIFT = 12,
+	enum struct MCACHE : u32 {
+		WB,
+		WT,
+		UC_WC,
+		UC,
+		WP,
+		WC,
 	};
 
 	#define ADDR_PTI(a) ((((u64)a) >> 12ULL) & 511ULL)
@@ -39,7 +44,6 @@ namespace arch {
 
 	extern page_table* pml4;
 
-	void paging_init(void);
 	u64 paging_lookup(u64 virt);
-	void map_page(u64 virt, u64 phys, u32 flags);
+	void map_page(u64 virt, u64 phys, u32 flags, MCACHE cache = MCACHE::WB);
 }

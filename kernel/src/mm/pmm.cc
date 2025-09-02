@@ -1,7 +1,9 @@
 #include <mm/pmm.hh>
 #include <arch/limine.hh>
+#include <arch/arch.hh>
 #include <util/bitmap.hh>
 #include <gfx/console.hh>
+#include <cppcompat.hh>
 
 __attribute__((used, section(".limine_requests")))
 static volatile limine_memmap_request mm_req = {
@@ -12,12 +14,17 @@ static volatile limine_memmap_request mm_req = {
 
 namespace pmm {
 	u64 free = 0, used = 0, reserved = 0;
-	Bitmap bm;
+	u8 bitmapStorage[sizeof(Bitmap)];
+	Bitmap* bm;
 	void* heap_base;
 	u64 heap_size = 0;
 
 	void init() {
 		limine_memmap_response* r = mm_req.response;
+
+		machine.mmap = r;
+
+		bm = new (bitmapStorage) Bitmap;
 
 		for (u32 i = 0; i < r->entry_count; i++) {
 			switch (r->entries[i]->type) {
@@ -46,11 +53,11 @@ namespace pmm {
 			}
 		}
 
-		bm.init(VIRTUAL((u64*)heap_base), heap_size / pagesize);
+		bm->init(VIRTUAL((u64*)heap_base), heap_size / pagesize);
 		// Le kell foglalni a page-eket amikben a bitmap van
 		u64 buffer_size = heap_size / pagesize / 8 / pagesize + 1;
 		for (u32 i = 0; i < buffer_size; i++) {
-			bm.set(i, true);
+			bm->set(i, true);
 			used += pagesize;
 			free -= pagesize;
 		}
@@ -60,6 +67,6 @@ namespace pmm {
 		if (size < pagesize) size = pagesize;
 		size = align(size, pagesize);
 
-		return VIRTUAL((void*)((u64)heap_base + bm.find_and_set() * pagesize));
+		return VIRTUAL((void*)((u64)heap_base + bm->find_and_set() * pagesize));
 	}
 }

@@ -27,7 +27,7 @@ uefi: prepare_img
 aarch64: prepare_img_aarch64
 	qemu-system-aarch64 -M raspi4b -kernel kernel/out/kernel8.img
 
-test:
+test: prepare_img
 	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -cpu qemu64 -d int
 
 debug:

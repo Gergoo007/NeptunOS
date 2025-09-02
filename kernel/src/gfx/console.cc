@@ -50,7 +50,7 @@ namespace console {
 			default: break;
 		}
 
-		if (cx + glyphw + padx > g_info.fbs[current_fb].fb_width) {
+		if (cx + glyphw + padx > machine.fbs[current_fb].fb_width) {
 			cputc('\n');
 		}
 

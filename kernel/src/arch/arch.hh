@@ -2,8 +2,10 @@
 
 #include <types.hh>
 #include <util/printf.hh>
+#include <arch/limine.hh>
 
 struct Machine {
+	limine_memmap_response* mmap;
 	struct {
 		u32* fb_addr;
 		u32 fb_width;
@@ -35,6 +37,6 @@ char sgetc();
 
 #define FB_VADDR 0xffffffffc2000000
 
-#define fb_pixel(x, y, color, idx) *((volatile u32*)g_info.fbs[idx].fb_addr + (x) + ((y) * (g_info.fbs[idx].fb_width))) = color
+#define fb_pixel(x, y, color, idx) *((volatile u32*)machine.fbs[idx].fb_addr + (x) + ((y) * (machine.fbs[idx].fb_width))) = color
 
-extern Machine g_info;
+extern Machine machine;

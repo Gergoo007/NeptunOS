@@ -48,9 +48,9 @@ typedef __SIZE_TYPE__ size_t;
 #define bytes2tibs(bytes) ((bytes) >> 40)
 
 #define kib2bytes(kibs) ((kibs) << 10)
-#define mib2bytes(mibs) ((mibs) << 10)
-#define gib2bytes(gibs) ((gibs) << 10)
-#define tib2bytes(tibs) ((tibs) << 10)
+#define mib2bytes(mibs) ((mibs) << 20)
+#define gib2bytes(gibs) ((gibs) << 30)
+#define tib2bytes(tibs) ((tibs) << 40)
 
 #define assert(c) if (!(c)) error("Assert failed: %s (%s:%d)", #c, __FILE__, __LINE__)
 

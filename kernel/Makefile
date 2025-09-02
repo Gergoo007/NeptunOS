@@ -63,4 +63,4 @@ clean:
 	rm -rf out/src
 
 .PHONY: modules
-# $(V).SILENT:
+$(V).SILENT:

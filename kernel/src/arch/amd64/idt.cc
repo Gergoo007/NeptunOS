@@ -2,15 +2,25 @@
 #include <arch/amd64/paging.hh>
 #include <mm/vmm.hh>
 
-#define print_reg(st, reg) printk("%s: %p ", #reg, st->reg)
-#define sprint_reg(st, reg) sprintk("%s: %p ", #reg, st->reg)
+#define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
 extern "C" void onInterrupt(arch::idt::cpu_regs* frame) {
 	if (frame->exc == EXC::PF) {
-		arch::map_page(frame->cr2, (u64)PHYSICAL(pmm::alloc()), (u32)arch::FLAGS::KDATA);
-		return;
+		if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
+			// printk("%p -> %p\n", frame->cr2, (u64)pmm::alloc());
+			arch::map_page(frame->cr2, (u64)PHYSICAL(pmm::alloc()), (u32)arch::MFLAGS::KDATA);
+			return;
+		}
 	}
-	fatal("EXCEPTION %02x\n", frame->exc);
+
+	error("EXCEPTION %02x [%04llx] @ %02x:%p\n", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
+	print_reg(frame, rax, rbx); printk("\n");
+	print_reg(frame, rcx, rdx); printk("\n");
+	print_reg(frame, rdi, rsi); printk("\n");
+	print_reg(frame, rdx, cr2); printk("\n");
+	print_reg(frame, rip, rfl); printk("\n");
+	print_reg(frame, rsp, rbp); printk("\n");
+	fatal("Halting...\n");
 }
 
 namespace arch::idt {
