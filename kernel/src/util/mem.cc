@@ -1,38 +1,44 @@
 #include <util/mem.hh>
 
 void memset(void* a, const char c, u64 count) {
-	// u8* d = (u8*)a;
-	// if (count < 16) {
-	// 	while (count) {
-	// 		d[count] = c;
-	// 		count--;
-	// 	}
-	// 	return;
-	// }
+	u8* d = (u8*)a;
 
-	// // Cím igazítása 64 bites határra
-	// u64 i = 0;
-	// while ((u64)d & 7) { *(d++) = c; i++; }
-
-	// d = (u8*)a;
-	// u64 v = c;
-	// v |= (v << 8) | (v << 16) | (v << 24) | (v << 32) | (v << 48);
-	// for (; i < count - 8; i += 8) {
-	// 	*(u64*)&(d[i]) = v;
-	// }
-
-	// // Maradék byte-ok (a count nem biztos hogy a 8 többszöröse)
-	// for (; i < count; i++) {
-	// 	d[i] = c;
-	// }
-
-	for (u64 i = 0; i < count; i++) {
-		((u8*)a)[i] = c;
+	u8 toalign = count & 7;
+	while (toalign) {
+		*(u8*)(d++) = c;
+		toalign--;
 	}
+	count &= ~(7ULL);
+
+	if (!count) return;
+
+	u64 n = count >> 3;
+	u64 c64 = (u64)c | ((u64)c << 8) | ((u64)c << 16) | ((u64)c << 24) | ((u64)c << 32) | ((u64)c << 40) | ((u64)c << 48);
+	asm volatile ("rep stosq" : "=D"(d), "=c"(n) : "0"(d), "1"(n), "a"(c64) : "memory");
 }
 
-void memcpy(void* a, void* b) {
+void memcpy(void* dest, void* src, u64 count) {
+	u8* d = (u8*)dest;
+	u8* s = (u8*)src;
 
+	u8 toalign = count & 7;
+	while (toalign) {
+		*(u8*)(d++) = *(u8*)(s++);
+		toalign--;
+	}
+	count &= ~(7ULL);
+
+	if (!count) return;
+
+	u64 n = count >> 3;
+	asm volatile ("rep movsq"
+				: "=D" (d),
+				"=S" (s),
+				"=c" (n)
+				: "0" (d),
+				"1" (s),
+				"2" (n)
+				: "memory");
 }
 
 bool memcmp(void* a, void* b, u64 count) {

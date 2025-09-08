@@ -103,7 +103,7 @@ int vprintf(const char* format, va_list va);
  * \return The number of characters that are sent to the output function, not counting the terminating null character
  */
 int fctprintf(void (*out)(char character), const char* format, ...);
-
+int vfctprintf(void (*out)(char character), const char* format, va_list va);
 
 // #ifdef __cplusplus
 // }

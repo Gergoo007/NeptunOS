@@ -19,7 +19,7 @@ CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
 # Ha ezek a fájlok változnak, az egész kernel újra lesz fordítva
 EXTRADEPS := Makefile amd64.mk aarch64.mk
 
-CXXFLAGS += -MMD -MP
+CXXFLAGS += -MMD -MP -DDEBUG
 
 kernel:
 # $(ARCH) fájl létrehozása, ez mutatja,

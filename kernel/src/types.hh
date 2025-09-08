@@ -91,8 +91,32 @@ extern void* higherhalf;
 __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...);
 
+__attribute__((format(printf, 1, 2)))
+void sprintk(const char* fmt, ...);
+
 namespace console { extern void push_color(u32 color); extern void pop_color(); }
 #define report(fmt, ...) { console::push_color(0xffd0d0d0); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
 #define warn(fmt, ...) { console::push_color(0xffEB6534); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
 #define error(fmt, ...) { console::push_color(0xffC41E3D); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
 #define fatal(fmt, ...) { console::push_color(0xff710627); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); while (1) asm volatile ("cli; hlt"); }
+
+template <typename T>
+struct remove_reference { using type = T; };
+
+template <typename T>
+struct remove_reference<T&> { using type = T; };
+
+template <typename T>
+struct remove_reference<T&&> { using type = T; };
+
+template <typename T>
+constexpr remove_reference<T>::type&&
+move(typename remove_reference<T>::type& obj) noexcept {
+	return static_cast<typename remove_reference<T>::type&&>(obj);
+}
+
+template <typename T>
+constexpr remove_reference<T>::type&&
+forward(typename remove_reference<T>::type& obj) noexcept {
+	return static_cast<T&&>(obj);
+}

@@ -11,7 +11,7 @@ namespace acpi {
 		u64 address;
 	};
 
-	struct SDT {
+	pstruct SDT {
 		// char sign[4];
 		u32 sign;
 		u32 length;
@@ -105,9 +105,11 @@ namespace acpi {
 		char hypervisor_id[8];
 	};
 
-	enum struct SIGNS : u32 {
-		FADT = 'FADT',
-		MCFG = 'MCFG',
+	// Ezek az okostojások nem engedik az implicit cast-et
+	// struct enum-oknál
+	struct SIGNS {
+		static constexpr u32 FADT = 'PCAF';
+		static constexpr u32 MCFG = 'GFCM';
 	};
 
 	bool validate(SDT* table);

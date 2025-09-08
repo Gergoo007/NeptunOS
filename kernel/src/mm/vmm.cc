@@ -55,8 +55,6 @@ namespace vmm {
 					l->next->next->prev = l;
 				l->next = l->next->next;
 
-				printk("path 1\n");
-
 				delete_link(old);
 			}
 		}
@@ -101,6 +99,7 @@ namespace vmm {
 	}
 
 	void* alloc(u64 size) {
+		if (!size) return nullptr;
 		size = align(size, 16);
 
 		Link* current = first;
@@ -171,7 +170,60 @@ namespace vmm {
 		return (void*)address;
 	}
 
+	void* realloc(void* ptr, u64 newsize) {
+		if (!ptr)
+			return vmm::alloc(newsize);
+
+		Link* i = first;
+		u64 addr = heap_base;
+		u64 oldsize = 0;
+		newsize = align(newsize, 16);
+
+		while (i) {
+			if (addr == (u64)ptr) {
+				oldsize = i->length;
+				if (newsize <= oldsize)
+					return ptr;
+
+				if (i->next) {
+					if (i->next->length == newsize - i->length) {
+						i->next->length -= newsize - i->length;
+						i->length += newsize - i->length;
+
+						// i->next törlése
+						Link* old = i->next;
+						i->next = old->next;
+						old->next->prev = i;
+						delete_link(old);
+
+						return ptr;
+					} else if (i->next->length > newsize - i->length) {
+						i->next->length -= newsize - i->length;
+						i->length += newsize - i->length;
+						return ptr;
+					} else {
+						goto whatever;
+					}
+				} else {
+					goto whatever;
+				}
+			}
+
+			addr += i->length;
+			i = i->next;
+		}
+
+		fatal("Elerhetetlen kod!\n");
+
+whatever:
+		void* newloc = vmm::alloc(newsize);
+		memcpy(newloc, ptr, oldsize);
+		free(ptr);
+		return newloc;
+	}
+
 	u64 dump() {
+		printk("===============================\n");
 		Link* i = first;
 		u64 addr = heap_base;
 		while (i) {
@@ -179,10 +231,13 @@ namespace vmm {
 			addr += i->length;
 			i = i->next;
 		}
+		printk("===============================\n");
 		return addr - heap_base;
 	}
 
 	void free(void* p) {
+		if (!p) return;
+
 		u64 addr = heap_base;
 		Link* i = first;
 

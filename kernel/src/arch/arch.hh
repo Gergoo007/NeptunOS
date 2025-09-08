@@ -32,9 +32,6 @@ void sputc(const char c);
 void sputs(const char* s);
 char sgetc();
 
-#include <util/printf.hh>
-#define sprintk(fmt, ...) fctprintf(sputc, fmt, ##__VA_ARGS__)
-
 #define FB_VADDR 0xffffffffc2000000
 
 #define fb_pixel(x, y, color, idx) *((volatile u32*)machine.fbs[idx].fb_addr + (x) + ((y) * (machine.fbs[idx].fb_width))) = color

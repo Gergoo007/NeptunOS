@@ -1,0 +1,361 @@
+#include <acpi/aml.hh>
+#include <mm/vmm.hh>
+#include <acpi/util.hh>
+
+namespace acpi {
+	NameStore names;
+
+	u8 pkglength(OPCODES* code, u32* pkglen) {
+		u8 numdata = ((u8)(*code) >> 6) + 1;
+		u32 num = 0;
+
+		switch (numdata) {
+			case 1:
+				num |= ((u32)code[0]) & 0b111111;
+				break;
+			case 2:
+				num |= ((u32)code[0]) & 0b1111;
+				num |= ((u32)code[1]) << 4;
+				break;
+			case 3:
+				num |= ((u32)code[0]) & 0b1111;
+				num |= ((u32)code[1]) << 4;
+				num |= ((u32)code[2]) << 12;
+				break;
+			case 4:
+				num |= ((u32)code[0]) & 0b1111;
+				num |= ((u32)code[1]) << 4;
+				num |= ((u32)code[2]) << 12;
+				num |= ((u32)code[3]) << 20;
+				break;
+			default:
+				error("Ervenytelen numdata: %02x\n", numdata);
+				break;
+		}
+
+		if (pkglen)
+			*pkglen = num;
+		return numdata;
+	}
+
+	void process_value(OPCODES** code, u8* valbytes, u32* value, String** strval, const char* msg = "") {
+		OPCODES op = *((*code)-1);
+
+		switch (op) {
+			case OPCODES::OneOp:
+				*valbytes = 1;
+				*value = 0x01;
+				(*code)--;
+				break;
+			case OPCODES::ZeroOp:
+				*valbytes = 1;
+				*value = 0x00;
+				(*code)--;
+				break;
+			case OPCODES::OnesOp: {
+				*valbytes = 1;
+				*value = 0xff;
+				(*code)--;
+				break;
+			}
+			case OPCODES::BytePrefix:
+				*valbytes = 1;
+				*value = *(u8*)((*code));
+				break;
+			case OPCODES::WordPrefix:
+				*valbytes = 2;
+				*value = *(u16*)((*code));
+				break;
+			case OPCODES::DWordPrefix:
+				*valbytes = 4;
+				*value = *(u32*)((*code));
+				break;
+			case OPCODES::StringPrefix: {
+				while ((u8) (*code)[(*valbytes)++]);
+				*strval = new String((const char*)(*code), *valbytes);
+				break;
+			}
+			case OPCODES::Arg0Op: {
+				*valbytes = 0;
+				*strval = new String("[arg0op]");
+				(*code)--;
+				break;
+			}
+			default: {
+				if (op >= OPCODES::NameCharStart && op <= OPCODES::NameCharEnd) {
+					(*code) -= 2;
+					printk("(%s) name detected: %.4s\n", msg, (char*)*code);
+					*strval = new String((const char*)*code, 4);
+					printk("str from %.4s\n", (const char*)*code);
+					(*code) += 5;
+					*valbytes = 0;
+
+					// switch (*(*code)) {
+					// 	default: {
+					// 		error("namechar utan ervenytelen byte: %02x\n", *((*code)+2));
+					// 		break;
+					// 	}
+					// }
+				} else {
+					error("[%02x] %s utan ervenytelen opkod: %02x (%.4s)\n", **code, msg, op, (char*)(*code)+2);
+				}
+				break;
+			}
+		}
+	}
+
+	String process_simplename(OPCODES** _code) {
+		OPCODES*& code = *_code;
+		switch (*code) {
+			case OPCODES::Arg0Op: {
+				return "[Arg0Op]";
+				break;
+			}
+			default: {
+				if (*code >= OPCODES::NameCharStart && *code <= OPCODES::NameCharEnd) {
+					// printk("simplename is: %.4s\n", (char*)(code));
+					code += 3;
+					return String((char*)code-3, 4);
+				} else {
+					error("nem jo simplename: %02x\n", *code);
+				}
+				break;
+			}
+		}
+		return "[NoName??]";
+	}
+
+	void process_aml(OPCODES* code, u64 len) {
+		OPCODES* end = code + len;
+		while (code < end) {
+			OPCODES& op = *code;
+
+			switch (op) {
+				case OPCODES::NameOp: {
+					u32 name = *(u32*)(code+1);
+					// printk("name: %.4s\n", (char*)&name);
+					// NameOp opkód + 4 byte a név
+					code += 5;
+					u8 valbytes = -1;
+					u32 value = 0;
+					String* strval = nullptr;
+
+					op = *code;
+					code++;
+
+					process_value(&code, &valbytes, &value, &strval, "nameop");
+
+					code += valbytes - 1;
+
+					if (strval)
+						names.insert(name, *strval);
+					else
+						names.insert(name, valbytes, value);
+
+					delete strval;
+
+					break;
+				}
+				case OPCODES::MethodOp: {
+					// PkgLength opkód + MethodOp opkód
+					u32 pkglen;
+					code++;
+					code += pkglength(code, &pkglen);
+					printk("metodus: %.4s (%d byte)\n", (char*)code, pkglen);
+					code += 4;
+					break;
+				}
+				case OPCODES::IfOp: {
+					printk("ifop\n");
+					u32 pkglen;
+					code++;
+					u32 turi = pkglength(code, &pkglen);
+					code += turi;
+
+					u32 operation = 0;
+
+megtobb:
+					switch (*code) {
+						// ExpressionOpcode
+						case OPCODES::LnotOp: {
+							operation |= 0x80;
+							printk("not: ");
+							code++;
+							goto megtobb;
+							break;
+						}
+						case OPCODES::LEqualOp: {
+							operation |= 1;
+							printk("egyenlo\n");
+							break;
+						}
+						case OPCODES::AcquireOp: {
+							printk("Acquire\n");
+							break;
+						}
+						case OPCODES::AddOp: {
+							printk("add\n");
+							break;
+						}
+						case OPCODES::AndOp: {
+							printk("AndOp\n");
+							break;
+						}
+						case OPCODES::BufferOp: {
+							printk("BufferOp\n");
+							break;
+						}
+						case OPCODES::ConcatOp: {
+							printk("concat\n");
+							break;
+						}
+
+						// ArgObject
+						case OPCODES::Arg0Op: {
+							printk("arg0\n");
+							break;
+						}
+						default: {
+							printk("Unhandled IfOp TermArg: %02x\n", *code);
+							break;
+						}
+					}
+
+					if (operation) {
+						// TermArg
+						u8 valbytes = -1;
+						u32 value = 0;
+						String* strval = nullptr;
+
+						code += 3;
+
+						process_value(&code, &valbytes, &value, &strval, "ifop(op1)");
+						if (valbytes)
+							printk("op1 %08x\n", value);
+						else
+							printk("op1 %s\n", strval->c_str());
+
+						if (strval)
+							delete strval;
+
+						strval = nullptr;
+						process_value(&code, &valbytes, &value, &strval, "ifop(op2)");
+						if (valbytes)
+							printk("op2 %08x\n", value);
+						else
+							printk("op2 %s\n", strval->c_str());
+
+						if (strval)
+							delete strval;
+					}
+
+					break;
+				}
+				case OPCODES::ElseOp: {
+					code += 1;
+					u32 pkglen;
+					code += pkglength(code, &pkglen) - 1;
+					printk("else ag; %d hosszu\n", pkglen);
+					// code += 1;
+					break;
+				}
+				case OPCODES::ReturnOp: {
+					u8 valbytes = -1;
+					u32 value = 0;
+					String* strval = nullptr;
+
+					code += 3;
+					process_value(&code, &valbytes, &value, &strval, "returnop");
+					if (valbytes)
+							printk("return %08x\n", value);
+					else
+							printk("return %s\n", strval->c_str());
+
+					if (strval)
+						delete strval;
+
+					code--;
+
+					break;
+				}
+				case OPCODES::RootChar: {
+					printk("rootchar \\\n");
+					break;
+				}
+				case OPCODES::NameChar: {
+					printk("namechar _\n");
+					break;
+				}
+				case OPCODES::DualNamePrefix: {
+					// Kettő NameSeg követi
+					printk("dual name: %.4s %.4s\n", (char*)code+1, (char*)code+5);
+					code += 8;
+					break;
+				}
+				case OPCODES::MultiNamePrefix: {
+					u8 num_name_segs = (u8)code[1];
+					printk("multi name (%d): ", num_name_segs);
+					for (u32 i = 0; i < num_name_segs; i++) {
+						printk("%.4s ", (char*)code + 2 + i * 4);
+					}
+					printk("\n");
+					code += 1 + num_name_segs * 4;
+					break;
+				}
+				case OPCODES::StoreOp: {
+					OPCODES* start = code;
+
+					u8 valbytes = -1;
+					u32 value = 0;
+					String* strval = nullptr;
+
+					code += 2;
+					process_value(&code, &valbytes, &value, &strval);
+					code += 1;
+					String asd = process_simplename(&code);
+					// Aztán jön a name amibe megy a store
+					if (valbytes)
+						printk("Store %s %08x\n", asd.c_str(), value);
+					else
+						printk("Store %s %s\n", asd.c_str(), strval->c_str());
+
+					// code--;
+					printk("next %02x\n", code[1]);
+					break;
+				}
+				// case OPCODES::ScopeOp: {
+				// 	printk("pkglen\n");
+				// 	pkglength(code + 1);
+				// 	break;
+				// }
+				default: {
+					if (op >= OPCODES::NameCharStart && op <= OPCODES::NameCharEnd) {
+						printk("Nev egymagaban: %.4s\n", (char*)(code));
+						code += 4;
+						switch(*code) {
+							case OPCODES::Arg0Op: {
+								printk("arg0\n");
+								break;
+							}
+							default: {
+								error("Unhandled op after name %.4s: %02x\n", (char*)code-4, *code);
+								break;
+							}
+						}
+					} else {
+						// for (u32 i = 0; i < names.size; i++) {
+						// 	if (names[i].valbytes)
+						// 		sprintk("ACPI szimbolum %.4s: %08x\n\r", (char*)&names[i].name, names[i].values.intval);
+						// 	else
+						// 		sprintk("ACPI szimbolum %.4s: %s\n\r", (char*)&names[i].name, names[i].values.strval->c_str());
+						// }
+						error("AML unhandled opcode %02x [%p]\n\r", (int)op, code);
+					}
+					break;
+				}
+			}
+
+			code++;
+		}
+	}
+}

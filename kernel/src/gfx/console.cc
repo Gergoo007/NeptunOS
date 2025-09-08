@@ -40,10 +40,30 @@ namespace console {
 		sprintk(" %dx%d (%d x %d glyphs)\n\r", glyphw, glyphh, num_glyphs, glyphsize);
 	}
 
+	void scroll() {
+		auto& fb = machine.fbs[current_fb];
+		u32* fb_base = VIRTUAL(fb.fb_addr);
+		u32 lineh = glyphh + pady;
+
+		memcpy(fb_base, fb_base + fb.fb_width * lineh, fb.fb_width * (fb.fb_height - lineh) * (fb.fb_bpp/8));
+
+		cy -= lineh;
+
+		memset(fb_base + (fb.fb_width * (fb.fb_height - lineh)), 0, fb.fb_width * lineh * (fb.fb_bpp/8));
+	}
+
 	void cputc(const char c) {
 		switch (c) {
 			case '\n': {
 				cy += glyphh + pady;
+				cx = 0;
+
+				if (cy >= machine.fbs[current_fb].fb_height - glyphh)
+					scroll();
+
+				return;
+			}
+			case '\r': {
 				cx = 0;
 				return;
 			}
@@ -96,5 +116,13 @@ void printk(const char* fmt, ...) {
 	va_list list;
 	va_start(list, fmt);
 	vprintf(fmt, list);
+	va_end(list);
+}
+
+__attribute__((format(printf, 1, 2)))
+void sprintk(const char* fmt, ...) {
+	va_list list;
+	va_start(list, fmt);
+	vfctprintf(sputc, fmt, list);
 	va_end(list);
 }

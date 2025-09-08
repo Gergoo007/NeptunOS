@@ -7,6 +7,7 @@
 #include <pci/pci.hh>
 #include <acpi/acpi.hh>
 #include <arch/amd64/paging.hh>
+#include <util/storage.hh>
 
 extern "C" noret void khang();
 
@@ -21,6 +22,7 @@ extern "C" void kmain() {
 
 	// Itt már az alapvető rendszerek működnek
 	cpp_construct_objects();
+
 	acpi::init();
 	pci::init();
 

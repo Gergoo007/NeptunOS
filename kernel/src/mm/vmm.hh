@@ -20,6 +20,7 @@ namespace vmm {
 	void init();
 	void* alloc(u64 size);
 	void* alloc_aligned(u64 size, u32 align);
+	void* realloc(void* ptr, u64 newsize);
 	u64 dump();
 	void free(void* p);
 }
