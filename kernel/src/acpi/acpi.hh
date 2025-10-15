@@ -1,6 +1,7 @@
 #pragma once
 
 #include <types.hh>
+#include <pci/pci.hh>
 
 namespace acpi {
 	pstruct gas {

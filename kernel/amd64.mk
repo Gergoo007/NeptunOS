@@ -8,7 +8,7 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++23 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
 	-Wno-unused-parameter -fno-stack-protector -mno-red-zone -O0 -g -Wno-multichar \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
-	-mcmodel=large -mabi=sysv
+	-mcmodel=large
 ASFLAGS +=
 LDFLAGS += -T linker.amd64.ld --no-gc-sections -static
 

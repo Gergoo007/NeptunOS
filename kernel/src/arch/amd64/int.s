@@ -39,7 +39,9 @@ sse_state:
 
 .section .text
 # Exceptionök
-DECLRISR 0, 9
+DECLRISR 0, 7
+DECLRISR_NOFLAG 8, 8
+DECLRISR 9, 9
 DECLRISR_NOFLAG 10, 14
 DECLRISR 15, 19
 
@@ -50,6 +52,7 @@ DECLRISR 64, 72
 
 pushall:
 	fxsave sse_state
+
 	push %rax
 	push %rbx
 	push %rcx

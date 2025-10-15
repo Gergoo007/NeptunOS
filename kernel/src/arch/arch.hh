@@ -26,6 +26,7 @@ namespace arch {
 	void init();
 	void late_init();
 	void read_boot_info();
+	void halt();
 }
 
 void sputc(const char c);

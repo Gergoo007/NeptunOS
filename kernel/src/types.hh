@@ -1,104 +1,49 @@
 #pragma once
 
-// #define TRACE_ALLOCS
+#include <ctypes.hh>
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
-typedef __uint128_t u128;
+template <typename T>
+constexpr T templatemax(T a) { return a; }
+template <typename T>
+constexpr const T& templatemax(const T& a, const T& b) { return a>b ? a : b; }
+template <typename T, typename... Ts>
+constexpr T templatemax(T a, Ts... args) { T b = templatemax(args...); return a > b ? a : b; }
 
-typedef char i8;
-typedef short i16;
-typedef int i32;
-typedef long long i64;
-typedef __int128_t i128;
+template <typename T>
+constexpr T templatemin(T a) { return a; }
+template <typename T>
+constexpr const T& templatemin(const T& a, const T& b) { return a<b ? a : b; }
+template <typename T, typename... Ts>
+constexpr T templatemin(T a, Ts... args) { T b = templatemin(args...); return a < b ? a : b; }
 
-typedef u8 uint8_t;
-typedef u16 uint16_t;
-typedef u32 uint32_t;
-typedef u64 uint64_t;
+// ChatGPT cuz I tried comprehending and got an aneurysm instead
+template<typename T, typename U>
+struct IsSame {
+	static constexpr bool value = false;
+};
 
-typedef i8 int8_t;
-typedef i16 int16_t;
-typedef i32 int32_t;
-typedef i64 int64_t;
+template<typename T>
+struct IsSame<T, T> {
+	static constexpr bool value = true;
+};
 
-typedef u16 wchar;
+template <typename T, typename... Ts>
+struct IndexOf;
 
-typedef u64 uintptr_t;
+// recursive case
+template <typename T, typename First, typename... Rest>
+struct IndexOf<T, First, Rest...> {
+	static constexpr u64 value =
+		IsSame<T, First>::value ? 0 : (1 + IndexOf<T, Rest...>::value);
+};
 
-typedef __SIZE_TYPE__ size_t;
-
-#define atomic _Atomic
-
-#define UINT64_C(v) v##ULL
-
-#define va_start(v, l)	__builtin_va_start(v,l)
-#define va_end(v)		__builtin_va_end(v)
-#define va_arg(v,l)		__builtin_va_arg(v,l)
-#define va_list __builtin_va_list
-
-#define foreach(var, l) for (i64 var = 0; var < (l); var++)
-#define offsetof(s, m) __builtin_offsetof(s, m)
-
-#define bytes2kibs(bytes) ((bytes) >> 10)
-#define bytes2mibs(bytes) ((bytes) >> 20)
-#define bytes2gibs(bytes) ((bytes) >> 30)
-#define bytes2tibs(bytes) ((bytes) >> 40)
-
-#define kib2bytes(kibs) ((kibs) << 10)
-#define mib2bytes(mibs) ((mibs) << 20)
-#define gib2bytes(gibs) ((gibs) << 30)
-#define tib2bytes(tibs) ((tibs) << 40)
-
-#define assert(c) if (!(c)) error("Assert failed: %s (%s:%d)", #c, __FILE__, __LINE__)
-
-#define align(x, n) ((typeof(x))(((x) & ((n)-1)) ? (((x) | ((n)-1))+1) : (x)))
-#define align_down(x, n) ((typeof(x))(((u64)x) & ~(((u64)n)-1)))
-
-#define noret __attribute__((noreturn))
-#define packed __attribute__((packed))
-#define interrupt __attribute__((interrupt))
-
-#define pstruct struct packed
-#define punion union packed
-
-extern struct elf64_sym* ksymtab;
-extern u32 ksymtab_size;
-extern void* kstrtab;
-extern u32 kstrtab_size;
-extern void* kshstrtab;
-extern u32 kshstrtab_size;
-extern void* kdebug_line;
-extern u32 kdebug_line_size;
-
-extern u8 _binary_src_font_psf_start;
-extern u8 _binary_src_font_psf_end;
-
-// higher half
-extern void* higherhalf;
-
-#define FONTFILE_START &_binary_src_font_psf_start
-#define FONTFILE_END &_binary_src_font_psf_end
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
-#define VIRTUAL(a) ((typeof(a))(u64(a) | u64(higherhalf)))
-#define PHYSICAL(a) ((typeof(a))(u64(a) & ~u64(higherhalf)))
-
-__attribute__((format(printf, 1, 2)))
-void printk(const char* fmt, ...);
-
-__attribute__((format(printf, 1, 2)))
-void sprintk(const char* fmt, ...);
-
-namespace console { extern void push_color(u32 color); extern void pop_color(); }
-#define report(fmt, ...) { console::push_color(0xffd0d0d0); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
-#define warn(fmt, ...) { console::push_color(0xffEB6534); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
-#define error(fmt, ...) { console::push_color(0xffC41E3D); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); console::pop_color(); }
-#define fatal(fmt, ...) { console::push_color(0xff710627); printk("[%s]: " fmt, __FILE_NAME__, ##__VA_ARGS__); while (1) asm volatile ("cli; hlt"); }
+// base case (type not found)
+// Már csak a T maradt, a Rest... elfogyott
+template <typename T>
+struct IndexOf<T> {
+	static constexpr u64 value = 0;
+	static_assert(sizeof(T) != 0, "Type not found in variant alternatives");
+};
 
 template <typename T>
 struct remove_reference { using type = T; };
@@ -116,7 +61,89 @@ move(typename remove_reference<T>::type& obj) noexcept {
 }
 
 template <typename T>
-constexpr remove_reference<T>::type&&
-forward(typename remove_reference<T>::type& obj) noexcept {
-	return static_cast<T&&>(obj);
+constexpr T&& forward(typename remove_reference<T>::type& arg) noexcept {
+	return static_cast<T&&>(arg);
 }
+
+template <typename T>
+struct UniquePtr {
+	T* ptr = nullptr;
+
+	template <typename... Args>
+	UniquePtr(Args&&... args) {
+		ptr = new T(forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	T& emplace (Args&&... args) {
+		if (ptr)
+			delete ptr;
+		return *(ptr = new T(forward<Args>(args)...));
+	}
+
+	constexpr T& operator*() {
+		if (ptr)
+			return *ptr;
+		else
+			fatal("uptr: not present [op  *]\n");
+	}
+
+	constexpr T* operator->() {
+		if (ptr)
+			return ptr;
+		else
+			fatal("uptr: not present [op ->]\n");
+	}
+
+	UniquePtr(UniquePtr& other) = delete;
+	UniquePtr(UniquePtr&& other) {
+		ptr = other.ptr;
+		other.ptr = nullptr;
+	}
+
+	~UniquePtr() {
+		if (ptr)
+			delete ptr;
+	}
+};
+
+template <typename T>
+struct Option {
+	aligned(alignof(T)) u8 buf[sizeof(T)];
+	bool present = false;
+
+	Option() {  }
+
+	template <typename... Args>
+	Option(Args&&... args): present(true) {
+		new ((T*)buf) T(forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void emplace(Args&&... args) {
+		if (present)
+			((T*)buf)->~T();
+
+		present = true;
+		new ((T*)buf) T(forward<Args>(args)...);
+	}
+
+	constexpr T& operator*() {
+		if (present)
+			return *(T*)buf;
+		else
+			fatal("option: not present [op  *]\n");
+	}
+
+	constexpr T* operator->() {
+		if (present)
+			return (T*)buf;
+		else
+			fatal("option: not present [op ->]\n");
+	}
+
+	~Option() {
+		if (present)
+			((T*)buf)->~T();
+	}
+};

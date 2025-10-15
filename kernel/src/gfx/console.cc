@@ -117,12 +117,21 @@ void printk(const char* fmt, ...) {
 	va_start(list, fmt);
 	vprintf(fmt, list);
 	va_end(list);
+
+	#ifdef SERIALPRINTK
+	va_list list2;
+	va_start(list2, fmt);
+	vprintf2(fmt, list2);
+	va_end(list2);
+	#endif
 }
 
 __attribute__((format(printf, 1, 2)))
 void sprintk(const char* fmt, ...) {
+	#ifndef SERIALPRINTK
 	va_list list;
 	va_start(list, fmt);
-	vfctprintf(sputc, fmt, list);
+	vprintf2(fmt, list);
 	va_end(list);
+	#endif
 }

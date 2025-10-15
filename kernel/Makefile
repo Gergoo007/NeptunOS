@@ -3,7 +3,7 @@ MAKEFLAGS += --no-builtin-variables
 
 ARCH ?= AMD64
 
-CCSRCS += $(subst src/,,$(shell find src -name *.cc -not -path 'src/arch/*')) arch/arch.cc
+CCSRCS += $(subst src/,,$(shell find src -name *.cc -not -path 'src/arch/*' -not -path '*bakexclude*')) arch/arch.cc
 
 ifeq ($(ARCH),AMD64)
 include amd64.mk

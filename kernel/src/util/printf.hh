@@ -33,9 +33,8 @@
 
 #include <types.hh>
 
-namespace console {
-extern void cputc(const char c);
-}
+namespace console { extern void cputc(const char c); }
+extern void sputc(const char c);
 
 // #ifdef __cplusplus
 // extern "C" {
@@ -49,7 +48,7 @@ extern void cputc(const char c);
  */
 // void _putchar(char character);
 #define _putchar(c) console::cputc(c)
-
+#define _putchar2(c) sputc(c)
 
 /**
  * Tiny printf implementation
@@ -93,7 +92,7 @@ int vsnprintf(char* buffer, size_t count, const char* format, va_list va);
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
 int vprintf(const char* format, va_list va);
-
+int vprintf2(const char* format, va_list va);
 
 /**
  * printf with output function

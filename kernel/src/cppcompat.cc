@@ -17,25 +17,29 @@ void cpp_construct_objects() {
 }
 
 void* operator new(size_t size) {
-	return vmm::alloc(size);
+	return kmalloc(size);
 }
 
 void* operator new[](size_t size) {
-	return vmm::alloc(size);
+	return kmalloc(size);
+}
+
+void* operator new(size_t size, void* ptr) noexcept {
+	return ptr;
 }
 
 void operator delete(void* ptr, size_t size) noexcept {
-	vmm::free(ptr);
+	kfree(ptr);
 }
 
 void operator delete(void* ptr) noexcept {
-	vmm::free(ptr);
+	kfree(ptr);
 }
 
 void operator delete[](void* ptr, size_t size) noexcept {
-	vmm::free(ptr);
+	kfree(ptr);
 }
 
 void operator delete[](void* ptr) noexcept {
-	vmm::free(ptr);
+	kfree(ptr);
 }

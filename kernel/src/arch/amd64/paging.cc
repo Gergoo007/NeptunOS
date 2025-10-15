@@ -121,4 +121,10 @@ namespace arch {
 
 		asm volatile ("invlpg (%0)" :: "r"(virt));
 	}
+
+	void check_page(u64 addr) {
+		if (arch::paging_lookup(addr) == (u64)-1) {
+			arch::map_page(addr, PHYSICAL(addr), 0b11, arch::MCACHE::UC);
+		}
+	}
 }

@@ -20,7 +20,12 @@ extern "C" void onInterrupt(arch::idt::cpu_regs* frame) {
 	print_reg(frame, rdx, cr2); printk("\n");
 	print_reg(frame, rip, rfl); printk("\n");
 	print_reg(frame, rsp, rbp); printk("\n");
-	fatal("Halting...\n");
+	console::push_color(0xff710627);
+	printk("Halting...\n");
+	asm volatile ("movq %0, %%rsp" :: "r"(frame->rsp));
+	asm volatile ("movq %0, %%rbp" :: "r"(frame->rbp));
+	asm volatile ("cli");
+	asm volatile ("hlt");
 }
 
 namespace arch::idt {

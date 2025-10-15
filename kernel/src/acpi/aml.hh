@@ -54,7 +54,7 @@ namespace acpi {
 		TimerOp = 0x33,
 		OpRegionOp = 0x80,
 		FieldOp = 0x81,
-		DeviceOpList = 0x82,
+		DeviceOp = 0x82,
 		ProcessorOp = 0x83,
 		PowerResOp = 0x84,
 		ThermalZoneOpList = 0x85,
@@ -135,6 +135,8 @@ namespace acpi {
 		BreakPointOp = 0xCC,
 		OnesOp = 0xFF,
 	};
+
+	extern OPCODES* tablestart;
 
 	void process_aml(OPCODES* code, u64 len);
 }

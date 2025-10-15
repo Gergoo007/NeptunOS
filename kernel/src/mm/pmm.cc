@@ -13,7 +13,7 @@ static volatile limine_memmap_request mm_req = {
 };
 
 namespace pmm {
-	u64 free = 0, used = 0, reserved = 0;
+	u64 freemem = 0, usedmem = 0, reservedmem = 0;
 	u8 bitmapStorage[sizeof(Bitmap)];
 	Bitmap* bm;
 	void* heap_base;
@@ -37,17 +37,17 @@ namespace pmm {
 				case MMAP_TYPES::LIMINE_MEMMAP_BAD_MEMORY:
 				case MMAP_TYPES::LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
 				case MMAP_TYPES::LIMINE_MEMMAP_FRAMEBUFFER:
-					reserved += r->entries[i]->length;
+					reservedmem += r->entries[i]->length;
 					break;
 				case MMAP_TYPES::LIMINE_MEMMAP_KERNEL_AND_MODULES:
-					used += r->entries[i]->length;
+					usedmem += r->entries[i]->length;
 					break;
 				case MMAP_TYPES::LIMINE_MEMMAP_USABLE:
 					if (r->entries[i]->length > heap_size) {
 						heap_size = r->entries[i]->length;
 						heap_base = (void*)r->entries[i]->base;
 					}
-					free += r->entries[i]->length;
+					freemem += r->entries[i]->length;
 					break;
 				break;
 			}
@@ -58,8 +58,8 @@ namespace pmm {
 		u64 buffer_size = heap_size / pagesize / 8 / pagesize + 1;
 		for (u32 i = 0; i < buffer_size; i++) {
 			bm->set(i, true);
-			used += pagesize;
-			free -= pagesize;
+			usedmem += pagesize;
+			freemem -= pagesize;
 		}
 	}
 

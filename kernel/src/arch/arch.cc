@@ -58,3 +58,7 @@ namespace arch {
 void sputs(const char* s) {
 	while (*s) sputc(*(s++));
 }
+
+void hlt() {
+	arch::halt();
+}

@@ -2,161 +2,353 @@
 #include <mm/vmm.hh>
 #include <acpi/util.hh>
 #include <util/storage.hh>
+#include <util/stacktrace.hh>
 
 namespace acpi {
-	NameStore names;
-	Stack<u64> state;
+	Namespace ns;
+	OPCODES* tablestart;
+	// Lehet hogy vannak nested scope opcode-ok
+	ScopeStack scope;
 
-	u64 process_pkglength(OPCODES*& code) {
-		u8 leadbyte = (u8)*(code++);
+	// Ezeknek nincs nevük ezért vannak külön helyen a namespace-től
+	Vector<Field> fields;
 
-		u32 bytes = (leadbyte >> 6);
+	// TODO: Watermark allocator-ral lehet jobban járunk mivel
+	// az ACPI namespace élettartama megegyezik a kernel élettartamával
 
-		if (!bytes) {
-			// Csak LeadByte van
-			return leadbyte & 0b00111111;
-		} else {
-			u64 pkglength = leadbyte & 0b00001111;
-			for (u32 i = 0; i < bytes; i++) {
-				u32 byte = (u8)*(code++);
-				// 4 bit alapból meg van a leadbyte-ból,
-				pkglength |= byte << (4 + i * 8);
+	// TODO: A scope-ok használjanak olyan stack-et ami a watermark allocatort használja
+
+	// TODO: !!!! A NAME KEZDŐDHET ^-EL VAGY \-EL IS, EZEKET
+	// NEM TUDJA KEZELNI A process_name() JELENLEG
+
+	void process_fieldelement(OPCODES*& code, Field& field, u32& currentoffs) {
+		switch (*(u8*)code) {
+			case 0x00: {
+				// ReservedField
+				code++; // 0x00
+				u32 asd = process_pkglength(code);
+				currentoffs += asd;
+				break;
 			}
-
-			return pkglength;
-		}
-	}
-
-	DataObject process_dataobject(OPCODES*& code) {
-		DataObject ret {};
-		// auto rtype = DataObject::BYTE;
-		// u64 rintval = 0;
-		// char* rstrval = nullptr;
-		auto& rtype = ret.type;
-		u64& rintval = ret.values.integer;
-		const char*& rstrval = ret.values.string;
-
-		// Az integerekből annyi van hoy inkább
-		// hagyom elérni a function végét, a többi adattípust viszont azonnal
-		// returnölöm
-
-		switch (*(code++)) {
-			case OPCODES::BytePrefix: {
-				rtype = DataObject::BYTE;
-				rintval = (u8)*code;
+			case 0x01: {
+				// AccessField
 				code++;
+				AccessType at = *(AccessType*)(code++);
+				AccessAttrib aa = *(AccessAttrib*)(code++);
+				fatal("accessfield\n");
+				// printk("AccessField.. type: %01x attrib as: %01x; Attrib: %02x\n", at.accesstype, at.attribas, aa);
 				break;
 			}
-			case OPCODES::WordPrefix: {
-				rtype = DataObject::WORD;
-				rintval = *(u16*)code;
-				code += 2;
-				break;
-			}
-			case OPCODES::DWordPrefix: {
-				rtype = DataObject::DWORD;
-				rintval = *(u32*)code;
-				code += 4;
-				break;
-			}
-			case OPCODES::QWordPrefix: {
-				rtype = DataObject::QWORD;
-				rintval = *(u64*)code;
-				code += 8;
-				break;
-			}
-			case OPCODES::OneOp: {
-				rtype = DataObject::BYTE;
-				rintval = 0x01;
-				break;
-			}
-			case OPCODES::OnesOp: {
-				rtype = DataObject::BYTE;
-				rintval = 0xff;
-				break;
-			}
-			case OPCODES::ZeroOp: {
-				rtype = DataObject::BYTE;
-				rintval = 0x00;
-				break;
-			}
-			case OPCODES::StringPrefix: {
-				rtype = DataObject::STRING;
-				u32 rstrchars = strlen((char*)code);
-				rstrval = (char*)code;
-				code += rstrchars + 1;
-
-				return DataObject(DataObject::STRING, rstrval);
-				break;
-			}
-			case OPCODES::PackageOp: {
-				rtype = DataObject::PACKAGE;
-				u64 numbytes = process_pkglength(code);
-				u8 numelems = *(u8*)(code++);
-				Package pkg(numelems);
-				warn("Package: numelems: %d, bytes: %d\n", numelems, (u32)numbytes);
-
-				for (u32 i = 0; i < numelems; i++)
-					pkg[i] = process_dataobject(code);
-
-				for (u32 i = 0; i < numelems; i++)
-					error("data %d: %llu\n", i, pkg[i].values.integer);
-
-				return DataObject(DataObject::PACKAGE, pkg);
-
+			case 0x02: {
+				// ConnectField
+				fatal("connectfield");
 				break;
 			}
 			default: {
-				fatal("Kezeletlen data object: %02x\n", (u8)*(code-1));
+				if (ISSTRING(code)) {
+					// NamedField
+					ObjectKey key(scope, code);
+					u32 pkglen = process_pkglength(code);
+					ns.emplace(key).object.emplace<FieldElem>(field, pkglen, currentoffs);
+					currentoffs += pkglen;
+				} else {
+					error("Ismeretlen field [+%lx]: %02x %02x\n", code - tablestart, *((u8*)code), *((u8*)code+1));
+				}
 				break;
 			}
 		}
+	}
 
-		return DataObject(rtype, rintval);
+	// // A null-t is kezeli
+	// void process_supername(OPCODES*& code) {
+	// 	switch (*code) {
+	// 		case OPCODES::ZeroOp: {
+	// 			printk("zero\n");
+	// 			code++;
+	// 			break;
+	// 		}
+	// 		case OPCODES::Arg0Op: {
+	// 			printk("arg0\n");
+	// 			code++;
+	// 			break;
+	// 		}
+	// 		default: {
+	// 			if (ISSTRING(code)) {
+	// 				Reference name(currentScope, code);
+	// 				printk("name: %.4s\n", name.c_str());
+	// 			} else {
+	// 				fatal("Ismeretlen supername prefix: %02x\n", *(u8*)code);
+	// 			}
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	// bool process_condition(OPCODES*& code) {
+	// 	switch (*code) {
+	// 		case OPCODES::ExtOpPrefix: {
+	// 			code++;
+	// 			switch (*code) {
+	// 				case OPCODES::CondRefOfOp: {
+	// 					code++;
+	// 					printk("condrefoif\n");
+	// 					process_supername(code);
+	// 					process_supername(code);
+	// 					printk("code %02x\n", *code);
+	// 					break;
+	// 				}
+	// 				default: {
+	// 					fatal("Ismeretlen kondicio EXT opkod: 5b %02x [%02x]", *code, *(code+1));
+	// 					break;
+	// 				}
+	// 			}
+	// 			break;
+	// 		}
+	// 		default: {
+	// 			fatal("Ismeretlen kondicio opkod: %02x [%02x]", *code, *(code+1));
+	// 			break;
+	// 		}
+	// 	}
+
+	// 	printk("namestore dump\n");
+	// 	while (1);
+	// 	for (u32 i = 0; i < names.size; i++) {
+	// 		printk("%s: [%d] %16llx\n", names[i].key.c_str(), names[i].data.type, names[i].data.values.integer);
+	// 	}
+
+	// 	fatal("jaj\n");
+	// }
+
+	void nsdump() {
+		printk("ns dump:\n");
+		for (auto& n : ns) {
+			printk("%s: type %lld\n", n.key.c_str(), n.object.idx);
+		}
+		hlt();
 	}
 
 	void process_aml(OPCODES* code, u64 len) {
+		tablestart = code - 0x24;
+		OPCODES* amlstart = code;
 		OPCODES* end = code + len;
 
 		// Mindegyik case kezdeténél a 'code' a switchelt opcode-ra mutat,
-		// a 'code' növelése a case blokk felelőssége.
+		// a 'code' növelése a case blokk felelőssége
 		while (code < end) {
+			// Érvényes még a jelenlegi scope?
+			while (scope.size && code >= scope.last().end) {
+				Name name = scope.pop().name;
+				printk("exit scope %.4s\n", name.c_str());
+			}
+
 			switch (*code) {
+				default: {
+					fatal("ismeretlen opkod @ %lx %02x %02x\n", code - tablestart, *(u8*)code, *(u8*)(code+1));
+					break;
+				}
 				case OPCODES::NameOp: {
 					code++;
-					u32 name = *(u32*)code;
-					code += 4;
-					DataObject data = process_dataobject(code);
-					printk("nameop %.4s: %llx\n", (char*)&name, data.values.integer);
-					names.insert(name, data);
+					ObjectKey key(scope, code);
+					ns.emplace(key, ObjectValue(scope, code));
 					break;
 				}
 				case OPCODES::MethodOp: {
 					OPCODES* start = code;
-
 					code++;
 					u64 length = process_pkglength(code);
-					u32 name = *(u32*)code;
-					code += 4;
+					Name n(code);
+					printk("n of %s [%d %x bytes] @ %x\n", n.c_str(), (u32)length, (u32)length, (u32)(code - tablestart));
 					MethodFlags flags = *(MethodFlags*)code;
 					code++;
 
-					DataObject method(DataObject::METHOD, code, length);
-					printk("Talaltam methodot: %.4s, %llu byte; %d argumentum\n", (char*)&name, length, flags.argcount);
-					names.insert(name, method);
+					ns.emplace(ObjectKey(scope, n)).object.emplace<Method>();
+					// ns.insert(scope, code);
 
 					code = start + length + 1;
 
-					if (!memcmp((void*)(char*)&name, (void*)"PXXX", 4)) {
-						printk("halo: %llx\n", names["PICM"].values.integer);
+					break;
+				}
+				case OPCODES::ScopeOp: {
+					code++;
+					auto start = code;
+					u64 length = process_pkglength(code);
+
+					auto turiend = start + length;
+					MultiName mn(code);
+
+					for (auto turi : mn.names) {
+						error("enter scope %s\n", turi.c_str());
+						scope.push(Scope { turi, turiend });
 					}
 
+					// warn("enter scope %.4s of %lld bytes (exit @ %p)\n", (char*)&name, length, (start + length));
 					break;
 				}
-				default: {
-					fatal("Kezeletlen AML opcode: [%02x] [%02x] %02x [%02x]\n", *(u8*)code-2, *(u8*)code-1, *(u8*)code, *(u8*)code+1);
+				case OPCODES::ExtOpPrefix: {
+					code++;
+					switch (*code) {
+						case OPCODES::OpRegionOp: {
+							code++;
+							ObjectKey name(scope, code);
+							// printk("opregion name: %.4s\n", (char*)&name);
+							RegionSpace region = *(RegionSpace*)(code++);
+							// printk("offset\n");
+							ObjectValue regionoffset(scope, code);
+							// printk("len\n");
+							ObjectValue regionlength(scope, code);
+
+							// printk("region: %d\n", region);
+							// printk("region offset & len %llx; %llx\n", regionoffset.values.integer, regionlength.values.integer);
+							OpRegion opregion;
+							opregion.type = region;
+							opregion.base = regionoffset.evalToInt();
+							opregion.length = regionlength.evalToInt();
+							ns.emplace(name).object.emplace<OpRegion>(opregion);
+							break;
+						}
+						case OPCODES::FieldOp: {
+							OPCODES* start = code;
+							code++;
+							u32 pkglen = process_pkglength(code);
+							ObjectPath oprName(scope, code);
+							FieldFlags flags = *(FieldFlags*)(code++);
+							printk("oprname %s\n", oprName.toString().c_str());
+
+							printk("FieldOp: %s; access: %d, lock: %d, update: %d\n", oprName.toString().c_str(), flags.accesstype, flags.lock, flags.updaterule);
+
+							auto* ov = oprName.resolve();
+							if (!ov)
+								fatal("Nem talalhato a kovetkezo namespace elem: %s\n", oprName.toString().c_str());
+
+							Field& field = fields.emplace(ov->get<OpRegion>());
+							field.fags = flags;
+							field.type = Field::REGULAR;
+
+							u32 currentoffs = 0;
+							while (code < (start + pkglen))
+								process_fieldelement(code, field, currentoffs);
+
+							break;
+						}
+						case OPCODES::IndexFieldOp: {
+							OPCODES* start = code;
+							code++;
+							u32 pkglen = process_pkglength(code);
+							ObjectPath indxReg(scope, code);
+							ObjectPath dataReg(scope, code);
+							FieldFlags flags = *(FieldFlags*)(code++);
+							printk("indxreg %s\n", indxReg.toString().c_str());
+							printk("datareg %s\n", dataReg.toString().c_str());
+
+							printk("IndexFieldOp: %s %s; access: %d, lock: %d, update: %d\n", indxReg.toString().c_str(), dataReg.toString().c_str(), flags.accesstype, flags.lock, flags.updaterule);
+
+							auto* ov1 = indxReg.resolve();
+							if (!ov1)
+								fatal("Nem talalhato a kovetkezo namespace elem: %s\n", indxReg.toString().c_str());
+							FieldElem& e1 = ov1->get<FieldElem>();
+
+							auto* ov2 = dataReg.resolve();
+							if (!ov2)
+								fatal("Nem talalhato a kovetkezo namespace elem: %s\n", dataReg.toString().c_str());
+							FieldElem& e2 = ov2->get<FieldElem>();
+
+							Field& field = fields.emplace();
+							field.fags = flags;
+							field.type = Field::INDEXED;
+
+							u32 currentoffs = 0;
+							while (code < (start + pkglen))
+								process_fieldelement(code, field, currentoffs);
+
+							break;
+						}
+						case OPCODES::DeviceOp: {
+							code++;
+
+							auto start = code;
+							u32 length = process_pkglength(code);
+							// TODO: NameString
+							// u32 name = *(u32*)code;
+							// warn("UJ ESZKOZ SCOPE: %.4s\n", (char*)code);
+							Name name(code);
+							scope.push(Scope { name, start + length });
+							// warn("enter dev scope %.4s\n", (char*)&name);
+
+							break;
+						}
+						case OPCODES::MutexOp: {
+							code++;
+							ObjectPath name(scope, code);
+							SyncFlags fl = *(SyncFlags*)(code++);
+							printk("mutex of name %.4s\n", name.toString().c_str());
+							break;
+						}
+						default: {
+							nsdump();
+							fatal("Kezeletlen AML EXT opcode [+0x%lx]: [%02x] [%02x] %02x [%02x]\n", code - tablestart, *(u8*)(code-2), *(u8*)(code-1), *(u8*)code, *(u8*)(code+1));
+							break;
+						}
+					}
 					break;
 				}
+				case OPCODES::AliasOp: {
+					code++;
+					ObjectPath name1(scope, code);
+					ObjectPath name2(scope, code);
+					printk("alias %.4s to %.4s\n", name1.toString().c_str(), name2.toString().c_str());
+					break;
+				}
+				// case OPCODES::CreateByteFieldOp:
+				// case OPCODES::CreateWordFieldOp:
+				// case OPCODES::CreateDWordFieldOp:
+				// case OPCODES::CreateQWordFieldOp: {
+				// 	u8 type;
+				// 	switch (*code) {
+				// 		case OPCODES::CreateByteFieldOp:
+				// 			type = 0;
+				// 			break;
+				// 		case OPCODES::CreateWordFieldOp:
+				// 			type = 1;
+				// 			break;
+				// 		case OPCODES::CreateDWordFieldOp:
+				// 			type = 2;
+				// 			break;
+				// 		case OPCODES::CreateQWordFieldOp:
+				// 			type = 3;
+				// 			break;
+				// 		default: break;
+				// 	}
+
+				// 	code++;
+				// 	DataObject buffer = process_dataobject(code);
+				// 	assert(buffer.type == DataObject::REFERENCE);
+
+				// 	DataObject byteIdx = process_dataobject(code);
+				// 	Reference name(currentScope, code);
+
+				// 	DataObject field = DataObject(
+				// 		DataObject::BUFFERFIELD,
+				// 		BufferField(
+				// 			buffer.values.ref, byteIdx.evalToInt(), (typeof(BufferField::access))type
+				// 		)
+				// 	);
+				// 	names.insert(name, field);
+				// 	break;
+				// }
+				// case OPCODES::IfOp: {
+				// 	code++;
+
+				// 	u32 pkglen = process_pkglength(code);
+				// 	printk("ifop of %d bytes\n", pkglen);
+				// 	bool cond = process_condition(code);
+				// 	printk("next byte %02x\n", *code);
+
+				// 	break;
+				// }
+				// default: {
+				// 	fatal("Kezeletlen AML opcode [+0x%lx]: [%02x] [%02x] %02x [%02x]\n", code - tablestart, *(u8*)(code-2), *(u8*)(code-1), *(u8*)code, *(u8*)(code+1));
+				// 	break;
+				// }
 			}
 		}
 	}

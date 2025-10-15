@@ -2,22 +2,16 @@
 #include <arch/amd64/idt.hh>
 #include <arch/amd64/gdt.hh>
 #include <arch/amd64/tss.hh>
+#include <arch/amd64/io.hh>
 #include <mm/vmm.hh>
 
 #define PORT 0x3f8
 
-static inline void outb(u16 port, u8 data) {
-	asm volatile ("outb %0, %1" :: "a"((u8)data), "d"((u16)port));
-}
-
-static inline u8 inb(u16 port) {
-	u8 data;
-	asm volatile ("inb %%dx, %%al" : "=a"(data) : "d"((u16)port));
-	return data;
-}
+extern "C" void sse_init();
 
 namespace arch {
 	void init() {
+		sse_init();
 		sinit();
 	}
 
@@ -26,28 +20,35 @@ namespace arch {
 		arch::tss::init();
 		arch::idt::init();
 	}
+
+	void halt() {
+		asm volatile ("hlt");
+	}
 }
 
 void sinit() {
-	outb(PORT + 1, 0x00);
-	outb(PORT + 3, 0x80);
-	outb(PORT + 0, 0x03);
-	outb(PORT + 1, 0x00);
-	outb(PORT + 3, 0x03);
-	outb(PORT + 2, 0xC7);
+	arch::outb(PORT + 1, 0x00);
+	arch::outb(PORT + 3, 0x80);
+	arch::outb(PORT + 0, 0x03);
+	arch::outb(PORT + 1, 0x00);
+	arch::outb(PORT + 3, 0x03);
+	arch::outb(PORT + 2, 0xC7);
 	// outb(PORT + 4, 0x0B);
-	outb(PORT + 4, 0x1E);
-	outb(PORT + 0, 0xAE);
+	arch::outb(PORT + 4, 0x1E);
+	arch::outb(PORT + 0, 0xAE);
 
-	outb(PORT + 4, 0x0F);
+	arch::outb(PORT + 4, 0x0F);
 }
 
 void sputc(const char c) {
-	while ((inb(PORT + 5) & 0x20) == 0);
-	outb(PORT, c);
+	while ((arch::inb(PORT + 5) & 0x20) == 0);
+	arch::outb(PORT, c);
+	if (c == '\n')
+		sputc('\r');
 }
 
 char sgetc() {
-	while ((inb(PORT + 5) & 1) == 0);
-	return inb(PORT);
+	while ((arch::inb(PORT + 5) & 1) == 0);
+	return arch::inb(PORT);
 }
+

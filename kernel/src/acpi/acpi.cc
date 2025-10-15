@@ -5,6 +5,8 @@
 #include <arch/amd64/paging.hh>
 #include <acpi/aml.hh>
 
+#include <pci/pci.hh>
+
 __attribute__((section(".limine_requests"), used))
 static volatile limine_rsdp_request rsdp_req {
 	.id = LIMINE_RSDP_REQUEST,
@@ -13,10 +15,10 @@ static volatile limine_rsdp_request rsdp_req {
 };
 
 // array size is 45666
-static constexpr u8 practice[]  = {
-//   0x44, 0x53, 0x44, 0x54, 0x62, 0xb2, 0x00, 0x00, 0x02, 0xa4, 0x41, 0x4c, 0x41, 0x53, 0x4b, 0x41,
-//   0x41, 0x20, 0x4d, 0x20, 0x49, 0x20, 0x00, 0x00, 0x09, 0x20, 0x07, 0x01, 0x49, 0x4e, 0x54, 0x4c,
-//   0x13, 0x09, 0x12, 0x20,
+static constexpr u8 practice[] = {
+	0x44, 0x53, 0x44, 0x54, 0x62, 0xb2, 0x00, 0x00, 0x02, 0xa4, 0x41, 0x4c, 0x41, 0x53, 0x4b, 0x41,
+	0x41, 0x20, 0x4d, 0x20, 0x49, 0x20, 0x00, 0x00, 0x09, 0x20, 0x07, 0x01, 0x49, 0x4e, 0x54, 0x4c,
+	0x13, 0x09, 0x12, 0x20,
 
 	0x08, 0x45, 0x4e, 0x54, 0x4b, 0x0a, 0x87, 0x08, 0x45, 0x58, 0x54, 0x4b,
 	0x0a, 0xaa, 0x08, 0x53, 0x50, 0x31, 0x4f, 0x0a, 0x2e, 0x08, 0x49, 0x4f, 0x48, 0x57, 0x0b, 0x90,
@@ -2909,27 +2911,33 @@ namespace acpi {
 
 	static void check(void* a) {
 		if (arch::paging_lookup((u64)a) == (u64)-1)
-			arch::map_page(VIRTUAL((u64)a), (u64)PHYSICAL(a), (u32)arch::MFLAGS::KDATA);
+			arch::map_page(VIRTUAL((u64)a), PHYSICAL((u64)a), (u32)arch::MFLAGS::KDATA);
 	}
 
 	static void checkTable(SDT* a) {
 		check(a);
-		for (u64 i = 0; i < a->length + 0x1000; i += 0x1000)
+		printk("map3 %p; %d\n", a, a->length);
+		for (u64 i = 0; i < align(a->length, 0x1000); i += 0x1000) {
+			printk("map2 %p; %d\n", a, a->length);
 			check((u8*)a + i);
+		}
 	}
 
 	void process_fadt(FADT* fadt) {
 		fadt = VIRTUAL(fadt);
 		checkTable((SDT*)fadt);
 
-		SDT* dsdt = fadt->x_dsdt ? (SDT*)fadt->x_dsdt : (SDT*)(u64)fadt->dsdt;
+		SDT* dsdt = VIRTUAL((SDT*)fadt->x_dsdt);
+		check(dsdt);
+		if (dsdt->sign != 'TDSD')
+			dsdt = (SDT*)(u64)fadt->dsdt;
 		dsdt = VIRTUAL(dsdt);
 		checkTable(dsdt);
 
 		if (!validate(dsdt))
 			error("Hibas DSDT!\n");
 
-		process_aml((OPCODES*)practice, sizeof(practice));
+		process_aml((OPCODES*)practice + sizeof(SDT), sizeof(practice));
 		// process_aml((OPCODES*)((u8*)dsdt + sizeof(SDT)), dsdt->length - sizeof(SDT));
 	}
 
@@ -2963,12 +2971,17 @@ namespace acpi {
 			else
 				addr = VIRTUAL((SDT*)(u64)rsdt->rsdtptrs[i]);
 			check(addr);
-			tables.push_back(addr);
+			// tables.emplace(addr);
+			tables.emplace(addr);
 		}
 
 		for (SDT* i : tables) {
-			if (i->sign == SIGNS::FADT)
-				process_fadt((FADT*)i);
+			// if (i->sign == SIGNS::FADT)
+			// 	process_fadt((FADT*)i);
+
+			if (i->sign == SIGNS::MCFG)
+				pci::mcfg = (pci::MCFG*)i;
+
 			// printk("%.4s: %p\n", (char*)&(i->sign), i);
 		}
 	}

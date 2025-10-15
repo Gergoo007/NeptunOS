@@ -1,63 +1,247 @@
 #include <acpi/util.hh>
 #include <cppcompat.hh>
+#include <acpi/aml.hh>
 
 namespace acpi {
-	NameStore::NameStore() {
-		entries = (Entry*)vmm::alloc(capacity * sizeof(Entry));
+	extern Namespace ns;
+
+	u64 process_pkglength(OPCODES*& code) {
+		u8 leadbyte = (u8)*(code++);
+
+		u32 bytes = (leadbyte >> 6);
+
+		if (!bytes) {
+			// Csak LeadByte van
+			return leadbyte & 0b00111111;
+		} else {
+			u64 pkglength = leadbyte & 0b00001111;
+			for (u32 i = 0; i < bytes; i++) {
+				u32 byte = (u8)*(code++);
+				// 4 bit alapból meg van a leadbyte-ból,
+				pkglength |= byte << (4 + i * 8);
+			}
+
+			return pkglength;
+		}
 	}
 
-	// void NameStore::insert(u32 name, DataObject::Type type, u64 intval) {
-	// 	new (&entries[size++]) Entry { name, DataObject(type, intval) };
-	// }
+	ObjectValue::ObjectValue(ScopeStack& scope, OPCODES*& code) {
+		switch (*(code++)) {
+			case OPCODES::BytePrefix: {
+				emplace<Integer>(*(u8*)code, Integer::BYTE);
+				code++;
+				break;
+			}
+			case OPCODES::WordPrefix: {
+				emplace<Integer>(*(u16*)code, Integer::WORD);
+				code += 2;
+				break;
+			}
+			case OPCODES::DWordPrefix: {
+				emplace<Integer>(*(u32*)code, Integer::DWORD);
+				code += 4;
+				break;
+			}
+			case OPCODES::QWordPrefix: {
+				emplace<Integer>(*(u64*)code, Integer::QWORD);
+				code += 8;
+				break;
+			}
+			case OPCODES::OneOp: {
+				emplace<Integer>(0x01, Integer::BYTE);
+				break;
+			}
+			case OPCODES::OnesOp: {
+				emplace<Integer>(0xff, Integer::BYTE);
+				break;
+			}
+			case OPCODES::ZeroOp: {
+				emplace<Integer>(0x00, Integer::BYTE);
+				break;
+			}
+			case OPCODES::StringPrefix: {
+				u32 rstrchars = strlen((char*)code);
+				emplace<String>((const char*)code, rstrchars);
+				code += rstrchars + 1;
+				break;
+			}
+			case OPCODES::PackageOp: {
+				u64 numbytes = process_pkglength(code);
+				u8 numelems = *(u8*)(code++);
+				Package& pkg = emplace<Package>(numelems);
+				// warn("Package: numelems: %d, bytes: %d\n", numelems, (u32)numbytes);
 
-	// void NameStore::insert(u32 name, const char* value) {
-	// 	new (&entries[size++]) Entry { name, DataObject(DataObject::STRING, value) };
-	// 	// entries[size++] = entry(name, value);
-	// }
+				for (u32 i = 0; i < numelems; i++)
+					pkg.emplace(scope, code);
+				break;
+			}
+			case OPCODES::BufferOp: {
+				u32 length = process_pkglength(code);
+				u64 buffersize = ObjectValue(scope, code).evalToInt();
 
-	void NameStore::insert(u32 name, DataObject& data) {
-		new (&entries[size++]) Entry { name, DataObject(data) };
-		// entries[size++] = entry(name, value);
+				emplace<Buffer>((u8*)code, buffersize);
+				code += buffersize;
+				break;
+			}
+			default: {
+				code--;
+				if (ISSTRING(code)) {
+					// Reference name(currentScope, code);
+					// // printk("referenbce to %.4s\n", (char*)&name);
+					// return DataObject(DataObject::REFERENCE, name);
+
+					emplace<ObjectPath>(scope, code);
+				} else {
+					fatal(
+						"Kezeletlen ObjectValue prefix: [%02x] %02x [%02x %02x] @ %lx\n",
+						*(u8*)(code-1), *(u8*)code, *(u8*)(code+1), *(u8*)(code+2), code - tablestart
+					);
+				}
+				break;
+			}
+		}
 	}
 
-	DataObject& NameStore::byName(u32 name) {
-		for (u32 i = 0; i < size; i++)
-			if (entries[i].name == name)
-				return entries[i].data;
-		fatal("No such name: %.4s\n", (char*)&name);
+	u64 ObjectValue::evalToInt() {
+		switch (idx) {
+			case IndexOf<Integer, OBJECT_VARIANT_TYPES>::value: {
+				return get<Integer>().value;
+			}
+			case IndexOf<ObjectPath, OBJECT_VARIANT_TYPES>::value: {
+				ObjectValue* sym = get<ObjectPath>().resolve();
+				if (!sym)
+					fatal("Unable to find name '%s'!\n", get<ObjectPath>().toString().c_str());
+				return sym->evalToInt();
+			}
+			case IndexOf<FieldElem, OBJECT_VARIANT_TYPES>::value: {
+				FieldElem& fe = get<FieldElem>();
+				Field& f = fe.parent;
+
+				if (f.type == Field::REGULAR) {
+					u64 addr = f.opregion.base;
+					assert(!(fe.offset & 7));
+					addr += fe.offset;
+					return addr;
+				} else if (f.type == Field::INDEXED) {
+					fatal("Indexed field to int?\n");
+				} else if (f.type == Field::BANK) {
+					fatal("Unsupported field type 'bank'!\n");
+				}
+			}
+			default: {
+				fatal("evalToInt: not an integer (is instead %lld)\n", idx);
+			}
+		}
 	}
 
-	DataObject& NameStore::operator[](u32 idx) {
-		return entries[idx].data;
+	ObjectKey::ObjectKey() {}
+
+	ObjectKey::ObjectKey(ScopeStack& scope, OPCODES*& code) {
+		for (u32 i = 0; i < scope.size; i++)
+			String::operator+=(scope[i].name.c_str());
+
+		Name name(code);
+		String::operator+=(name.c_str());
 	}
 
-	DataObject& NameStore::operator[](const char* name) {
-		return byName(*(u32*)name);
+	ObjectKey::ObjectKey(ScopeStack& scope, Name n) {
+		for (u32 i = 0; i < scope.size; i++)
+			String::operator+=(scope[i].name.c_str());
+
+		String::operator+=(n.c_str());
 	}
 
-	void NameStore::reserve(u32 cap) {
-		capacity *= 4;
-		entries = (Entry*)vmm::realloc(entries, capacity * sizeof(Entry));
+	ObjectKey::ObjectKey(MultiName& mn) {
+		for (u32 i = 0; i < mn.names.size; i++) {
+			String::operator+=(mn.names[i].c_str());
+			String::operator+=('.');
+		}
+		data[--size] = 0;
+		printk("key init from mn %s\n", data);
 	}
 
-	NameStore::~NameStore() {
-		vmm::free(entries);
+	void MultiName::init(OPCODES*& code) {
+		if (*code == OPCODES::DualNamePrefix) {
+			code++;
+			names.emplace(code);
+			names.emplace(code);
+		} else if (*code == OPCODES::MultiNamePrefix) {
+			code++;
+			u8 num = *(u8*)code;
+			for (u32 j = 0; j < num; j++)
+				names.emplace(code);
+		} else {
+			names.emplace(code);
+		}
 	}
 
-	Package::Package(u64 s): size(s) {
-		elems = (DataObject*)vmm::alloc(size);
+	MultiName::MultiName(OPCODES*& code) { init(code); }
+
+	ObjectPath::ObjectPath(ScopeStack& _scope, OPCODES*& code): scope(_scope) {
+		if (*(u8*)code == '\\') {
+			root = true;
+		} else {
+			while (*(u8*)code == '^') {
+				parentPrefixes++;
+				code++;
+			}
+		}
+
+		path.init(code);
 	}
 
-	DataObject& Package::operator[](u64 idx) {
-		#ifdef DEBUG
-			if (idx >= size)
-				fatal("Package index out of bounds! (%llu vs %llu)\n", idx, size);
-		#endif
-		return elems[idx];
+	String ObjectPath::toString() {
+		String ret;
+		for (u32 i = 0; i < path.names.size; i++) {
+			printk("turi %s\n", path.names[i].c_str());
+			ret += path.names[i].c_str();
+		}
+		return ret;
 	}
 
-	Package::~Package() {
-		vmm::free(elems);
-		elems = (DataObject*)0x6767676767676768;
+	ObjectValue* ObjectPath::resolve() {
+		ScopeStack bak(scope);
+
+		// fatal("resolve: %s [%s %d]\n", path.names[-1].c_str(), root ? "true" : "false", parentPrefixes);
+		if (root || path.names.size > 1) {
+			// printk("option 1\n");
+
+			return ns[ObjectKey(path)];
+		} else if (parentPrefixes) {
+			// printk("option 2\n");
+
+			assert(parentPrefixes < bak.size);
+
+			for (u32 i = 0; i < parentPrefixes; i++)
+				bak.pop();
+
+			MultiName mn;
+			for (auto& t : bak)
+				mn.names.emplace(t.name);
+			return ns[ObjectKey(mn)];
+		} else {
+			// printk("option 3\n");
+
+			// Csak itt kell keresni
+			// Ha nincs se rootchar se prefixchar, akkor a névnek egyedülállónak kell lennie
+			assert(path.names.size == 1);
+
+			// A közelebbi scope-okat kell keresni először
+			u32 s = bak.size;
+			for (u32 i = 0; i < s; i++, bak.pop()) {
+				ObjectKey teszt(bak, path.names[0]);
+				printk("searfch %d for %s\n", bak.size, teszt.c_str());
+				auto o = ns[teszt];
+				if (o) return o;
+			}
+			
+			// Ha még mindig nincs, akkor scope nélkül
+			ObjectKey teszt(bak, path.names[0]);
+			printk("searfch for %s\n", teszt.c_str());
+			auto o = ns[teszt];
+			if (o) return o;
+		}
+
+		return nullptr;
 	}
 }

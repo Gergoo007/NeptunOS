@@ -11,6 +11,9 @@
 
 extern "C" noret void khang();
 
+// TODO: nem jó már a limine submodule
+// TODO: UTF-8 konzol
+
 extern "C" void kmain() {
 	// Korai inicializáció
 	arch::init();
@@ -30,7 +33,7 @@ extern "C" void kmain() {
 		"Framebuffer: %dx%dx%d; betu %dx%d; %llu MiBs; Heap itt: %llu MiB, ekkora: %llu MiB\n",
 		machine.fbs[0].fb_width, machine.fbs[0].fb_height, machine.fbs[0].fb_bpp,
 		console::glyphw, console::glyphh,
-		bytes2mibs(pmm::free + pmm::used + pmm::reserved),
+		bytes2mibs(pmm::freemem + pmm::usedmem + pmm::reservedmem),
 		bytes2mibs((u64)pmm::heap_base), bytes2mibs(pmm::heap_size)
 	);
 
