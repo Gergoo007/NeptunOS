@@ -25,12 +25,10 @@ struct Vector {
 	};
 
 	T* data = nullptr;
-	u64 capacity = 8;
+	u64 capacity = 0;
 	u64 size = 0;
 
-	Vector() {
-		data = (T*)kmalloc(capacity * sizeof(T));
-	}
+	Vector() {  }
 
 	Vector(u64 cap): capacity(align(cap, 16)) {
 		data = (T*)kmalloc(capacity * sizeof(T));

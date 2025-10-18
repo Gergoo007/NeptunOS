@@ -74,13 +74,18 @@ namespace pci {
 	}
 
 	void check_device(u8 bus, u8 dev) {
-		report(
-			"devce %04x:%04x class %x %x\n",
-			pci_read(bus, dev, 0, Regs::VENDOR),
-			pci_read(bus, dev, 0, Regs::PRODUCT),
-			pci_read(bus, dev, 0, Regs::CLASS),
-			pci_read(bus, dev, 0, Regs::SUBCLASS)
-		);
+		for (u32 i = 0; i < 8; i++) {
+			if (pci_read(bus, dev, i, Regs::VENDOR) == 0xffff)
+				continue;
+			report(
+				"device '%02x:%02x:%01x' %04x:%04x class %x %x\n",
+				bus, dev, i,
+				pci_read(bus, dev, i, Regs::VENDOR),
+				pci_read(bus, dev, i, Regs::PRODUCT),
+				pci_read(bus, dev, i, Regs::CLASS),
+				pci_read(bus, dev, i, Regs::SUBCLASS)
+			);
+		}
 	}
 
 	void check_bus(u8 bus) {

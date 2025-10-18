@@ -47,7 +47,7 @@ prepare_img:
 		boot -o image.iso
 
 prepare_img_aarch64:
-	@ARCH=AARCH64 $(MAKE) -C kernel
+	@ARCH=aarch64 $(MAKE) -C kernel
 	@aarch64-none-elf-objcopy kernel/out/kernel -O binary kernel/out/kernel8.img
 
 clean:

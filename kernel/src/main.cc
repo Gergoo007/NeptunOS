@@ -8,6 +8,7 @@
 #include <acpi/acpi.hh>
 #include <arch/amd64/paging.hh>
 #include <util/storage.hh>
+#include <devmgr/module.hh>
 
 extern "C" noret void khang();
 
@@ -29,21 +30,23 @@ extern "C" void kmain() {
 	acpi::init();
 	pci::init();
 
+	modules::register_all();
+
 	printk(
-		"Framebuffer: %dx%dx%d; betu %dx%d; %llu MiBs; Heap itt: %llu MiB, ekkora: %llu MiB\n",
+		"Framebuffer: %dx%dx%d; font %dx%d; %llu MiBs; Heap: at %llu MiB, of size %llu MiB\n",
 		machine.fbs[0].fb_width, machine.fbs[0].fb_height, machine.fbs[0].fb_bpp,
 		console::glyphw, console::glyphh,
 		bytes2mibs(pmm::freemem + pmm::usedmem + pmm::reservedmem),
 		bytes2mibs((u64)pmm::heap_base), bytes2mibs(pmm::heap_size)
 	);
 
-	printk("ennyi\n");
+	printk("End of kmain()\n");
 
 	khang();
 }
 
 extern "C" noret void khang() {
 	while (1) {
-		asm volatile ("hlt");
+		hlt();
 	}
 }

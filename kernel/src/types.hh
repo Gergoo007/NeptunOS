@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ctypes.hh>
+#include <cppcompat.hh>
 
 template <typename T>
 constexpr T templatemax(T a) { return a; }
@@ -108,14 +109,14 @@ struct UniquePtr {
 };
 
 template <typename T>
-struct Option {
+struct Opt {
 	aligned(alignof(T)) u8 buf[sizeof(T)];
 	bool present = false;
 
-	Option() {  }
+	Opt() {  }
 
 	template <typename... Args>
-	Option(Args&&... args): present(true) {
+	Opt(Args&&... args): present(true) {
 		new ((T*)buf) T(forward<Args>(args)...);
 	}
 
@@ -129,21 +130,106 @@ struct Option {
 	}
 
 	constexpr T& operator*() {
-		if (present)
-			return *(T*)buf;
-		else
+		#ifdef DEBUG
+		if (!present)
 			fatal("option: not present [op  *]\n");
+		#endif
+
+		return *(T*)buf;
 	}
 
 	constexpr T* operator->() {
-		if (present)
-			return (T*)buf;
-		else
+		#ifdef DEBUG
+		if (!present)
 			fatal("option: not present [op ->]\n");
+		#endif
+
+		return (T*)buf;
 	}
 
-	~Option() {
+	constexpr T unw() && {
+		return move<T>(*(T*)buf);
+	}
+
+	~Opt() {
 		if (present)
 			((T*)buf)->~T();
+	}
+};
+
+// StackOverflow-ról, elvileg libc++
+template<class _Ep>
+class initializer_list {
+    const _Ep* __begin_;
+    size_t    __size_;
+    
+    inline
+    constexpr
+    initializer_list(const _Ep* __b, size_t __s) noexcept
+        : __begin_(__b),
+          __size_(__s)
+    {}
+public:
+    typedef _Ep        value_type;
+    typedef const _Ep& reference;
+    typedef const _Ep& const_reference;
+    typedef size_t    size_type;
+    
+    typedef const _Ep* iterator;
+    typedef const _Ep* const_iterator;
+    
+    inline
+    constexpr
+    initializer_list() noexcept : __begin_(nullptr), __size_(0) {}
+    
+    inline
+    constexpr
+    size_t    size()  const noexcept {return __size_;}
+    
+    inline
+    constexpr
+    const _Ep* begin() const noexcept {return __begin_;}
+    
+    inline
+    constexpr
+    const _Ep* end()   const noexcept {return __begin_ + __size_;}
+};
+
+template<class _Ep>
+inline constexpr const _Ep* begin(initializer_list<_Ep> __il) noexcept {
+    return __il.begin();
+}
+
+template<class _Ep>
+inline constexpr const _Ep* end(initializer_list<_Ep> __il) noexcept {
+    return __il.end();
+}
+
+template <u64 U, typename T>
+struct Array {
+	T data[U];
+
+	Array() = default;
+	Array(Array& oth) = delete;
+	Array(Array&& oth) = delete;
+	~Array() = default;
+};
+
+// TODO: kompatibilitás Vectorokkal meg Arrayokkal
+template <typename T>
+struct Slice {
+	T* datastart = nullptr;
+	u64 datalen = 0;
+
+	Slice(T* data, u64 size): datastart(data), datalen(size) {  }
+
+	constexpr T& operator[](u64 idx) {
+		#ifdef DEBUG
+		if (idx > datalen)
+			fatal("Out of bounds Slice access: %lld vs %lld (data @ %p)\n", idx, datalen, datastart);
+		if (!datastart)
+			fatal("Slice on nullptr??\n");
+		#endif
+		return datastart[idx];
 	}
 };

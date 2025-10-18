@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [ -DIS_MODULE, -I../../src ]

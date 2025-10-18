@@ -1,7 +1,7 @@
 #pragma once
 
-#define DEBUG
-#define SERIALPRINTK
+// Miért van redefinition hiba az ifndef nélkül?
+#include <config.hh>
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -98,11 +98,31 @@ __attribute__((format(printf, 1, 2)))
 void sprintk(const char* fmt, ...);
 
 namespace console { extern void push_color(u32 color); extern void pop_color(); }
+#include <devmgr/moduleinfo.hh>
+#ifdef IS_MODULE
+#define report(fmt, ...) { console::push_color(0xffd0d0d0); extern volatile modules::ModuleInfo _modinfo; printk("[%s %s:%d]: " fmt, _modinfo.name, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
+#define warn(fmt, ...) { console::push_color(0xffEB6534); extern volatile modules::ModuleInfo _modinfo; printk("[%s %s:%d]: " fmt, _modinfo.name, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
+#define error(fmt, ...) { console::push_color(0xffC41E3D); extern volatile modules::ModuleInfo _modinfo; printk("[%s %s:%d]: " fmt, _modinfo.name, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
+#define fatal(fmt, ...) { console::push_color(0xff710627); extern volatile modules::ModuleInfo _modinfo; printk("[%s %s:%d]: " fmt, _modinfo.name, __FILE_NAME__, __LINE__, ##__VA_ARGS__); while (1) asm volatile ("cli\nhlt"); }
+#else
 #define report(fmt, ...) { console::push_color(0xffd0d0d0); printk("[%s:%d]: " fmt, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
 #define warn(fmt, ...) { console::push_color(0xffEB6534); printk("[%s:%d]: " fmt, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
 #define error(fmt, ...) { console::push_color(0xffC41E3D); printk("[%s:%d]: " fmt, __FILE_NAME__, __LINE__, ##__VA_ARGS__); console::pop_color(); }
-#define fatal(fmt, ...) { console::push_color(0xff710627); printk("[%s:%d]: " fmt, __FILE_NAME__, __LINE__, ##__VA_ARGS__); while (1) asm volatile ("cli; hlt"); }
+#define fatal(fmt, ...) { console::push_color(0xff710627); printk("[%s:%d]: " fmt, __FILE_NAME__, __LINE__, ##__VA_ARGS__); while (1) asm volatile ("cli\nhlt"); }
+#endif
 
 void hlt();
 
 #define pause() while(1) { hlt(); }
+
+// thank you osdev.org
+static inline int oct2bin(u8* str, int size) {
+    int n = 0;
+    u8* c = str;
+    while (size-- > 0) {
+        n *= 8;
+        n += *c - '0';
+        c++;
+    }
+    return n;
+}

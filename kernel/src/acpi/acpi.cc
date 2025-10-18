@@ -2949,11 +2949,11 @@ namespace acpi {
 		if (!r || !r->address)
 			error("Nincs RSDP??\n");
 
-		acpi::RootPointer* rsdp = (acpi::RootPointer*)VIRTUAL(r->address);
+		RootPointer* rsdp = (RootPointer*)VIRTUAL(r->address);
 		if (!(ver = validateRsdp(rsdp)))
 			error("ACPI RSDP nem érvényes!\n");
 
-		acpi::RootTable* rsdt = (acpi::RootTable*)VIRTUAL(ver == 2 ? rsdp->xsdt : rsdp->rsdt);
+		RootTable* rsdt = (RootTable*)VIRTUAL(ver == 2 ? rsdp->xsdt : rsdp->rsdt);
 		check(rsdt);
 
 		printk("RSDP ver: %d\n", ver);
@@ -2966,10 +2966,10 @@ namespace acpi {
 
 		for (u32 i = 0; i < num_tables; i++) {
 			SDT* addr;
-			if (ver == 2)
-				addr = VIRTUAL((SDT*)rsdt->xsdtptrs[i]);
+			if (ver == 1 || ver == 0)
+				addr = (SDT*)(u64)VIRTUAL((u64)rsdt->rsdtptrs + i * 4);
 			else
-				addr = VIRTUAL((SDT*)(u64)rsdt->rsdtptrs[i]);
+				addr = (SDT*)(u64)VIRTUAL((u64)rsdt->xsdtptrs + i * 8);
 			check(addr);
 			// tables.emplace(addr);
 			tables.emplace(addr);

@@ -8,8 +8,26 @@ static inline void mmio_write(u32 o, u32 v) {
 	mw32(GPIO_BASE + o, v);
 }
 
-void arch_init() {
+namespace arch {
+	void init() {
+		
+	}
 
+	void late_init() {
+		
+	}
+
+	void halt() {
+		asm volatile ("wfi");
+	}
+
+	void cli() {
+		asm volatile ("spcid if");
+	}
+
+	void sti() {
+		asm volatile ("cpsie if");
+	}
 }
 
 void sputc(const char c) {

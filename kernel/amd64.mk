@@ -1,7 +1,9 @@
+ifeq ($(MANAGE_ARCH_STUFF),1)
 SSRCS += $(subst src/,,$(shell find src/arch/amd64 -name *.s)) # $(subst src/,,$(shell find src -name *.s -printf '%P\n'))
 SOBJS += $(patsubst %.s,out/%.s.o,$(SSRCS))
 
 CCSRCS += $(subst src/,,$(shell find src/arch/amd64 -name *.cc))
+endif
 
 # no-red-zone: painful addition
 CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
@@ -10,7 +12,7 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
 	-mcmodel=large
 ASFLAGS +=
-LDFLAGS += -T linker.amd64.ld --no-gc-sections -static
+LDFLAGS += --no-gc-sections
 
 CC := x86_64-elf-g++
 LD ?= x86_64-elf-ld

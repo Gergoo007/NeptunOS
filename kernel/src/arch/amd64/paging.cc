@@ -127,4 +127,9 @@ namespace arch {
 			arch::map_page(addr, PHYSICAL(addr), 0b11, arch::MCACHE::UC);
 		}
 	}
+
+	void check_pages(u64 addr, u64 bytes) {
+		for (u64 i = 0; i < align(bytes, 0x1000); i += 0x1000)
+			check_page(addr + i * 0x1000);
+	}
 }

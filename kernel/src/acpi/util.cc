@@ -126,6 +126,8 @@ namespace acpi {
 					fatal("Indexed field to int?\n");
 				} else if (f.type == Field::BANK) {
 					fatal("Unsupported field type 'bank'!\n");
+				} else {
+					fatal("wgat\n");
 				}
 			}
 			default: {

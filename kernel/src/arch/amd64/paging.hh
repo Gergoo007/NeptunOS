@@ -47,4 +47,5 @@ namespace arch {
 	u64 paging_lookup(u64 virt);
 	void map_page(u64 virt, u64 phys, u32 flags, u32 cache = MCACHE::WB);
 	void check_page(u64 addr);
+	void check_pages(u64 addr, u64 count);
 }

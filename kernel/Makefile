@@ -1,17 +1,12 @@
 # Disable idiotic invisible default variables like CC
 MAKEFLAGS += --no-builtin-variables
 
-ARCH ?= AMD64
+ARCH ?= amd64
 
 CCSRCS += $(subst src/,,$(shell find src -name *.cc -not -path 'src/arch/*' -not -path '*bakexclude*')) arch/arch.cc
 
-ifeq ($(ARCH),AMD64)
-include amd64.mk
-else ifeq ($(ARCH),AARCH64)
-include aarch64.mk
-else
-$(error Available targets: AMD64, AARCH64)
-endif
+MANAGE_ARCH_STUFF := 1
+include $(ARCH).mk
 
 CCOBJS += $(patsubst %.cc,out/%.cc.o,$(CCSRCS))
 CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
@@ -25,10 +20,10 @@ kernel:
 # $(ARCH) fájl létrehozása, ez mutatja,
 # hogy az előző build objektum fájljai
 # kompatibilisek-e a mostaniéval
-ifeq ($(ARCH),AMD64)
-	-test -f out/AARCH64 && $(MAKE) clean
-else ifeq ($(ARCH),AARCH64)
-	-test -f out/AMD64 && $(MAKE) clean
+ifeq ($(ARCH),amd64)
+	-test -f out/aarch64 && $(MAKE) clean
+else ifeq ($(ARCH),aarch64)
+	-test -f out/amd64 && $(MAKE) clean
 endif
 	touch out/$(ARCH)
 	$(MAKE) --no-print-directory link
@@ -36,11 +31,10 @@ endif
 
 link: $(SOBJS) $(CCOBJS) out/font.o
 	echo "  > $(LD) $@"
-	echo $(SOBJS)
-	$(LD) $(LDFLAGS) $^ -o out/kernel
+	$(LD) $(LDFLAGS) -T kernel.$(ARCH).ld -static $^ -o out/kernel
 
 modules:
-#	$(MAKE) -C modules
+	$(MAKE) -C modules
 
 -include $(CCDEPS)
 

@@ -24,6 +24,14 @@ namespace arch {
 	void halt() {
 		asm volatile ("hlt");
 	}
+
+	void cli() {
+		asm volatile ("cli");
+	}
+
+	void sti() {
+		asm volatile ("sti");
+	}
 }
 
 void sinit() {
