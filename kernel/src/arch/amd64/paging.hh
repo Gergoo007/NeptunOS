@@ -6,9 +6,10 @@
 
 namespace arch {
 	struct MFLAGS {
-		// Saját flagek a 2M és 1G-osok megkülönböztetésére
+		// Saját flagek a 2M és 1G-osok megkülönböztetésére, meg a NX-ra
 		static constexpr u64 s1G	=		(1ULL << 31);
 		static constexpr u64 s2M	=		(1ULL << 30);
+		static constexpr u64 EXE	=		(1ULL << 32);
 
 		static constexpr u64 HUGE =			0b10000000;
 		static constexpr u64 USER = 		0b00000100;

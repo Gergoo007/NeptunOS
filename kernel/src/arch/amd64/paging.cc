@@ -64,6 +64,10 @@ namespace arch {
 			size = 0;
 		}
 
+		u64 exemask = (flags & MFLAGS::EXE) > 0 ? 0x0ULL : 0x8000000000000000;
+		u32 nx = (flags & MFLAGS::EXE) == 0;
+		constexpr u64 nxbit = 0x8000000000000000;
+
 		// Custom flagek (bit 12 fölött) eltávolítása
 		flags &= (1 << 13)-1;
 
@@ -75,13 +79,19 @@ namespace arch {
 		} else {
 			pdp = (page_table*)pmm::alloc();
 			memset(pdp, 0, 0x1000);
-			pml4->entries[ADDR_PML4I(virt)].addr = (u64)pdp & ~0xffff800000000000ULL;
+			pml4->entries[ADDR_PML4I(virt)].addr = ((u64)pdp & ~0xffff800000000000ULL) | exemask;
 			pml4->entries[ADDR_PML4I(virt)].flags = flags;
 		}
 
 		entry = &pdp->entries[ADDR_PDPI(virt)];
 		if (size == 2) { // 1G page
-			entry->addr = phys;
+			entry->addr = phys | exemask;
+			if (!exemask) {
+				// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
+				pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+				pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
+			}
+
 			entry->flags = flags | MFLAGS::HUGE | patbits2m;
 			return;
 		} else {
@@ -92,14 +102,20 @@ namespace arch {
 			} else {
 				pd = (page_table*)pmm::alloc();
 				memset(pd, 0, 0x1000);
-				pdp->entries[ADDR_PDPI(virt)].addr = (u64)pd & ~0xffff800000000000ULL;
+				pdp->entries[ADDR_PDPI(virt)].addr = ((u64)pd & ~0xffff800000000000ULL) | exemask;
 				pdp->entries[ADDR_PDPI(virt)].flags = flags;
 			}
 		}
 
 		entry = &pd->entries[ADDR_PDI(virt)];
 		if (size == 1) { // 2M page
-			entry->addr = phys;
+			entry->addr = phys | exemask;
+			if (!exemask) {
+				// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
+				pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+				pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
+				pd->entries[ADDR_PDI(virt)].addr = bitset(pd->entries[ADDR_PDI(virt)].addr, 63, 0);
+			}
 			entry->flags = flags | MFLAGS::HUGE | patbits2m;
 			return;
 		} else { // 4K page
@@ -110,12 +126,19 @@ namespace arch {
 			} else {
 				pt = (page_table*)pmm::alloc();
 				memset(pt, 0, 0x1000);
-				pd->entries[ADDR_PDI(virt)].addr = (u64)pt & ~0xffff800000000000ULL;
+				pd->entries[ADDR_PDI(virt)].addr = ((u64)pt & ~0xffff800000000000ULL) | exemask;
 				pd->entries[ADDR_PDI(virt)].flags = flags;
 			}
 
 			entry = &pt->entries[ADDR_PTI(virt)];
-			entry->addr = phys;
+			entry->addr = phys | exemask;
+			if (!exemask) {
+				// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
+				pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+				pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
+				pd->entries[ADDR_PDI(virt)].addr = bitset(pd->entries[ADDR_PDI(virt)].addr, 63, 0);
+				pt->entries[ADDR_PTI(virt)].addr = bitset(pt->entries[ADDR_PTI(virt)].addr, 63, 0);
+			}
 			entry->flags = flags | patbits4k;
 		}
 

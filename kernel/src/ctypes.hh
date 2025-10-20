@@ -88,6 +88,8 @@ extern void* higherhalf;
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define abs(a) ((a) < 0 ? (-(a)) : (a))
 
+#define bitset(x, n, b) ((typeof(x))((b) ? (((u64)x) | (1ULL << (n))) : (((u64)x) & ~(1ULL << (n)))))
+
 #define VIRTUAL(a) ((typeof(a))(u64(a) | u64(higherhalf)))
 #define PHYSICAL(a) ((typeof(a))(u64(a) & ~u64(higherhalf)))
 

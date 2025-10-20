@@ -15,3 +15,4 @@ LDFLAGS += -z max-page-size=0x1000 --no-gc-sections
 CC := aarch64-none-elf-g++
 LD ?= aarch64-none-elf-ld
 AS ?= aarch64-none-elf-gcc
+STRIP ?= aarch64-none-elf-strip

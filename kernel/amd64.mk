@@ -17,6 +17,7 @@ LDFLAGS += --no-gc-sections
 CC := x86_64-elf-g++
 LD ?= x86_64-elf-ld
 AS ?= x86_64-elf-gcc
+STRIP ?= x86_64-elf-strip
 
 # CC := clang++
 # LD ?= ld.lld

@@ -23,6 +23,7 @@ endif
 link: $(SOBJS) $(CCOBJS)
 # 	echo "  > $(LD) $@"
 	$(LD) $(LDFLAGS) -T ../module.$(ARCH).ld -r $^ -o out/$(MOD_NAME).ko
+	$(STRIP) -d out/$(MOD_NAME).ko
 
 -include $(CCDEPS)
 

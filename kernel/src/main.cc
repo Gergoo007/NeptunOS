@@ -9,23 +9,35 @@
 #include <arch/amd64/paging.hh>
 #include <util/storage.hh>
 #include <devmgr/module.hh>
+#include <util/ksyms.hh>
 
 extern "C" noret void khang();
 
-// TODO: nem jó már a limine submodule
+// TODO: double buffering hogy instant legyen a scroll
+// TODO: ELF fájlok feldolgozó kódja többször van leírva (ksyms.cc, module.cc, userspace majd)
+// TODO: kellenek a namespace-ek? buziság
+// TODO: fájlok összeolvasztása, rohadt sok van ahoz képest amit tud a kernel
 // TODO: UTF-8 konzol
 
+#include <util/cpuid.hh>
+
 extern "C" void kmain() {
+	// Ehhez nem kell semmi se szinte
+	// ksyms_read();
+
 	// Korai inicializáció
 	arch::init();
 	arch::read_boot_info();
-	console::init(FONTFILE_START);
 	pmm::init();
 	arch::late_init();
 	vmm::init();
 
 	// Itt már az alapvető rendszerek működnek
 	cpp_construct_objects();
+
+	console::init(FONTFILE_START);
+
+	ksyms_read();
 
 	acpi::init();
 	pci::init();

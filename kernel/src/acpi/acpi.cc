@@ -2944,7 +2944,7 @@ namespace acpi {
 	void init() {
 		auto r = rsdp_req.response;
 		// Buggos ez az Istenverte szar
-		check(r->address);
+		check((void*)r->address);
 
 		if (!r || !r->address)
 			error("Nincs RSDP??\n");

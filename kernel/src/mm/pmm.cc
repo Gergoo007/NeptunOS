@@ -39,7 +39,7 @@ namespace pmm {
 				case MMAP_TYPES::LIMINE_MEMMAP_FRAMEBUFFER:
 					reservedmem += r->entries[i]->length;
 					break;
-				case MMAP_TYPES::LIMINE_MEMMAP_KERNEL_AND_MODULES:
+				case MMAP_TYPES::LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
 					usedmem += r->entries[i]->length;
 					break;
 				case MMAP_TYPES::LIMINE_MEMMAP_USABLE:

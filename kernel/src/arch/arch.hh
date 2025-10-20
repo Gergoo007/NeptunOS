@@ -37,6 +37,7 @@ char sgetc();
 
 #define FB_VADDR 0xffffffffc2000000
 
-#define fb_pixel(x, y, color, idx) *((volatile u32*)machine.fbs[idx].fb_addr + (x) + ((y) * (machine.fbs[idx].fb_width))) = color
+namespace console { extern u32* backbuf; }
+#define fb_pixel(x, y, color, idx) *(console::backbuf + (x) + ((y) * (machine.fbs[idx].fb_width))) = color
 
 extern Machine machine;

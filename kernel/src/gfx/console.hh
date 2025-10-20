@@ -6,34 +6,31 @@
 #define PSF2_MAGIC 0x864ab572
 
 namespace console {
-	pstruct psf1_hdr {
-		u8 magic[2];
-		struct packed {
-			u8 mode512 : 1;
-			u8 unitable : 1;
-			u8 unitable2 : 1; // ?
-		} mode;
-		u8 glyphsize; // bytes/glyph
-	};
-
-	pstruct psf2_hdr {
-		u8 magic[4];
-		u32 ver;
-		u32 hdrsize;
-		struct packed {
-			u32 unitable : 1;
-			u32 : 31;
-		} flags;
-		u32 numglyphs;
-		u32 glyphsize; // bytes/glyph
-		u32 height;
-		u32 width;
-	};
-
 	pstruct psf_hdr {
-		union packed {
-			psf1_hdr p1;
-			psf2_hdr p2;
+		punion {
+			pstruct {
+				u8 magic[2];
+				struct packed {
+					u8 mode512 : 1;
+					u8 unitable : 1;
+					u8 unitable2 : 1; // ?
+				} mode;
+				u8 glyphsize; // bytes/glyph
+			} p1;
+
+			pstruct {
+				u8 magic[4];
+				u32 ver;
+				u32 hdrsize;
+				struct packed {
+					u32 unitable : 1;
+					u32 : 31;
+				} flags;
+				u32 numglyphs;
+				u32 glyphsize; // bytes/glyph
+				u32 height;
+				u32 width;
+			} p2;
 		};
 		u8 ver;
 	};
@@ -50,6 +47,8 @@ namespace console {
 	void cputs(const char* s);
 	void push_color(u32 color);
 	void pop_color();
+
+	void swap_buffers();
 }
 
 #include <util/printf.hh>

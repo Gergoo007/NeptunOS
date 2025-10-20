@@ -17,6 +17,9 @@
 #ifndef LIMINE_H
 #define LIMINE_H 1
 
+// én raktam ezt a szart ide
+#define LIMINE_API_REVISION 2
+
 #pragma pack(1)
 
 #include <types.hh>

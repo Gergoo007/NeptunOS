@@ -6,7 +6,7 @@
 #include <util/bitmap.hh>
 
 #define kmalloc(size) vmm::alloc(size, __FILE__, __LINE__)
-#define kmalloc_aligned(size) vmm::alloc_aligned(size, __FILE__, __LINE__)
+#define kmalloc_aligned(size, al) vmm::alloc_aligned(size, al, __FILE__, __LINE__)
 #define krealloc(ptr, size) vmm::realloc(ptr, size)
 #define kfree(ptr) vmm::free(ptr, __FILE__, __PRETTY_FUNCTION__)
 

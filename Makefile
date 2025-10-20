@@ -12,7 +12,7 @@ QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q
 		-device ahci,id=ahci \
 		-device ide-hd,drive=disk,bus=ahci.0 \
 		-device usb-mouse,bus=uhci.0 -device usb-tablet,bus=xhci.0 \
-		-boot d
+		-boot d -cpu SandyBridge
 
 QEMU_FLAGS_X86_64_UEFI := -drive if=pflash,format=raw,unit=0,file="emu/OVMF/OVMF_CODE.fd",readonly=on \
 		-drive if=pflash,format=raw,unit=1,file="emu/OVMF/OVMF_VARS.fd",readonly=on \
@@ -35,7 +35,7 @@ debug:
 		-S -s > /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 bochs: prepare_img
-	bochs -qf emu/.bochsrc -rc emu/bochscmd
+	bochs -dbg -qf emu/.bochsrc -rc emu/bochscmd
 
 prepare_img:
 	@$(MAKE) -C kernel

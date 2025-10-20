@@ -44,7 +44,6 @@ namespace arch::idt {
 
 	void init() {
 		idt = (idt_entry*)pmm::alloc();
-		printk("idt @ %p\n", idt);
 		memset(idt, 0, 0x1000);
 
 		idt_add_entry(0x00, (u64)exc0,  0b1111);

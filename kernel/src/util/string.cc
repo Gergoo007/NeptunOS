@@ -52,6 +52,8 @@ u32 strcpy(const char* src, char* dest) {
 }
 
 u8 strncmp(const char* s1, const char* s2, u32 chars) {
+	if (!chars || *s1 != *s2)
+		return 1;
 	while (chars-- && *s1 && *s2) {
 		if (*s1 != *s2)
 			return 1;
