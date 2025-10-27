@@ -206,8 +206,7 @@ struct String : Vector<char> {
 template <typename T>
 struct Stack : Vector<T> {
 	T& push(T elem) {
-		if (this->size >= this->capacity)
-			this->reserve(this->capacity * 4);
+		this->reserve(this->capacity + 1);
 
 		return (this->data[this->size++] = elem);
 	}
@@ -260,5 +259,35 @@ struct Variant {
 
 	~Variant() {
 		destruct_current();
+	}
+};
+
+template <typename T, typename U>
+struct Pair {
+	T first;
+	U second;
+
+	Pair(T&& f, U&& s): first(move<T>(f)), second(move<U>(s)) {  }
+};
+
+template <typename K, typename V>
+struct Map {
+	Vector<K> keys;
+	Vector<V> values;
+	u64& size = keys.size;
+
+	V& operator[](const K& key) {
+		for (u64 i = 0; i < keys.size; i++) {
+			if (keys[i] == key)
+				return values[i];
+		}
+		fatal("Couldn't find value in Map!");
+	}
+
+	template <typename... Args>
+	// TODO: V-nek reference-nek kéne lennie
+	V& emplace(Pair<K, V>&& pair) {
+		keys.emplace(move<K>(pair.first));
+		return values.emplace(move<V>(pair.second));
 	}
 };

@@ -7,8 +7,8 @@
 extern "C" void onInterrupt(arch::idt::cpu_regs* frame) {
 	if (frame->exc == EXC::PF) {
 		if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
-			// printk("%p -> %p\n", frame->cr2, (u64)pmm::alloc());
-			arch::map_page(frame->cr2, (u64)PHYSICAL(pmm::alloc()), (u32)arch::MFLAGS::KDATA);
+			// this s2M flag cost me a piece of my soul
+			arch::map_page(frame->cr2, (u64)PHYSICAL(pmm::alloc()), arch::MFLAGS::KDATA | arch::MFLAGS::s2M);
 			return;
 		}
 	}

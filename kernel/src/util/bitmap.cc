@@ -1,4 +1,5 @@
 #include <util/bitmap.hh>
+#include <util/mem.hh>
 
 template <u64 staticsize>
 BitmapStatic<staticsize>::BitmapStatic(): BitmapCommon(innerbuffer, staticsize) {
@@ -28,6 +29,7 @@ bool BitmapCommon::get(u64 idx) {
 u64 BitmapCommon::find_and_set() {
 	for (u64 i = 0; i < size; i++) {
 		if (get(i) == false) {
+			sprintk("found %lld\n", i);
 			set(i, true);
 			return i;
 		}
@@ -35,7 +37,7 @@ u64 BitmapCommon::find_and_set() {
 	return -1;
 }
 
-Bitmap::Bitmap(u64 _size): BitmapCommon(new u64[_size], _size) {
+Bitmap::Bitmap(u64 _size): BitmapCommon(new u64[align(_size, 64) / 64], _size) {
 	for (u64 i = 0; i < align(size, 64) / 64; i++)
 		buffer[i] = 0;
 }

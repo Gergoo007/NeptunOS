@@ -66,15 +66,6 @@ typedef __SIZE_TYPE__ size_t;
 #define pstruct struct packed
 #define punion union packed
 
-extern struct elf64_sym* ksymtab;
-extern u32 ksymtab_size;
-extern void* kstrtab;
-extern u32 kstrtab_size;
-extern void* kshstrtab;
-extern u32 kshstrtab_size;
-extern void* kdebug_line;
-extern u32 kdebug_line_size;
-
 extern u8 _binary_src_font_psf_start;
 extern u8 _binary_src_font_psf_end;
 

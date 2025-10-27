@@ -16,7 +16,7 @@ namespace pci {
 		if (mcfg) {
 			u64 mmio = VIRTUAL((u64)mcfg->cfg_spaces[0].base);
 			mmio += (bus << 20) + (slot << 15) + (func << 12) + offset;
-			arch::check_page(mmio);
+			arch::check_page(mmio, arch::MCACHE::UC);
 			return *(volatile u32*)mmio;
 		} else {
 			u32 address;
@@ -73,18 +73,31 @@ namespace pci {
 		pci_write32(bus, slot, func, realoffset, new_value);
 	}
 
+	void check_bus(u8 bus);
 	void check_device(u8 bus, u8 dev) {
 		for (u32 i = 0; i < 8; i++) {
 			if (pci_read(bus, dev, i, Regs::VENDOR) == 0xffff)
 				continue;
+
+			u32 hdrt = pci_read(bus, dev, i, Regs::HDRTYPE);
+
 			report(
-				"device '%02x:%02x:%01x' %04x:%04x class %x %x\n",
+				"device '%02x:%02x:%01x' %04x:%04x class %x %x hdrt %x\n",
 				bus, dev, i,
 				pci_read(bus, dev, i, Regs::VENDOR),
 				pci_read(bus, dev, i, Regs::PRODUCT),
 				pci_read(bus, dev, i, Regs::CLASS),
-				pci_read(bus, dev, i, Regs::SUBCLASS)
+				pci_read(bus, dev, i, Regs::SUBCLASS),
+				pci_read(bus, dev, i, Regs::HDRTYPE)
 			);
+
+			if ((hdrt & 3) == 1) {
+				u8 secondary = pci_read(bus, dev, i, Regs::SECONDARYBUS);
+				warn("detected additional bus: %02x\n", secondary);
+				check_bus(secondary);
+			}
+
+			if ((hdrt & 0x80) == 0) break;
 		}
 	}
 

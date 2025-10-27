@@ -34,7 +34,7 @@ namespace arch {
 		}
 	}
 
-	void map_page(u64 virt, u64 phys, u32 flags, u32 cache) {
+	void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 		if (!pml4) {
 			asm volatile ("movq %%cr3, %0" : "=a"(pml4));
 			pml4 = VIRTUAL(pml4);
@@ -48,6 +48,8 @@ namespace arch {
 		page_table* pt;
 
 		page_table_entry* entry;
+
+		u64 exemask = (flags & MFLAGS::EXE) > 0 ? 0x0ULL : 0x8000000000000000ULL;
 
 		u8 size;
 		if (flags & MFLAGS::s2M) {
@@ -63,10 +65,6 @@ namespace arch {
 			virt &= ~((1ULL << 12)-1);
 			size = 0;
 		}
-
-		u64 exemask = (flags & MFLAGS::EXE) > 0 ? 0x0ULL : 0x8000000000000000;
-		u32 nx = (flags & MFLAGS::EXE) == 0;
-		constexpr u64 nxbit = 0x8000000000000000;
 
 		// Custom flagek (bit 12 fölött) eltávolítása
 		flags &= (1 << 13)-1;
@@ -145,9 +143,9 @@ namespace arch {
 		asm volatile ("invlpg (%0)" :: "r"(virt));
 	}
 
-	void check_page(u64 addr) {
+	void check_page(u64 addr, u64 cache) {
 		if (arch::paging_lookup(addr) == (u64)-1) {
-			arch::map_page(addr, PHYSICAL(addr), 0b11, arch::MCACHE::UC);
+			arch::map_page(addr, PHYSICAL(addr), 0b11, cache);
 		}
 	}
 

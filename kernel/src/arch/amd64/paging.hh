@@ -15,9 +15,11 @@ namespace arch {
 		static constexpr u64 USER = 		0b00000100;
 		static constexpr u64 RW =			0b00000010;
 		static constexpr u64 PRESENT =		0b00000001;
-
-		static constexpr u64 UDATA =		USER | RW | PRESENT;
+		
 		static constexpr u64 KDATA =		RW | PRESENT;
+		static constexpr u64 UDATA =		USER | KDATA;
+		static constexpr u64 KCODE =		EXE | PRESENT;
+		static constexpr u64 UCODE =		USER | KCODE;
 	};
 
 	struct MCACHE {
@@ -46,7 +48,7 @@ namespace arch {
 	extern page_table* pml4;
 
 	u64 paging_lookup(u64 virt);
-	void map_page(u64 virt, u64 phys, u32 flags, u32 cache = MCACHE::WB);
-	void check_page(u64 addr);
+	void map_page(u64 virt, u64 phys, u64 flags, u32 cache = MCACHE::WB);
+	void check_page(u64 addr, u64 cache = MCACHE::WB);
 	void check_pages(u64 addr, u64 count);
 }

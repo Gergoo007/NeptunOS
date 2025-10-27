@@ -4,5 +4,5 @@
 MODULE_PROPS("tesztmod")
 
 void mod_main() {
-	report("hello world\n");
+	warn("Hello World from TesztMod\n");
 }

@@ -53,6 +53,7 @@ namespace console {
 			(machine.fbs[current_fb].fb_bpp / 8);
 		// cache line-ra turi ippelni ajánlott
 		backbuf = (u32*)kmalloc_aligned(backbuf_size, 64);
+		memset(backbuf, 0, backbuf_size);
 		sprintk("Backbuffer @ %p of size %llx\n\r", backbuf, backbuf_size);
 	}
 
@@ -77,13 +78,15 @@ namespace console {
 		if ((backbuf_size & 31) == 0) {
 			// AVX move, 32 byte egyszerre
 			for (u32 i = 0; i < backbuf_size / 32; i++) {
+				asm volatile ("prefetchnta (%0)" :: "r"((u64)backbuf + i * 32 + 256));
 				asm volatile (
 					"vmovdqu (%0), %%ymm0\n"
-					"vmovdqu %%ymm0, (%1)" ::
+					"vmovntdq %%ymm0, (%1)" ::
 					"r"((u64)backbuf + i * 32), "r"((u64)fb_base + i * 32) :
 					"ymm0", "memory"
 				);
 			}
+			asm volatile ("sfence");
 			return;
 		}
 		#endif

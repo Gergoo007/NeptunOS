@@ -40,10 +40,7 @@ namespace acpi {
 
 	pstruct RootTable {
 		SDT hdr;
-		punion {
-			u32 rsdtptrs;
-			u64 xsdtptrs;
-		};
+		u8 arraystart;
 	};
 
 	pstruct FADT {

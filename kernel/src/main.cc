@@ -13,7 +13,11 @@
 
 extern "C" noret void khang();
 
-// TODO: double buffering hogy instant legyen a scroll
+// TODO: libk reform
+// TODO: operator[] meg hasonlók küldjenek vissza Opt<T&>-t a T& helyett
+// TODO: hashmap legyen a Map<K, V>
+// TODO: csomó mindenhez csak 4k kell, nem 2m mint ahogy azt a pmm csinálja
+// TODO: modulkód rw-ként van megadva, az adat meg execute-ként
 // TODO: ELF fájlok feldolgozó kódja többször van leírva (ksyms.cc, module.cc, userspace majd)
 // TODO: kellenek a namespace-ek? buziság
 // TODO: fájlok összeolvasztása, rohadt sok van ahoz képest amit tud a kernel
@@ -44,9 +48,10 @@ extern "C" void kmain() {
 
 	modules::register_all();
 
+	printk("Heap @ %p [%lld MiB]\n\r", pmm::heap_base, bytes2mibs(pmm::heap_size));
 	printk(
-		"Framebuffer: %dx%dx%d; font %dx%d; %llu MiBs; Heap: at %llu MiB, of size %llu MiB\n",
-		machine.fbs[0].fb_width, machine.fbs[0].fb_height, machine.fbs[0].fb_bpp,
+		"Framebuffer %p: %dx%dx%d; font %dx%d; %llu MiBs; Heap: at %llu MiB, of size %llu MiB\n",
+		machine.fbs[0].fb_addr, machine.fbs[0].fb_width, machine.fbs[0].fb_height, machine.fbs[0].fb_bpp,
 		console::glyphw, console::glyphh,
 		bytes2mibs(pmm::freemem + pmm::usedmem + pmm::reservedmem),
 		bytes2mibs((u64)pmm::heap_base), bytes2mibs(pmm::heap_size)

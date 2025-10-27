@@ -84,40 +84,39 @@ namespace acpi {
 	// 	}
 	// }
 
-	// bool process_condition(OPCODES*& code) {
-	// 	switch (*code) {
-	// 		case OPCODES::ExtOpPrefix: {
-	// 			code++;
-	// 			switch (*code) {
-	// 				case OPCODES::CondRefOfOp: {
-	// 					code++;
-	// 					printk("condrefoif\n");
-	// 					process_supername(code);
-	// 					process_supername(code);
-	// 					printk("code %02x\n", *code);
-	// 					break;
-	// 				}
-	// 				default: {
-	// 					fatal("Ismeretlen kondicio EXT opkod: 5b %02x [%02x]", *code, *(code+1));
-	// 					break;
-	// 				}
-	// 			}
-	// 			break;
-	// 		}
-	// 		default: {
-	// 			fatal("Ismeretlen kondicio opkod: %02x [%02x]", *code, *(code+1));
-	// 			break;
-	// 		}
-	// 	}
+	bool process_condition(OPCODES*& code) {
+		switch (*code) {
+			case OPCODES::ExtOpPrefix: {
+				code++;
+				switch (*code) {
+					case OPCODES::CondRefOfOp: {
+						code++;
+						printk("condrefoif\n");
+						SuperName s1(code), s2(code);
+						printk("code %02x\n", *code);
+						break;
+					}
+					default: {
+						fatal("Ismeretlen kondicio EXT opkod: 5b %02x [%02x]", *code, *(code+1));
+						break;
+					}
+				}
+				break;
+			}
+			default: {
+				fatal("Ismeretlen kondicio opkod: %02x [%02x]", *code, *(code+1));
+				break;
+			}
+		}
 
-	// 	printk("namestore dump\n");
-	// 	while (1);
-	// 	for (u32 i = 0; i < names.size; i++) {
-	// 		printk("%s: [%d] %16llx\n", names[i].key.c_str(), names[i].data.type, names[i].data.values.integer);
-	// 	}
+		// printk("namestore dump\n");
+		// while (1);
+		// for (u32 i = 0; i < names.size; i++) {
+		// 	printk("%s: [%d] %16llx\n", names[i].key.c_str(), names[i].data.type, names[i].data.values.integer);
+		// }
 
-	// 	fatal("jaj\n");
-	// }
+		fatal("jaj\n");
+	}
 
 	void nsdump() {
 		printk("ns dump:\n");
@@ -142,10 +141,6 @@ namespace acpi {
 			}
 
 			switch (*code) {
-				default: {
-					fatal("ismeretlen opkod @ %lx %02x %02x\n", code - tablestart, *(u8*)code, *(u8*)(code+1));
-					break;
-				}
 				case OPCODES::NameOp: {
 					code++;
 					ObjectKey key(scope, code);
@@ -298,57 +293,61 @@ namespace acpi {
 					printk("alias %.4s to %.4s\n", name1.toString().c_str(), name2.toString().c_str());
 					break;
 				}
-				// case OPCODES::CreateByteFieldOp:
-				// case OPCODES::CreateWordFieldOp:
-				// case OPCODES::CreateDWordFieldOp:
-				// case OPCODES::CreateQWordFieldOp: {
-				// 	u8 type;
-				// 	switch (*code) {
-				// 		case OPCODES::CreateByteFieldOp:
-				// 			type = 0;
-				// 			break;
-				// 		case OPCODES::CreateWordFieldOp:
-				// 			type = 1;
-				// 			break;
-				// 		case OPCODES::CreateDWordFieldOp:
-				// 			type = 2;
-				// 			break;
-				// 		case OPCODES::CreateQWordFieldOp:
-				// 			type = 3;
-				// 			break;
-				// 		default: break;
-				// 	}
+				case OPCODES::CreateByteFieldOp:
+				case OPCODES::CreateWordFieldOp:
+				case OPCODES::CreateDWordFieldOp:
+				case OPCODES::CreateQWordFieldOp: {
+					u8 type;
+					switch (*code) {
+						case OPCODES::CreateByteFieldOp:
+							type = 0;
+							break;
+						case OPCODES::CreateWordFieldOp:
+							type = 1;
+							break;
+						case OPCODES::CreateDWordFieldOp:
+							type = 2;
+							break;
+						case OPCODES::CreateQWordFieldOp:
+							type = 3;
+							break;
+						default: break;
+					}
 
-				// 	code++;
-				// 	DataObject buffer = process_dataobject(code);
-				// 	assert(buffer.type == DataObject::REFERENCE);
+					code++;
+					ObjectValue buffer(scope, code);
+					assert((buffer.idx == IndexOf<ObjectPath, OBJECT_VARIANT_TYPES>::value));
 
-				// 	DataObject byteIdx = process_dataobject(code);
-				// 	Reference name(currentScope, code);
+					ObjectValue byteIdx(scope, code);
+					ObjectPath name(scope, code);
 
-				// 	DataObject field = DataObject(
-				// 		DataObject::BUFFERFIELD,
-				// 		BufferField(
-				// 			buffer.values.ref, byteIdx.evalToInt(), (typeof(BufferField::access))type
-				// 		)
-				// 	);
-				// 	names.insert(name, field);
-				// 	break;
-				// }
-				// case OPCODES::IfOp: {
-				// 	code++;
+					// DataObject field = DataObject(
+					// 	DataObject::BUFFERFIELD,
+					// 	BufferField(
+					// 		buffer.values.ref, byteIdx.evalToInt(), (typeof(BufferField::access))type
+					// 	)
+					// );
+					// names.insert(name, field);
 
-				// 	u32 pkglen = process_pkglength(code);
-				// 	printk("ifop of %d bytes\n", pkglen);
-				// 	bool cond = process_condition(code);
-				// 	printk("next byte %02x\n", *code);
+					warn("turi ip::: %s\n", name.toString().c_str());
+					break;
+				}
+				case OPCODES::IfOp: {
+					code++;
 
-				// 	break;
-				// }
-				// default: {
-				// 	fatal("Kezeletlen AML opcode [+0x%lx]: [%02x] [%02x] %02x [%02x]\n", code - tablestart, *(u8*)(code-2), *(u8*)(code-1), *(u8*)code, *(u8*)(code+1));
-				// 	break;
-				// }
+					fatal("eeffoc\n");
+
+					u32 pkglen = process_pkglength(code);
+					printk("ifop of %d bytes\n", pkglen);
+					bool cond = process_condition(code);
+					printk("next byte %02x\n", *code);
+
+					break;
+				}
+				default: {
+					fatal("Kezeletlen AML opcode [+0x%lx]: [%02x] [%02x] %02x [%02x]\n", code - tablestart, *(u8*)(code-2), *(u8*)(code-1), *(u8*)code, *(u8*)(code+1));
+					break;
+				}
 			}
 		}
 	}

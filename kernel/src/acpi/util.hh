@@ -94,9 +94,16 @@ namespace acpi {
 	pstruct Name {
 		u32 name = 0;
 		u8 nullterm = 0;
+		bool root = false;
+
 		Name(u32 _name): name(_name) {  }
 		Name(const char* _name): name(*(u32*)_name) {  }
 		Name(OPCODES*& code) {
+			if (*(u8*)code == '\\') {
+				root = true;
+				code++;
+			}
+
 			for (u32 i = 0; i < 4; i++, code++) {
 				if (*(u8*)code == 0) { code++; break; }
 				name |= (*(u8*)code) << (i * 8);
@@ -198,10 +205,25 @@ namespace acpi {
 		u64 evalToInt();
 		ObjectValue() = default;
 	};
+	
+	struct SuperName {
+		enum Type {
+			Local0, Local1,
+			Local2, Local3,
+			Local4, Local5,
+			Local6, Local7,
 
-	// struct Reference : String {
-	// 	Reference(ScopeStack& scope, OPCODES*& code);
-	// };
+			Arg0, Arg1,
+			Arg2, Arg3,
+			Arg4, Arg5,
+			Arg6, Arg7,
+
+			Ref
+		} type;
+		Opt<ObjectPath> ref;
+
+		SuperName(OPCODES*& code);
+	};
 
 	u64 process_pkglength(OPCODES*& code);
 

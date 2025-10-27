@@ -162,6 +162,14 @@ namespace acpi {
 		printk("key init from mn %s\n", data);
 	}
 
+	SuperName::SuperName(OPCODES*& code) {
+		if (*code >= OPCODES::Local0Op && *code <= OPCODES::Arg6Op) {
+			type = (Type)((u8)*code - (u8)OPCODES::Local0Op);
+		} else {
+			fatal("Unhandled AML SuperName prefix '%02x'\n", *(u8*)code);
+		}
+	}
+
 	void MultiName::init(OPCODES*& code) {
 		if (*code == OPCODES::DualNamePrefix) {
 			code++;
@@ -195,7 +203,6 @@ namespace acpi {
 	String ObjectPath::toString() {
 		String ret;
 		for (u32 i = 0; i < path.names.size; i++) {
-			printk("turi %s\n", path.names[i].c_str());
 			ret += path.names[i].c_str();
 		}
 		return ret;
@@ -232,7 +239,7 @@ namespace acpi {
 			u32 s = bak.size;
 			for (u32 i = 0; i < s; i++, bak.pop()) {
 				ObjectKey teszt(bak, path.names[0]);
-				printk("searfch %d for %s\n", bak.size, teszt.c_str());
+				printk("searfch %lld for %s\n", bak.size, teszt.c_str());
 				auto o = ns[teszt];
 				if (o) return o;
 			}

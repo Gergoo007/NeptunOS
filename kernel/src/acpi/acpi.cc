@@ -2960,18 +2960,17 @@ namespace acpi {
 
 		u32 num_tables;
 		if (ver == 2)
-			num_tables = (rsdt->hdr.length - sizeof(*rsdt)) / 8;
+			num_tables = (rsdt->hdr.length - sizeof(SDT)) / 8;
 		else
-			num_tables = (rsdt->hdr.length - sizeof(*rsdt)) / 4;
+			num_tables = (rsdt->hdr.length - sizeof(SDT)) / 4;
 
 		for (u32 i = 0; i < num_tables; i++) {
 			SDT* addr;
 			if (ver == 1 || ver == 0)
-				addr = (SDT*)(u64)VIRTUAL((u64)rsdt->rsdtptrs + i * 4);
+				addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u32*)&rsdt->arraystart)[i]));
 			else
-				addr = (SDT*)(u64)VIRTUAL((u64)rsdt->xsdtptrs + i * 8);
+				addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u64*)&rsdt->arraystart)[i]));
 			check(addr);
-			// tables.emplace(addr);
 			tables.emplace(addr);
 		}
 
@@ -2981,8 +2980,6 @@ namespace acpi {
 
 			if (i->sign == SIGNS::MCFG)
 				pci::mcfg = (pci::MCFG*)i;
-
-			// printk("%.4s: %p\n", (char*)&(i->sign), i);
 		}
 	}
 }

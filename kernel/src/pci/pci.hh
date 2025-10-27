@@ -26,6 +26,77 @@ namespace pci {
 		} cfg_spaces[0];
 	};
 
+	typedef punion pci_hdr {
+		pstruct {
+			u16 vendor;
+			u16 product;
+			u16 cmd;
+			u16 status;
+			u8 rev_id;
+			u8 prog_if;
+			union {
+				struct {
+					u8 subclass;
+					u8 _class;
+				};
+				u16 combclass;
+			};
+			u8 cache_size;
+			u8 latency_timer;
+			u8 hdr_type;
+			u8 bist;
+
+			union {
+				struct {
+					u32 bars[6];
+					u32 cardbus_cis;
+					u16 subsys_vendor;
+					u16 subsys_id;
+					u32 expansion_rom_addr;
+					u8 capabilities;
+					u32 : 24;
+					u32 : 32;
+					u8 int_line;
+					u8 int_pin;
+					u8 min_grant;
+					u8 max_latency;
+				} type0;
+
+				struct {
+					u32 bars[2];
+					u8 primary_bus_num;
+					u8 secondary_bus_num;
+					u8 subordinate_bus_num;
+					u8 secondary_latency_timer;
+					u8 io_base;
+					u8 io_limit;
+					u16 secondary_status;
+					u16 mem_base;
+					u16 mem_limit;
+					u16 prefetch_mem_base;
+					u16 prefetch_mem_limit;
+					u32 prefetchable_base_upper;
+					u32 prefetchable_limit_upper;
+					u16 io_base_upper;
+					u16 io_limit_upper;
+					u8 capabilities;
+					u32 : 24;
+					u32 expansion_rom_addr;
+					u8 int_line;
+					u8 int_pin;
+					u16 bridge_ctrl;
+				} type1;
+
+				struct {
+					// TODO
+				} type2;
+			};
+		};
+		pstruct {
+			u32 dword[16];
+		};
+	} pci_hdr;
+
 	struct Register {
 		u32 offset;
 		u32 bits;
@@ -40,7 +111,7 @@ namespace pci {
 		static constexpr Register PROGIF 		= { 0x09,	8	};
 		static constexpr Register SUBCLASS 		= { 0x0a,	8	};
 		static constexpr Register CLASS 		= { 0x0b,	8	};
-		static constexpr Register HDRTYPE 		= { 0x0d,	8	};
+		static constexpr Register HDRTYPE 		= { 0x0e,	8	};
 		static constexpr Register BAR0 			= { 0x10,	32	};
 		static constexpr Register BAR1 			= { 0x14,	32	};
 		static constexpr Register BAR2 			= { 0x18,	32	};
@@ -55,26 +126,6 @@ namespace pci {
 		static constexpr Register MINGRANT 		= { 0x3e,	8	};
 		static constexpr Register MAXLATEN 		= { 0x3f,	8	};
 	};
-
-	// enum struct Regs : Register {
-	// 	VENDOR_16 = 0,
-	// 	PRODUCT_16 = 2,
-	// 	CMD_16 = 4,
-	// 	STS_16 = 6,
-	// 	REVID_8 = 8,
-	// 	PROGIF_8 = 9,
-	// 	SUBCLASS_8 = 10,
-	// 	CLASS_8 = 11,
-	// 	HDRTYPE = 14,
-	// 	BAR0 = 16,
-	// 	BAR1 = 20,
-	// 	BAR2 = 24,
-	// 	BAR3 = 28,
-	// 	BAR4 = 32,
-	// 	BAR5 = 36,
-	// 	BAR6 = 40,
-	// 	INTLINE_INTPIN_MINGRANT_MAXLATEN = 60,
-	// };
 
 	extern MCFG* mcfg;
 

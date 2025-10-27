@@ -3,19 +3,20 @@ ENTRY("mod_main")
 SECTIONS {
 	. = SIZEOF_HEADERS;
 
-	IMAGE_START = .;
+	. = ALIGN(0x200000);
 	.text : {
 		*(.text)
 	}
 
+	. = ALIGN(0x200000);
 	.data : {
 		*(.data)
 	}
 
+	. = ALIGN(0x200000);
 	.bss : {
 		*(.bss)
 	}
-	IMAGE_END = .;
 
 	/DISCARD/ : {
 		*(.note.gnu.property)

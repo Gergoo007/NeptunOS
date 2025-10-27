@@ -37,17 +37,17 @@ namespace pmm {
 				case MMAP_TYPES::LIMINE_MEMMAP_BAD_MEMORY:
 				case MMAP_TYPES::LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
 				case MMAP_TYPES::LIMINE_MEMMAP_FRAMEBUFFER:
-					reservedmem += r->entries[i]->length;
+					// reservedmem += r->entries[i]->length;
 					break;
 				case MMAP_TYPES::LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
-					usedmem += r->entries[i]->length;
+					// usedmem += r->entries[i]->length;
 					break;
 				case MMAP_TYPES::LIMINE_MEMMAP_USABLE:
 					if (r->entries[i]->length > heap_size) {
-						heap_size = r->entries[i]->length;
+						heap_size = align_down(r->entries[i]->length, pagesize);
 						heap_base = (void*)r->entries[i]->base;
 					}
-					freemem += r->entries[i]->length;
+					freemem = heap_size;
 					break;
 				break;
 			}
@@ -61,12 +61,29 @@ namespace pmm {
 			usedmem += pagesize;
 			freemem -= pagesize;
 		}
+		sprintk("init pmm heap at %p size %llx (%lld MiB)\n\r", heap_base, heap_size, bytes2mibs(heap_size));
+		sprintk("bits at %p\n", bm->buffer);
 	}
 
 	void* alloc(u64 size) {
 		if (size < pagesize) size = pagesize;
 		size = align(size, pagesize);
 
-		return VIRTUAL((void*)((u64)heap_base + bm->find_and_set() * pagesize));
+		usedmem += pagesize;
+		freemem -= pagesize;
+
+		// if (!freemem)
+		// 	fatal("freemem ran out\n");
+
+		u64 bit = bm->find_and_set();
+		// if (bit == -1ULL) {
+		// 	fatal(
+		// 		"Out of memory! free: %lld KiB, used: %lld KiB, all: %lld KiB\n",
+		// 		bytes2kibs(pmm::freemem),
+		// 		bytes2kibs(pmm::usedmem),
+		// 		bytes2kibs(pmm::heap_size)
+		// 	);
+		// }
+		return VIRTUAL((void*)((u64)heap_base + bit * pagesize));
 	}
 }
