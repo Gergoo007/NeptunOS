@@ -8,7 +8,8 @@ endif
 CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++23 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
 	-Wno-unused-parameter -fno-stack-protector -O3 -g -Wno-multichar \
-	-Wno-packed-bitfield-compat -fno-omit-frame-pointer -fno-rtti -fno-exceptions
+	-Wno-packed-bitfield-compat -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
+	-MMD -MP -DDEBUG
 ASFLAGS +=
 LDFLAGS += -z max-page-size=0x1000 --no-gc-sections
 

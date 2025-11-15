@@ -36,5 +36,5 @@ void ksyms_read() {
 	}
 
 	// for (u32 i = 0; i < num_ksyms; i++)
-	// 	printk("turi ip %s\n", strtab + ksyms[i].st_name);
+	// 	printk("turi ip %s", strtab + ksyms[i].st_name);
 }

@@ -3,12 +3,11 @@
 #include <util/storage.hh>
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
-#include <acpi/aml.hh>
 
 #include <pci/pci.hh>
 
 __attribute__((section(".limine_requests"), used))
-static volatile limine_rsdp_request rsdp_req {
+static volatile struct limine_rsdp_request rsdp_req = {
 	.id = LIMINE_RSDP_REQUEST,
 	.revision = 0,
 	.response = nullptr
@@ -2875,111 +2874,109 @@ static constexpr u8 practice[] = {
 	0x02, 0xa5
 };
 
-namespace acpi {
-	Vector<SDT*> tables;
-	u8 ver;
+// <SDT*> tables;
+// u8 ver;
 
-	bool validate(SDT* table) {
-		u8 sum = 0;
-		for (u32 i = 0; i < table->length; i++)
-			sum += ((u8*)table)[i];
-		return sum ? false : true;
-	}
+// bool validate(SDT* table) {
+// 	u8 sum = 0;
+// 	for (u32 i = 0; i < table->length; i++)
+// 		sum += ((u8*)table)[i];
+// 	return sum ? false : true;
+// }
 
-	// Visszaadja az ACPI verziót, 0 ha érvénytelen
-	u8 validateRsdp(RootPointer* table) {
-		if (memcmp((void*)"RSD PTR ", table->sign, 8))
-			return 0;
+// // Visszaadja az ACPI verziót, 0 ha érvénytelen
+// u8 validateRsdp(RootPointer* table) {
+// 	if (memcmp((void*)"RSD PTR ", table->sign, 8))
+// 		return 0;
 
-		// ACPI 2.0-s RSDP-e?
-		u8 sum = 0;
-		for (u32 i = 0; i < table->length; i++)
-			sum += ((u8*)table)[i];
+// 	// ACPI 2.0-s RSDP-e?
+// 	u8 sum = 0;
+// 	for (u32 i = 0; i < table->length; i++)
+// 		sum += ((u8*)table)[i];
 
-		if (!sum && table->xsdt)
-			return 2;
+// 	if (!sum && table->xsdt)
+// 		return 2;
 
-		sum = 0;
-		for (u32 i = 0; i < 20; i++)
-			sum += ((u8*)table)[i];
+// 	sum = 0;
+// 	for (u32 i = 0; i < 20; i++)
+// 		sum += ((u8*)table)[i];
 
-		if (sum)
-			return 0;
-		else
-			return 1;
-	}
+// 	if (sum)
+// 		return 0;
+// 	else
+// 		return 1;
+// }
 
-	static void check(void* a) {
-		if (arch::paging_lookup((u64)a) == (u64)-1)
-			arch::map_page(VIRTUAL((u64)a), PHYSICAL((u64)a), (u32)arch::MFLAGS::KDATA);
-	}
+// static void check(void* a) {
+// 	if (arch::paging_lookup((u64)a) == (u64)-1)
+// 		arch::map_page(VIRTUAL((u64)a), PHYSICAL((u64)a), (u32)arch::MFLAGS::KDATA);
+// }
 
-	static void checkTable(SDT* a) {
-		check(a);
-		printk("map3 %p; %d\n", a, a->length);
-		for (u64 i = 0; i < align(a->length, 0x1000); i += 0x1000) {
-			printk("map2 %p; %d\n", a, a->length);
-			check((u8*)a + i);
-		}
-	}
+// static void checkTable(SDT* a) {
+// 	check(a);
+// 	printk("map3 %p; %d", a, a->length);
+// 	for (u64 i = 0; i < align(a->length, 0x1000); i += 0x1000) {
+// 		printk("map2 %p; %d", a, a->length);
+// 		check((u8*)a + i);
+// 	}
+// }
 
-	void process_fadt(FADT* fadt) {
-		fadt = VIRTUAL(fadt);
-		checkTable((SDT*)fadt);
+// void process_fadt(FADT* fadt) {
+// 	fadt = VIRTUAL(fadt);
+// 	checkTable((SDT*)fadt);
 
-		SDT* dsdt = VIRTUAL((SDT*)fadt->x_dsdt);
-		check(dsdt);
-		if (dsdt->sign != 'TDSD')
-			dsdt = (SDT*)(u64)fadt->dsdt;
-		dsdt = VIRTUAL(dsdt);
-		checkTable(dsdt);
+// 	SDT* dsdt = VIRTUAL((SDT*)fadt->x_dsdt);
+// 	check(dsdt);
+// 	if (dsdt->sign != 'TDSD')
+// 		dsdt = (SDT*)(u64)fadt->dsdt;
+// 	dsdt = VIRTUAL(dsdt);
+// 	checkTable(dsdt);
 
-		if (!validate(dsdt))
-			error("Hibas DSDT!\n");
+// 	if (!validate(dsdt))
+// 		error("Hibas DSDT!");
 
-		process_aml((OPCODES*)practice + sizeof(SDT), sizeof(practice));
-		// process_aml((OPCODES*)((u8*)dsdt + sizeof(SDT)), dsdt->length - sizeof(SDT));
-	}
+// 	process_aml((OPCODES*)practice + sizeof(SDT), sizeof(practice));
+// 	// process_aml((OPCODES*)((u8*)dsdt + sizeof(SDT)), dsdt->length - sizeof(SDT));
+// }
 
-	void init() {
-		auto r = rsdp_req.response;
-		// Buggos ez az Istenverte szar
-		check((void*)r->address);
+// void init() {
+// 	auto r = rsdp_req.response;
+// 	// Buggos ez az Istenverte szar
+// 	check((void*)r->address);
 
-		if (!r || !r->address)
-			error("Nincs RSDP??\n");
+// 	if (!r || !r->address)
+// 		error("Nincs RSDP??");
 
-		RootPointer* rsdp = (RootPointer*)VIRTUAL(r->address);
-		if (!(ver = validateRsdp(rsdp)))
-			error("ACPI RSDP nem érvényes!\n");
+// 	RootPointer* rsdp = (RootPointer*)VIRTUAL(r->address);
+// 	if (!(ver = validateRsdp(rsdp)))
+// 		error("ACPI RSDP nem érvényes!");
 
-		RootTable* rsdt = (RootTable*)VIRTUAL(ver == 2 ? rsdp->xsdt : rsdp->rsdt);
-		check(rsdt);
+// 	RootTable* rsdt = (RootTable*)VIRTUAL(ver == 2 ? rsdp->xsdt : rsdp->rsdt);
+// 	check(rsdt);
 
-		printk("RSDP ver: %d\n", ver);
+// 	printk("RSDP ver: %d", ver);
 
-		u32 num_tables;
-		if (ver == 2)
-			num_tables = (rsdt->hdr.length - sizeof(SDT)) / 8;
-		else
-			num_tables = (rsdt->hdr.length - sizeof(SDT)) / 4;
+// 	u32 num_tables;
+// 	if (ver == 2)
+// 		num_tables = (rsdt->hdr.length - sizeof(SDT)) / 8;
+// 	else
+// 		num_tables = (rsdt->hdr.length - sizeof(SDT)) / 4;
 
-		for (u32 i = 0; i < num_tables; i++) {
-			SDT* addr;
-			if (ver == 1 || ver == 0)
-				addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u32*)&rsdt->arraystart)[i]));
-			else
-				addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u64*)&rsdt->arraystart)[i]));
-			check(addr);
-			tables.emplace(addr);
-		}
+// 	for (u32 i = 0; i < num_tables; i++) {
+// 		SDT* addr;
+// 		if (ver == 1 || ver == 0)
+// 			addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u32*)&rsdt->arraystart)[i]));
+// 		else
+// 			addr = VIRTUAL((SDT*)(u64)VIRTUAL(((u64*)&rsdt->arraystart)[i]));
+// 		check(addr);
+// 		tables.emplace(addr);
+// 	}
 
-		for (SDT* i : tables) {
-			// if (i->sign == SIGNS::FADT)
-			// 	process_fadt((FADT*)i);
+// 	for (SDT* i : tables) {
+// 		// if (i->sign == SIGNS::FADT)
+// 		// 	process_fadt((FADT*)i);
 
-			if (i->sign == SIGNS::MCFG)
-				pci::mcfg = (pci::MCFG*)i;
-		}
-	}
-}
+// 		if (i->sign == SIGNS::MCFG)
+// 			pci::mcfg = (pci::MCFG*)i;
+// 	}
+// }

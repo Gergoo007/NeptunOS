@@ -9,54 +9,52 @@
 
 extern "C" void sse_init();
 
-namespace arch {
-	void init() {
-		sse_init();
-		sinit();
-	}
+void arch_init() {
+	sse_init();
+	sinit();
+}
 
-	void late_init() {
-		arch::gdt::init();
-		arch::tss::init();
-		arch::idt::init();
-	}
+void arch_late_init() {
+	arch_gdt_init();
+	arch_tss_init();
+	arch_idt_init();
+}
 
-	void halt() {
-		asm volatile ("hlt");
-	}
+void arch_halt() {
+	asm volatile ("hlt");
+}
 
-	void cli() {
-		asm volatile ("cli");
-	}
+void arch_cli() {
+	asm volatile ("cli");
+}
 
-	void sti() {
-		asm volatile ("sti");
-	}
+void arch_sti() {
+	asm volatile ("sti");
 }
 
 void sinit() {
-	arch::outb(PORT + 1, 0x00);
-	arch::outb(PORT + 3, 0x80);
-	arch::outb(PORT + 0, 0x03);
-	arch::outb(PORT + 1, 0x00);
-	arch::outb(PORT + 3, 0x03);
-	arch::outb(PORT + 2, 0xC7);
+	outb(PORT + 1, 0x00);
+	outb(PORT + 3, 0x80);
+	outb(PORT + 0, 0x03);
+	outb(PORT + 1, 0x00);
+	outb(PORT + 3, 0x03);
+	outb(PORT + 2, 0xC7);
 	// outb(PORT + 4, 0x0B);
-	arch::outb(PORT + 4, 0x1E);
-	arch::outb(PORT + 0, 0xAE);
+	outb(PORT + 4, 0x1E);
+	outb(PORT + 0, 0xAE);
 
-	arch::outb(PORT + 4, 0x0F);
+	outb(PORT + 4, 0x0F);
 }
 
 void sputc(const char c) {
-	while ((arch::inb(PORT + 5) & 0x20) == 0);
-	arch::outb(PORT, c);
+	while ((inb(PORT + 5) & 0x20) == 0);
+	outb(PORT, c);
 	if (c == '\n')
 		sputc('\r');
 }
 
 char sgetc() {
-	while ((arch::inb(PORT + 5) & 1) == 0);
-	return arch::inb(PORT);
+	while ((inb(PORT + 5) & 1) == 0);
+	return inb(PORT);
 }
 

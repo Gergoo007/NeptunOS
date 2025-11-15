@@ -1,317 +1,343 @@
 #include <mm/vmm.hh>
 #include <cppcompat.hh>
 
-namespace vmm {
-	Link* links;
-	Link* first;
-	u8 bitmapStorage[sizeof(Bitmap)];
-	Bitmap* bm;
-	u64 capacity;
+struct link_t {
+	link_t* next;
+	link_t* prev;
 
-	u64 usedmem = 0;
-	u64 freemem;
+	#ifdef DEBUG
+	const char* file;
+	u32 line;
+	#endif
 
-	// TODO: "jelző" változó, ami az utolsó free blokkra mutat mindig,
-	// ezáltal nem kell minden alkalommal végigiterálni a linkelt listát
-	// Ha eléri ez a jelző a heap végét, be kell állítani -1-re, mellyel
-	// jelzi hogy már csak szabadított blokkok vannak, szétszórva
+	u64 length;
+	bool free;
+};
 
-	void init() {
-		first = links = (Link*)pmm::alloc();
+link_t* vmm_links;
+link_t* vmm_first;
+u8 vmm_bitmapStorage[sizeof(bitmap_t)];
+bitmap_t* vmm_bm;
+u64 vmm_capacity;
 
-		memset(links, 0, pmm::pagesize);
-		capacity = pmm::pagesize / sizeof(Link);
+u64 vmm_usedmem = 0;
+u64 vmm_freemem;
 
-		bm = new (bitmapStorage) Bitmap;
+// TODO: "jelző" változó, ami az utolsó free blokkra mutat mindig,
+// ezáltal nem kell minden alkalommal végigiterálni a linkelt listát
+// Ha eléri ez a jelző a heap végét, be kell állítani -1-re, mellyel
+// jelzi hogy már csak szabadított blokkok vannak, szétszórva
 
-		bm->init((u64*)pmm::alloc(), capacity);
-
-		links[0] = Link {
-			.next = nullptr,
-			.prev = nullptr,
-
-			#ifdef DEBUG
-			.file = "",
-			.line = 0,
-			#endif
-
-			.length = pmm::freemem,
-			.free = true,
-		};
-		bm->set(0, true);
-
-		freemem = pmm::freemem;
+u32 vmm_count_allocs() {
+	u32 ret = 0;
+	link_t* l = vmm_first;
+	while (l) {
+		l = l->next;
+		ret++;
 	}
 
-	void delete_link(Link* l) {
-		// Külön változó hogy ne sírjon a clang
-		u64 offset = (u64)l - (u64)links;
-		u64 index = offset / sizeof(Link);
+	return ret;
+}
 
-		if (l->prev == nullptr)
-			first = l->next;
+void vmm_init() {
+	vmm_first = vmm_links = (link_t*)pmm_alloc();
 
-		bm->set(index, false);
-		l->next = (Link*)0x6966969696969669;
-		l->prev = (Link*)0x6966969696969669;
-	}
+	memset(vmm_links, 0, pmm_pagesize);
+	vmm_capacity = pmm_pagesize / sizeof(link_t);
 
-	Link* create_link() {
-		u64 idx = bm->find_and_set();
-		if (idx == -1ULL) {
-			fatal(
-				"Kifogyott a vmm bitmap! Hasznalt: %llu KiB (%llu MiB) Szabad: %llu KiB (%llu MiB)\n",
-				bytes2kibs(pmm::usedmem),
-				bytes2mibs(pmm::usedmem),
-				bytes2kibs(pmm::freemem),
-				bytes2mibs(pmm::freemem)
-			);
-		}
-		return &links[idx];
-	}
+	vmm_bm = new (vmm_bitmapStorage) bitmap_t;
 
-	void merge(Link* l) {
-		// Összevonás az utána lévővel
-		if (l->next) {
-			Link* old = l->next;
-			if (l->free && l->next->free) {
-				// A második link (l->next) eltávolítása
-				l->length += l->next->length;
-				if (l->next->next)
-					l->next->next->prev = l;
-				l->next = l->next->next;
+	vmm_bm->init((u64*)pmm_alloc(), vmm_capacity);
 
-				delete_link(old);
-			}
-		}
+	vmm_links[0] = link_t {
+		.next = nullptr,
+		.prev = nullptr,
 
-		// Összevonás az előtte lévővel
-		if (l->prev) {
-			if (l->free && l->prev->free) {
-				// A második (l) link eltávolítása
-				l->prev->length += l->length;
-				if (l->next)
-					l->next->prev = l->prev;
-				l->prev->next = l->next;
-
-				delete_link(l);
-			}
-		}
-	}
-
-	// Kisajátít egy free blokkot, és létrehoz egy újat ha maradt még az eredetiből
-	Link& allocate_into_free(Link* current, u64 size, u32 additional) {
-		current->free = false;
-		u64 rem = current->length - size - additional;
-		
-		// Ha maradt még a free linkből akkor kell utána egy újat csinálni
-		// hiszen a current az éppen lefoglalt link
-		if (rem) {
-			Link* newlink = create_link();
-
-			// be kell állítani: a currentet, a new-t és a következőt
-			current->length = size;
-
-			newlink->next = current->next;
-			newlink->prev = current;
-			newlink->length = rem;
-			newlink->free = true;
-
-			if (current->next)
-				current->next->prev = newlink;
-
-			current->next = newlink;
-
-			return *newlink;
-		}
-		return *current;
-	}
-
-	void* alloc(u64 size, const char* file, u32 line) {
-		if (!size) return nullptr;
-		size = align(size, 16);
-
-		Link* current = first;
-		u64 address = heap_base;
-		while (!current->free || current->length < size) {
-			address += current->length;
-
-			current = current->next;
-			if (!current) {
-				fatal(
-					"Elfogyott a memoria!\npmm used vs free %llu MiB %llu MiB\nvmm used vs free %llu MiB %llu MiB\n",
-					bytes2mibs(pmm::usedmem), bytes2mibs(pmm::freemem),
-					bytes2mibs(vmm::usedmem), bytes2mibs(vmm::freemem)
-				);
-			}
-		}
-
-		// current átállítása a used linkké, majd egy új free link beillesztése utána
-		auto l = allocate_into_free(current, size, 0);
 		#ifdef DEBUG
-		l.file = file;
-		l.line = line;
+		.file = "",
+		.line = 0,
 		#endif
 
-		vmm::usedmem += size;
-		vmm::freemem -= size;
-		return (void*)address;
+		.length = pmm_freemem,
+		.free = true,
+	};
+	vmm_bm->set(0, true);
+
+	vmm_freemem = pmm_freemem;
+}
+
+static void delete_link(link_t* l) {
+	// Külön változó hogy ne sírjon a clang
+	u64 offset = (u64)l - (u64)vmm_links;
+	u64 index = offset / sizeof(link_t);
+
+	if (l->prev == nullptr)
+		vmm_first = l->next;
+
+	vmm_bm->set(index, false);
+	l->next = (link_t*)0x6966969696969669;
+	l->prev = (link_t*)0x6966969696969669;
+}
+
+static link_t* create_link() {
+	u64 idx = vmm_bm->find_and_set();
+	if (idx == -1ULL) {
+		fatal(
+			"Kifogyott a vmm bitmap! Hasznalt: %llu KiB (%llu MiB) Szabad: %llu KiB (%llu MiB)",
+			bytes2kibs(pmm_usedmem),
+			bytes2mibs(pmm_usedmem),
+			bytes2kibs(pmm_freemem),
+			bytes2mibs(pmm_freemem)
+		);
+	}
+	return &vmm_links[idx];
+}
+
+void vmm_merge(link_t* l) {
+	// Összevonás az utána lévővel
+	if (l->next) {
+		link_t* old = l->next;
+		if (l->free && l->next->free) {
+			// A második link (l->next) eltávolítása
+			l->length += l->next->length;
+			if (l->next->next)
+				l->next->next->prev = l;
+			l->next = l->next->next;
+
+			delete_link(old);
+		}
 	}
 
-	void* alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
-		size = align(size, 16);
-		align = align(align, 16);
+	// Összevonás az előtte lévővel
+	if (l->prev) {
+		if (l->free && l->prev->free) {
+			// A második (l) link eltávolítása
+			l->prev->length += l->length;
+			if (l->next)
+				l->next->prev = l->prev;
+			l->prev->next = l->next;
 
-		Link* l = first;
-		u64 address = heap_base;
-		while (l) {
-			u64 alignfix = 0;
-			// minimum ekkorának kell lennie a free blokknak az igazítás miatt
-			if (address & (align-1))
-				alignfix = align - (address & (align-1));
+			delete_link(l);
+		}
+	}
+}
 
-			u64 minsize = size + alignfix;
-			if (l->free && l->length >= minsize) {
-				// Itt (lehet hogy) kell egy free blokk, aztán
-				// kell egy used, aztán (lehet hogy) kell még egy free
-				if (l->length > minsize && alignfix) {
-					// Kell egy free blokk először
-					Link* freelink = create_link();
-					if (l->prev)
-						l->prev->next = freelink;
-					freelink->prev = l->prev;
-					l->prev = freelink;
-					freelink->next = l;
+// Kisajátít egy free blokkot, és létrehoz egy újat ha maradt még az eredetiből
+static link_t& allocate_into_free(link_t* current, u64 size, u32 additional) {
+	current->free = false;
+	u64 rem = current->length - size - additional;
+	
+	// Ha maradt még a free linkből akkor kell utána egy újat csinálni
+	// hiszen a current az éppen lefoglalt link
+	if (rem) {
+		link_t* newlink = create_link();
 
-					freelink->free = true;
-					freelink->length = alignfix;
-				}
-				address += alignfix;
+		// be kell állítani: a currentet, a new-t és a következőt
+		current->length = size;
 
-				// Innentől mehet a normális alloc procedúra
-				// az alignfix-et is le kell vonni, külön a size-tól
-				auto link = allocate_into_free(l, size, alignfix);
-				#ifdef DEBUG
-				link.file = file;
-				link.line = line;
-				#endif
+		newlink->next = current->next;
+		newlink->prev = current;
+		newlink->length = rem;
+		newlink->free = true;
 
-				break;
+		if (current->next)
+			current->next->prev = newlink;
+
+		current->next = newlink;
+
+		return *newlink;
+	}
+	return *current;
+}
+
+void* vmm_alloc(u64 size, const char* file, u32 line) {
+	if (!size) return nullptr;
+	size = align(size, 16);
+
+	link_t* current = vmm_first;
+	u64 address = vmm_heap_base;
+	while (!current->free || current->length < size) {
+		address += current->length;
+
+		current = current->next;
+		if (!current) {
+			fatal(
+				"Elfogyott a memoria!\npmm used vs free %llu MiB %llu MiB\nvmm used vs free %llu MiB %llu MiB",
+				bytes2mibs(pmm_usedmem), bytes2mibs(pmm_freemem),
+				bytes2mibs(vmm_usedmem), bytes2mibs(vmm_freemem)
+			);
+		}
+	}
+
+	// current átállítása a used linkké, majd egy új free link beillesztése utána
+	auto l = allocate_into_free(current, size, 0);
+	(void)l;
+	#ifdef DEBUG
+	l.file = file;
+	l.line = line;
+	#endif
+
+	vmm_usedmem += size;
+	vmm_freemem -= size;
+	return (void*)address;
+}
+
+void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
+	size = align(size, 16);
+	align = align(align, 16);
+
+	link_t* l = vmm_first;
+	u64 address = vmm_heap_base;
+	while (l) {
+		u64 alignfix = 0;
+		// minimum ekkorának kell lennie a free blokknak az igazítás miatt
+		if (address & (align-1))
+			alignfix = align - (address & (align-1));
+
+		u64 minsize = size + alignfix;
+		if (l->free && l->length >= minsize) {
+			// Itt (lehet hogy) kell egy free blokk, aztán
+			// kell egy used, aztán (lehet hogy) kell még egy free
+			if (l->length > minsize && alignfix) {
+				// Kell egy free blokk először
+				link_t* freelink = create_link();
+				if (l->prev)
+					l->prev->next = freelink;
+				freelink->prev = l->prev;
+				l->prev = freelink;
+				freelink->next = l;
+
+				freelink->free = true;
+				freelink->length = alignfix;
 			}
+			address += alignfix;
 
-			address += l->length;
-			l = l->next;
+			// Innentől mehet a normális alloc procedúra
+			// az alignfix-et is le kell vonni, külön a size-tól
+			auto link = allocate_into_free(l, size, alignfix);
+			(void)link;
+			#ifdef DEBUG
+			link.file = file;
+			link.line = line;
+			#endif
+
+			break;
 		}
 
-		vmm::usedmem += size;
-		vmm::freemem -= size;
-		return (void*)address;
+		address += l->length;
+		l = l->next;
 	}
 
-	void* realloc(void* ptr, u64 newsize) {
-		if (!ptr)
-			return kmalloc(newsize);
+	vmm_usedmem += size;
+	vmm_freemem -= size;
+	return (void*)address;
+}
 
-		assert(((u64)ptr & 15) == 0);
+void* vmm_realloc(void* ptr, u64 newsize) {
+	if (!ptr)
+		return kmalloc(newsize);
 
-		Link* i = first;
-		u64 addr = heap_base;
-		u64 oldsize = 0;
-		newsize = align(newsize, 16);
+	assert(((u64)ptr & 15) == 0);
 
-		while (i) {
-			if (addr == (u64)ptr) {
-				oldsize = i->length;
-				if (newsize <= oldsize)
+	link_t* i = vmm_first;
+	u64 addr = vmm_heap_base;
+	u64 oldsize = 0;
+	newsize = align(newsize, 16);
+
+	while (i) {
+		if (addr == (u64)ptr) {
+			oldsize = i->length;
+			if (newsize <= oldsize)
+				return ptr;
+
+			if (i->next) {
+				if (i->next->length == newsize - i->length) {
+					i->next->length -= newsize - i->length;
+					i->length += newsize - i->length;
+					vmm_usedmem += (newsize - oldsize);
+					vmm_freemem -= (newsize - oldsize);
+
+					// i->next törlése
+					link_t* old = i->next;
+					i->next = old->next;
+					old->next->prev = i;
+					delete_link(old);
+
 					return ptr;
-
-				if (i->next) {
-					if (i->next->length == newsize - i->length) {
-						i->next->length -= newsize - i->length;
-						i->length += newsize - i->length;
-						vmm::usedmem += (newsize - oldsize);
-						vmm::freemem -= (newsize - oldsize);
-
-						// i->next törlése
-						Link* old = i->next;
-						i->next = old->next;
-						old->next->prev = i;
-						delete_link(old);
-
-						return ptr;
-					} else if (i->next->length > newsize - i->length) {
-						i->next->length -= newsize - i->length;
-						i->length += newsize - i->length;
-						vmm::usedmem += (newsize - oldsize);
-						vmm::freemem -= (newsize - oldsize);
-						return ptr;
-					} else {
-						goto whatever;
-					}
+				} else if (i->next->length > newsize - i->length) {
+					i->next->length -= newsize - i->length;
+					i->length += newsize - i->length;
+					vmm_usedmem += (newsize - oldsize);
+					vmm_freemem -= (newsize - oldsize);
+					return ptr;
 				} else {
 					goto whatever;
 				}
+			} else {
+				goto whatever;
 			}
-
-			addr += i->length;
-			i = i->next;
 		}
 
-		fatal("Elerhetetlen kod! ptr invalid? %p\n", ptr);
+		addr += i->length;
+		i = i->next;
+	}
+
+	fatal("Elerhetetlen kod! ptr invalid? %p", ptr);
 
 whatever:
-		void* newloc = kmalloc(newsize);
-		memcpy(newloc, ptr, oldsize);
-		kfree(ptr);
-		return newloc;
+	void* newloc = kmalloc(newsize);
+	memcpy(newloc, ptr, oldsize);
+	kfree(ptr);
+	return newloc;
+}
+
+u64 vmm_dump() {
+	printk("===============================\n");
+	link_t* i = vmm_first;
+	u64 addr = vmm_heap_base;
+	while (i) {
+		printk("[%p] %s: %08llx byte\n", (void*)addr, i->free ? "FREE" : "USED", i->length);
+		addr += i->length;
+		i = i->next;
 	}
+	printk("===============================\n");
+	return addr - vmm_heap_base;
+}
 
-	u64 dump() {
-		printk("===============================\n");
-		Link* i = first;
-		u64 addr = heap_base;
-		while (i) {
-			printk("[%p] %s: %08llx byte\n", (void*)addr, i->free ? "FREE" : "USED", i->length);
-			addr += i->length;
-			i = i->next;
-		}
-		printk("===============================\n");
-		return addr - heap_base;
-	}
+void vmm_free(void* p, const char* file, const char* function) {
+	if (!p) return;
 
-	void free(void* p, const char* file, const char* function) {
-		if (!p) return;
+	u64 addr = vmm_heap_base;
+	u64 linksize = -1;
+	link_t* i = vmm_first;
 
-		u64 addr = heap_base;
-		u64 linksize;
-		Link* i = first;
-
-		while (i) {
-			if (addr == (u64)p) {
-				linksize = i->length;
-				break;
-			}
-
-			addr += i->length;
-			i = i->next;
+	while (i) {
+		if (addr == (u64)p) {
+			linksize = i->length;
+			break;
 		}
 
-		#ifdef DEBUG
-		if (!i || addr != (u64)p)
-			fatal("Ervenytelen free! [%p]\nFILE %s\nFUNC %s\n", p, file, function);
-		#else
-		if (!i || addr != (u64)p)
-			fatal("Ervenytelen free! [%p]\n", p);
-		#endif
-
-		if (i == (Link*)0x6966969696969669)
-			fatal("nem jo.. \n");
-
-		vmm::usedmem -= linksize;
-		vmm::freemem += linksize;
-
-		i->free = true;
-
-		merge(i);
+		addr += i->length;
+		i = i->next;
 	}
+
+	#ifdef DEBUG
+	if (linksize == -1ULL)
+		fatal("turi ipő ip");
+	if (!i || addr != (u64)p)
+		fatal("Ervenytelen free! [%p]\nFILE %s\nFUNC %s", p, file, function);
+	#else
+	if (!i || addr != (u64)p)
+		fatal("Ervenytelen free! [%p]", p);
+	#endif
+
+	if (i == (link_t*)0x6966969696969669)
+		fatal("nem jo.. ");
+
+	vmm_usedmem -= linksize;
+	vmm_freemem += linksize;
+
+	i->free = true;
+
+	vmm_merge(i);
 }

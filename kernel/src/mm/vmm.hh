@@ -5,32 +5,18 @@
 #include <util/mem.hh>
 #include <util/bitmap.hh>
 
-#define kmalloc(size) vmm::alloc(size, __FILE__, __LINE__)
-#define kmalloc_aligned(size, al) vmm::alloc_aligned(size, al, __FILE__, __LINE__)
-#define krealloc(ptr, size) vmm::realloc(ptr, size)
-#define kfree(ptr) vmm::free(ptr, __FILE__, __PRETTY_FUNCTION__)
+#define kmalloc(size) vmm_alloc(size, __FILE__, __LINE__)
+#define kmalloc_aligned(size, al) vmm_alloc_aligned(size, al, __FILE__, __LINE__)
+#define krealloc(ptr, size) vmm_realloc(ptr, size)
+#define kfree(ptr) vmm_free(ptr, __FILE__, __PRETTY_FUNCTION__)
 
-namespace vmm {
-	struct Link {
-		Link* next = nullptr;
-		Link* prev = nullptr;
+// 16 terabyte-al a HHDM kezdete után
+constexpr u64 vmm_heap_base = 0xffff900000000000;
 
-		#ifdef DEBUG
-		const char* file;
-		u32 line;
-		#endif
-
-		u64 length;
-		bool free;
-	};
-
-	// 16 terabyte-al a HHDM kezdete után
-	constexpr u64 heap_base = 0xffff900000000000;
-
-	void init();
-	void* alloc(u64 size, const char* file, u32 line);
-	void* alloc_aligned(u64 size, u32 align, const char* file, u32 line);
-	void* realloc(void* ptr, u64 newsize);
-	void free(void* p, const char* file, const char* function);
-	u64 dump();
-}
+u32 vmm_count_allocs();
+void vmm_init();
+void* vmm_alloc(u64 size, const char* file, u32 line);
+void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line);
+void* vmm_realloc(void* ptr, u64 newsize);
+void vmm_free(void* p, const char* file, const char* function);
+u64 vmm_dump();

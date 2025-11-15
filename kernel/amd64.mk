@@ -10,7 +10,7 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++23 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
 	-Wno-unused-parameter -fno-stack-protector -mno-red-zone -O0 -g -Wno-multichar \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
-	-mcmodel=large
+	-mcmodel=large -MMD -MP -DDEBUG
 ASFLAGS +=
 LDFLAGS += --no-gc-sections
 

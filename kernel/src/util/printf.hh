@@ -33,7 +33,7 @@
 
 #include <types.hh>
 
-namespace console { extern void cputc(const char c); }
+extern void cputc(const char c);
 extern void sputc(const char c);
 
 // #ifdef __cplusplus
@@ -47,7 +47,7 @@ extern void sputc(const char c);
  * \param character Character to output
  */
 // void _putchar(char character);
-#define _putchar(c) console::cputc(c)
+#define _putchar(c) cputc(c)
 #define _putchar2(c) sputc(c)
 
 /**

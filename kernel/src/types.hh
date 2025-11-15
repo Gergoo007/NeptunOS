@@ -1,235 +1,124 @@
 #pragma once
 
-#include <ctypes.hh>
-#include <cppcompat.hh>
+// Miért van redefinition hiba az ifndef nélkül?
+#include <config.hh>
 
-template <typename T>
-constexpr T templatemax(T a) { return a; }
-template <typename T>
-constexpr const T& templatemax(const T& a, const T& b) { return a>b ? a : b; }
-template <typename T, typename... Ts>
-constexpr T templatemax(T a, Ts... args) { T b = templatemax(args...); return a > b ? a : b; }
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+typedef __uint128_t u128;
 
-template <typename T>
-constexpr T templatemin(T a) { return a; }
-template <typename T>
-constexpr const T& templatemin(const T& a, const T& b) { return a<b ? a : b; }
-template <typename T, typename... Ts>
-constexpr T templatemin(T a, Ts... args) { T b = templatemin(args...); return a < b ? a : b; }
+typedef char i8;
+typedef short i16;
+typedef int i32;
+typedef long long i64;
+typedef __int128_t i128;
 
-// ChatGPT cuz I tried comprehending and got an aneurysm instead
-template<typename T, typename U>
-struct IsSame {
-	static constexpr bool value = false;
-};
+typedef u8 uint8_t;
+typedef u16 uint16_t;
+typedef u32 uint32_t;
+typedef u64 uint64_t;
 
-template<typename T>
-struct IsSame<T, T> {
-	static constexpr bool value = true;
-};
+typedef i8 int8_t;
+typedef i16 int16_t;
+typedef i32 int32_t;
+typedef i64 int64_t;
 
-template <typename T, typename... Ts>
-struct IndexOf;
+typedef u16 wchar;
 
-// recursive case
-template <typename T, typename First, typename... Rest>
-struct IndexOf<T, First, Rest...> {
-	static constexpr u64 value =
-		IsSame<T, First>::value ? 0 : (1 + IndexOf<T, Rest...>::value);
-};
+typedef u64 uintptr_t;
 
-// base case (type not found)
-// Már csak a T maradt, a Rest... elfogyott
-template <typename T>
-struct IndexOf<T> {
-	static constexpr u64 value = 0;
-	static_assert(sizeof(T) != 0, "Type not found in variant alternatives");
-};
+typedef __SIZE_TYPE__ size_t;
 
-template <typename T>
-struct remove_reference { using type = T; };
+#define atomic _Atomic
 
-template <typename T>
-struct remove_reference<T&> { using type = T; };
+#define UINT64_C(v) v##ULL
 
-template <typename T>
-struct remove_reference<T&&> { using type = T; };
+#define va_start(v, l)	__builtin_va_start(v,l)
+#define va_end(v)		__builtin_va_end(v)
+#define va_arg(v,l)		__builtin_va_arg(v,l)
+#define va_list __builtin_va_list
 
-template <typename T>
-constexpr remove_reference<T>::type&&
-move(typename remove_reference<T>::type& obj) noexcept {
-	return static_cast<typename remove_reference<T>::type&&>(obj);
+#define foreach(var, l) for (i64 var = 0; var < (l); var++)
+#define offsetof(s, m) __builtin_offsetof(s, m)
+
+#define bytes2kibs(bytes) ((bytes) >> 10)
+#define bytes2mibs(bytes) ((bytes) >> 20)
+#define bytes2gibs(bytes) ((bytes) >> 30)
+#define bytes2tibs(bytes) ((bytes) >> 40)
+
+#define kib2bytes(kibs) ((kibs) << 10)
+#define mib2bytes(mibs) ((mibs) << 20)
+#define gib2bytes(gibs) ((gibs) << 30)
+#define tib2bytes(tibs) ((tibs) << 40)
+
+#define assert(c) if (!(c)) fatal("Assert failed: "#c" (" __FILE__ ":%d)", __LINE__)
+
+// #define align(x, n) ((typeof(x))(((x) & ((n)-1)) ? (((x) | ((n)-1))+1) : (x)))
+#define align_down(x, n) ((typeof(x))(((u64)x) & ~(((u64)n)-1)))
+
+#define align(x, n) ((typeof(x))((((u64)(x)) % (n)) ? (((u64)(x) + (n)) - (((u64)(x))) % (n)) : (x)))
+
+#define noret __attribute__((noreturn))
+#define packed __attribute__((packed))
+#define interrupt __attribute__((interrupt))
+#define aligned(x) __attribute__((aligned(x)))
+
+#define pstruct struct packed
+#define punion union packed
+
+extern u8 _binary_src_font_psf_start;
+extern u8 _binary_src_font_psf_end;
+
+// higher half
+extern void* higherhalf;
+
+#define FONTFILE_START &_binary_src_font_psf_start
+#define FONTFILE_END &_binary_src_font_psf_end
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define abs(a) ((a) < 0 ? (-(a)) : (a))
+
+#define bitset(x, n, b) ((typeof(x))((b) ? (((u64)x) | (1ULL << (n))) : (((u64)x) & ~(1ULL << (n)))))
+
+#define VIRTUAL(a) ((typeof(a))(((u64)(a)) | ((u64)(higherhalf))))
+#define PHYSICAL(a) ((typeof(a))(((u64)(a)) & ~((u64)(higherhalf))))
+
+__attribute__((format(printf, 1, 2)))
+void printk(const char* fmt, ...);
+
+__attribute__((format(printf, 1, 2)))
+void printk(const char* fmt, ...);
+
+__attribute__((format(printf, 1, 2)))
+void sprintk(const char* fmt, ...);
+
+__attribute__((format(printf, 3, 4)))
+void printkx(u32 color, bool pause, const char* fmt, ...);
+#ifdef IS_MODULE
+extern const char* _MODNAME;
+#define report(fmt, ...) printkx(0xffd0d0d0, false, "[%s %s:%d]: " fmt "\n", _MODNAME, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(0xffEB6534, false, "[%s %s:%d]: " fmt "\n", _MODNAME, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(0xffC41E3D, false, "[%s %s:%d]: " fmt "\n", _MODNAME, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkx(0xff710627, true, "[%s %s:%d]: " fmt "\n", _MODNAME, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#else
+#define report(fmt, ...) printkx(0xffd0d0d0, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(0xffEB6534, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(0xffC41E3D, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkx(0xff710627, true, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#endif
+
+void arch_halt();
+static inline void pause() { while(1) { arch_halt(); } }
+
+// thank you osdev.org
+static inline int oct2bin(u8* str, int size) {
+    int n = 0;
+    while (size-- > 0) {
+        n *= 8;
+        n += *(str++) - '0';
+    }
+    return n;
 }
-
-template <typename T>
-constexpr T&& forward(typename remove_reference<T>::type& arg) noexcept {
-	return static_cast<T&&>(arg);
-}
-
-template <typename T>
-struct UniquePtr {
-	T* ptr = nullptr;
-
-	template <typename... Args>
-	UniquePtr(Args&&... args) {
-		ptr = new T(forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	T& emplace (Args&&... args) {
-		if (ptr)
-			delete ptr;
-		return *(ptr = new T(forward<Args>(args)...));
-	}
-
-	constexpr T& operator*() {
-		if (ptr)
-			return *ptr;
-		else
-			fatal("uptr: not present [op  *]\n");
-	}
-
-	constexpr T* operator->() {
-		if (ptr)
-			return ptr;
-		else
-			fatal("uptr: not present [op ->]\n");
-	}
-
-	UniquePtr(UniquePtr& other) = delete;
-	UniquePtr(UniquePtr&& other) {
-		ptr = other.ptr;
-		other.ptr = nullptr;
-	}
-
-	~UniquePtr() {
-		if (ptr)
-			delete ptr;
-	}
-};
-
-template <typename T>
-struct Opt {
-	aligned(alignof(T)) u8 buf[sizeof(T)];
-	bool present = false;
-
-	Opt() {  }
-
-	template <typename... Args>
-	Opt(Args&&... args): present(true) {
-		new ((T*)buf) T(forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void emplace(Args&&... args) {
-		if (present)
-			((T*)buf)->~T();
-
-		present = true;
-		new ((T*)buf) T(forward<Args>(args)...);
-	}
-
-	constexpr T& operator*() {
-		#ifdef DEBUG
-		if (!present)
-			fatal("option: not present [op  *]\n");
-		#endif
-
-		return *(T*)buf;
-	}
-
-	constexpr T* operator->() {
-		#ifdef DEBUG
-		if (!present)
-			fatal("option: not present [op ->]\n");
-		#endif
-
-		return (T*)buf;
-	}
-
-	constexpr T unw() && {
-		return move<T>(*(T*)buf);
-	}
-
-	~Opt() {
-		if (present)
-			((T*)buf)->~T();
-	}
-};
-
-// StackOverflow-ról, elvileg libc++
-template<class _Ep>
-class initializer_list {
-    const _Ep* __begin_;
-    size_t    __size_;
-    
-    inline
-    constexpr
-    initializer_list(const _Ep* __b, size_t __s) noexcept
-        : __begin_(__b),
-          __size_(__s)
-    {}
-public:
-    typedef _Ep        value_type;
-    typedef const _Ep& reference;
-    typedef const _Ep& const_reference;
-    typedef size_t    size_type;
-    
-    typedef const _Ep* iterator;
-    typedef const _Ep* const_iterator;
-    
-    inline
-    constexpr
-    initializer_list() noexcept : __begin_(nullptr), __size_(0) {}
-    
-    inline
-    constexpr
-    size_t    size()  const noexcept {return __size_;}
-    
-    inline
-    constexpr
-    const _Ep* begin() const noexcept {return __begin_;}
-    
-    inline
-    constexpr
-    const _Ep* end()   const noexcept {return __begin_ + __size_;}
-};
-
-template<class _Ep>
-inline constexpr const _Ep* begin(initializer_list<_Ep> __il) noexcept {
-    return __il.begin();
-}
-
-template<class _Ep>
-inline constexpr const _Ep* end(initializer_list<_Ep> __il) noexcept {
-    return __il.end();
-}
-
-template <u64 U, typename T>
-struct Array {
-	T data[U];
-
-	Array() = default;
-	Array(Array& oth) = delete;
-	Array(Array&& oth) = delete;
-	~Array() = default;
-};
-
-// TODO: kompatibilitás Vectorokkal meg Arrayokkal
-template <typename T>
-struct Slice {
-	T* datastart = nullptr;
-	u64 datalen = 0;
-
-	Slice(T* data, u64 size): datastart(data), datalen(size) {  }
-
-	constexpr T& operator[](u64 idx) {
-		#ifdef DEBUG
-		if (idx > datalen)
-			fatal("Out of bounds Slice access: %lld vs %lld (data @ %p)\n", idx, datalen, datastart);
-		if (!datastart)
-			fatal("Slice on nullptr??\n");
-		#endif
-		return datastart[idx];
-	}
-};

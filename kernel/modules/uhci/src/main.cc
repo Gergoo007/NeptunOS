@@ -4,13 +4,13 @@
 // __attribute__((section(".modinfo"), used))
 // volatile constexpr modules::ModuleInfo _modinfo {
 // 	.trigger {
-// 		.type = modules::Trigger::Type::ANY,
-// 		.bus = modules::Trigger::Bus::ANY,
-// 		.VendorProduct { 0xffff, 0xffff },
+// 		.type = modules::Trigger::Type::CLASS_SUBCLASS,
+// 		.bus = modules::Trigger::Bus::PCI,
+// 		.ClassSubclass { 0xc, 0x3, 0x0 },
 // 	},
 // };
-// const char* _MODNAME = "tesztmod";
+// const char* _MODNAME = "uhci";
 
 // void mod_main() {
-// 	warn("tesztmod turi ip");
+// 	warn("Hello World from UHCI module!");
 // }

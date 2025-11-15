@@ -462,7 +462,7 @@ struct LIMINE_MP(request) {
 
 #define LIMINE_MEMMAP_REQUEST { LIMINE_COMMON_MAGIC, 0x67cf3d9d378a806f, 0xe304acdfc50c3c62 }
 
-enum struct MMAP_TYPES {
+typedef enum MMAP_TYPES {
 	LIMINE_MEMMAP_USABLE					= 0,
 	LIMINE_MEMMAP_RESERVED					= 1,
 	LIMINE_MEMMAP_ACPI_RECLAIMABLE			= 2,
@@ -475,7 +475,7 @@ enum struct MMAP_TYPES {
 	LIMINE_MEMMAP_KERNEL_AND_MODULES		= 6,
 #endif
 	LIMINE_MEMMAP_FRAMEBUFFER				= 7,
-};
+} MMAP_TYPES;
 
 // #define LIMINE_MEMMAP_USABLE                 0
 // #define LIMINE_MEMMAP_RESERVED               1

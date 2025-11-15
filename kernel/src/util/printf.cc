@@ -86,7 +86,7 @@
 #endif
 
 // support for the ptrdiff_t type (%t)
-// ptrdiff_t is normally defined in <stddef.h> as long or long long type
+// ptrdiff_t is normally defined in <stddef.hh> as long or long long type
 // default: activated
 #ifndef printfDISABLE_SUPPORT_PTRDIFF_T
 #define printfSUPPORT_PTRDIFF_T
@@ -111,7 +111,7 @@
 
 // import float.h for DBL_MAX
 #if defined(printfSUPPORT_FLOAT)
-#define DBL_MAX 1.7976931348623158e+308 // #include <float.h>
+#define DBL_MAX 1.7976931348623158e+308 // #include <float.hh>
 #endif
 
 

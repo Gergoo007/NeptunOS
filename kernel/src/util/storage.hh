@@ -3,291 +3,176 @@
 #include <mm/vmm.hh>
 #include <util/bitmap.hh>
 #include <util/string.hh>
+#include <util/helpers.hh>
 #include <cppcompat.hh>
 
-namespace acpi { struct Name; }
+// itt lehet mókolni, a firefox elvikeg cap*cap-et használ
+static constexpr u64 growfun(u64 cap) {
+	return cap * 2;
+}
 
 template <typename T>
-struct Vector {
-	struct Iterator {
-		T* ptr;
+struct _generic_iter {
+	T* data;
+	_generic_iter(T* _data): data(_data) {  }
+	
+	_generic_iter& operator++()		{ data++; return *this; }
+	_generic_iter  operator++(int)	{ auto old = *this; data++; return old; }
+	
+	_generic_iter& operator--()		{ data--; return *this; }
+	_generic_iter  operator--(int)	{ auto old = *this; data--; return old; }
 
-		Iterator(T* p): ptr(p) {  }
-		T& operator*() { return *ptr; }
-		T* operator->() { return ptr; }
-		Iterator operator++() { ptr++; return *this; }
-		Iterator operator--() { ptr--; return *this; }
-		Iterator operator++(int prev) { Iterator tmp = *this; ++(*this); return tmp; }
-		Iterator operator--(int prev) { Iterator tmp = *this; --(*this); return tmp; }
+	_generic_iter  operator+ (T* a)	{ return _generic_iter(data + a); }
+	_generic_iter  operator- (T* a)	{ return _generic_iter(data + a); }
 
-		friend bool operator==(const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-		friend bool operator!=(const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-	};
+	_generic_iter& operator+=(T* a)	{ data += a; return *this; }
+	_generic_iter& operator-=(T* a)	{ data -= a; return *this; }
 
-	T* data = nullptr;
-	u64 capacity = 0;
-	u64 size = 0;
+	T* operator-(const _generic_iter& o) { return data - o.data; }
+	T& operator[](u64 idx) { return data[idx]; }
 
-	Vector() {  }
+	T* operator->()	{ return data; }
+	T& operator*()	{ return *data; }
 
-	Vector(u64 cap): capacity(align(cap, 16)) {
+	bool operator==(const _generic_iter& o) const { return data == o.data; }
+    bool operator!=(const _generic_iter& o) const { return data != o.data; }
+    bool operator< (const _generic_iter& o) const { return data  < o.data; }
+    bool operator<=(const _generic_iter& o) const { return data <= o.data; }
+    bool operator> (const _generic_iter& o) const { return data  > o.data; }
+    bool operator>=(const _generic_iter& o) const { return data >= o.data; }
+};
+
+template <typename T>
+_generic_iter(T*) -> _generic_iter<T>;
+
+template <typename T>
+struct vector {
+	using iter = _generic_iter<T>;
+
+	T* data;
+	u64 size;
+	u64 capacity;
+
+	vector() {
+		capacity = default_vec_size;
+		size = 0;
 		data = (T*)kmalloc(capacity * sizeof(T));
 	}
 
-private:
-	void _copy(Vector& other) {
-		size = other.size;
-		capacity = other.capacity;
+	vector(u64 cap): capacity(cap) {
+		size = 0;
 		data = (T*)kmalloc(capacity * sizeof(T));
-		// memcpy(data, other.data, other.size);
-		for (u64 i = 0; i < size; i++)
-			new (data + i) T(other.data[i]);
 	}
 
-public:
-	Vector(const Vector& other) {
-		_copy((Vector&)other);
-	};
-
-	Vector(Vector& other) {
-		_copy((Vector&)other);
-	}
-
-	Vector(Vector&& other) {
-		size = other.size;
-		capacity = other.capacity;
-		data = other.data;
-		other.data = nullptr;
-		other.size = 0;
-		other.capacity = 0;
-	}
-
-	Vector(T* from, u64 bytes): capacity(align(bytes, 16)) {
+	vector(std::initializer_list<T> items) {
+		capacity = align(items.size(), 8);
+		size = 0;
 		data = (T*)kmalloc(capacity * sizeof(T));
-		memcpy(data, from, bytes);
-		size = bytes;
+		for (const auto& e : items)
+			emplace(e);
+	}
+
+	vector(vector& o) {
+		capacity = 0;
+		data = nullptr;
+		if (capacity < o.capacity)
+			reserve(o.capacity);
+
+		size = o.size;
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i].~T();
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i] = o[i];
+	}
+
+
+	vector(vector&& o) {
+		data = o.data;
+		size = o.size;
+		capacity = o.capacity;
+
+		o.data = nullptr;
+		o.size = 0;
+		o.capacity = 0;
+		kfree(o.data);
+		o.data = nullptr;
+	}
+
+	vector& operator=(vector& o) {
+		for (const auto& e : *this)
+			e.~T();
+
+		reserve(o.capacity);
+		size = o.size;
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i](o[i]);
+
+		return *this;
+	}
+
+	~vector() {
+		for (const auto& e : *this)
+			e.~T();
+
+		kfree(data);
+		data = (T*)0x6767676767676767;
 	}
 
 	void reserve(u64 cap) {
 		capacity = cap;
-		data = (T*)krealloc(data, capacity * sizeof(T));
+		data = (T*)krealloc((void*)data, capacity * sizeof(T));
 	}
 
-	void reserve() {
-		capacity = capacity ? capacity*4 : sizeof(T) * 8;
-		data = (T*)krealloc(data, capacity * sizeof(T));
+	T& operator[](u64 idx) {
+		if constexpr (debug) {
+			if (!data)
+				fatal("vector data null (was it moved?)!");
+			if (idx > size)
+				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
+		}
+		return data[idx];
 	}
 
-	T& operator[](i64 idx) {
-		#ifdef DEBUG
-		if ((idx < 0 && -idx > size) || (idx > 0 && idx >= size))
-			error("Vector (%p) out of bounds (idx %x)!\n", this, idx);
-		#endif
-		if (idx > 0 || idx == 0)
-			return data[idx];
-		else
-			return data[size - idx];
+	T& push_back(T item) {
+		if (size == capacity)
+			reserve(growfun(capacity));
+		data[size++] = item;
 	}
-
-	bool operator==(Vector<T>& other) const {
-		if (other.data == data) return true;
-		if (other.size != size) return false;
-
-		return !memcmp(data, other.data, size);
-	}
-
-	bool operator!=(Vector<T>& other) const { return !this->operator==(other); }
-
-	bool operator==(const Vector<T>& other) const {
-		if (other.data == data) return true;
-		if (other.size != size) return false;
-
-		return !memcmp(data, other.data, size);
-	}
-
-	bool operator!=(const Vector<T>& other) const { return !this->operator==(other); }
 
 	template <typename... Args>
 	T& emplace(Args&&... args) {
-		if (size >= capacity)
-			reserve();
-		return *( new ((void*)(data + size++)) T(forward<Args>(args)...) );
+		if (size == capacity)
+			reserve(growfun(capacity));
+		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
 
-	Iterator begin() const {
-		return Iterator(data);
-	}
-
-	Iterator end() const {
-		return Iterator(data + size);
-	}
-
-	~Vector() {
-		for (u64 i = 0; i < size; i++)
-			data[i].~T();
-
-		kfree(data);
-		// M A S O N
-		data = (T*)0x6767676767676767;
-	}
+	const iter begin() { return iter(data); }
+	const iter end() { return iter(data + size); }
 };
 
-struct String : Vector<char> {
-	String(): Vector<char>(8) {  }
-	String(u64 _size): Vector<char>(_size) {  }
-	String(const char* s): Vector<char>(strlen(s) + 1) {
-		u32 len = strlen(s);
-		memcpy((void*)data, (void*)s, len);
-		size = len;
-		data[size] = 0;
-	}
-	String(const char* s, u64 strsize): Vector<char>(strsize + 1) {
-		memcpy((void*)data, (void*)s, strsize);
-		size = strsize;
-		data[size] = 0;
-	}
-	String(const String& str): Vector<char>(str) { data[size] = 0; }
-	String& operator=(const String& to) {
-		if (data)
-			kfree(data);
-		size = to.capacity;
-		size = to.size;
-		data = (char*)kmalloc(capacity);
-		memcpy(data, to.data, size);
-		data[size] = 0;
-		return *this;
-	}
-	String& operator=(const char* s) {
-		size = strlen(s);
-		capacity = align(size, 16);
-		if (data)
-			kfree(data);
-		data = (char*)kmalloc(capacity);
-		memcpy(data, (void*)s, size);
-		data[size] = 0;
-		return *this;
-	}
-	String operator+(const String& other) {
-		String ret = other;
-		ret.reserve(ret.size + size + 1);
-		memcpy(ret.data + ret.size, data, size);
-		ret.size += size;
-		data[size] = 0;
-		return ret;
-	}
-	String& operator+=(const String& other) {
-		reserve(other.size + size + 1);
-		memcpy(data + size, other.data, other.size);
-		size += other.size;
-		data[size] = 0;
-		return *this;
-	}
-	String operator+(const char* other) {
-		return String(other) + *this;
-	}
-	String& operator+=(const char* other) {
-		u32 othsize = strlen(other);
-		reserve(othsize + size + 1);
-		memcpy(data + size, (void*)other, othsize);
-		size += othsize;
-		data[size] = 0;
-		return *this;
-	}
-	String& operator+=(const char c) {
-		reserve(capacity + 1);
-		data[size++] = c;
-		data[size] = 0;
-		return *this;
+// a size-ba NINCS bele számítva a null terminator
+struct string : vector<char> {
+	string(const char* str) {
+		size = strlen(str);
+		reserve(size);
+		memcpy((void*)data, (void*)str, size+1);
 	}
 
-	inline constexpr char* c_str() const { return data; }
+	char* c_str() const {
+		return (char*)data;
+	}
 };
 
 template <typename T>
-struct Stack : Vector<T> {
-	T& push(T elem) {
-		this->reserve(this->capacity + 1);
-
-		return (this->data[this->size++] = elem);
-	}
-
-	T& last() const { return this->data[this->size-1]; }
-
-	T pop() {
-		if (!this->size)
-			fatal("Nothing to pop off stack!\n");
-		return this->data[--this->size];
-	}
-};
-
-template <typename... Ts>
-struct Variant {
-	static constexpr u64 maxsize = templatemax(sizeof(Ts)...);
-	u8 storage[maxsize];
-	u64 idx = -1;
-
-	u64 which() const { return idx; }
-
-	template <typename T, typename... Args>
-	T& emplace(Args&&... args) {
-		destruct_current();
-
-		idx = IndexOf<T, Ts...>::value;
-		if (idx >= sizeof...(Ts))
-			fatal("A tipus nincs benne a listaba!\n");
-		return *(new (storage) T(forward<Args>(args)...));
-	}
-
-	Variant() {  }
-
-	template <typename T>
-	T& get() const {
-		if (idx != IndexOf<T, Ts...>::value)
-			fatal("Nem ez a tipus az aktiv (%d; aktiv: %d)!\n", IndexOf<T, Ts...>::value, idx);
-		return *(T*)storage;
-	}
-
-	void destruct_current() {
-		if (idx == -1)
-			return;
-
-		u64 i = 0;
-		((idx == i++ ? ( ((Ts*)storage)->~Ts() ) : void(0)), ...);
-
-		idx = -1;
-	}
-
-	~Variant() {
-		destruct_current();
-	}
-};
-
-template <typename T, typename U>
-struct Pair {
-	T first;
-	U second;
-
-	Pair(T&& f, U&& s): first(move<T>(f)), second(move<U>(s)) {  }
-};
-
-template <typename K, typename V>
-struct Map {
-	Vector<K> keys;
-	Vector<V> values;
-	u64& size = keys.size;
-
-	V& operator[](const K& key) {
-		for (u64 i = 0; i < keys.size; i++) {
-			if (keys[i] == key)
-				return values[i];
-		}
-		fatal("Couldn't find value in Map!");
-	}
+struct optional {
+	optional(T init) {  }
 
 	template <typename... Args>
-	// TODO: V-nek reference-nek kéne lennie
-	V& emplace(Pair<K, V>&& pair) {
-		keys.emplace(move<K>(pair.first));
-		return values.emplace(move<V>(pair.second));
-	}
+	optional(Args&&... args) {}
+
+	template <typename... Args>
+	T& emplace() {}
 };

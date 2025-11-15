@@ -1,14 +1,11 @@
 #pragma once
 
 #include <types.hh>
+#include <util/bitmap.hh>
 
-struct Bitmap;
-namespace pmm {
-	extern u64 freemem, usedmem, reservedmem;
-	extern void* heap_base;
-	extern u64 heap_size;
-	extern Bitmap* bm;
-	constexpr u32 pagesize = 0x200000; // mibs2bytes(2)
-	void init();
-	void* alloc(u64 size = pagesize);
-}
+extern u64 pmm_freemem, pmm_usedmem, pmm_reservedmem;
+extern void* pmm_heap_base;
+extern u64 pmm_heap_size;
+constexpr u32 pmm_pagesize = 0x200000; // mibs2bytes(2)
+void pmm_init();
+void* pmm_alloc(u64 size = pmm_pagesize);

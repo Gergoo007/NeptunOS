@@ -14,8 +14,6 @@ CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
 # Ha ezek a fájlok változnak, az egész kernel újra lesz fordítva
 EXTRADEPS := Makefile amd64.mk aarch64.mk
 
-CXXFLAGS += -MMD -MP -DDEBUG
-
 kernel:
 # $(ARCH) fájl létrehozása, ez mutatja,
 # hogy az előző build objektum fájljai
@@ -26,8 +24,8 @@ else ifeq ($(ARCH),aarch64)
 	-test -f out/amd64 && $(MAKE) clean
 endif
 	touch out/$(ARCH)
-	$(MAKE) --no-print-directory link
 	$(MAKE) --no-print-directory modules
+	$(MAKE) --no-print-directory link
 
 link: $(SOBJS) $(CCOBJS) out/font.o
 	echo "  > $(LD) $@"

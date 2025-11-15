@@ -4,164 +4,171 @@
 #include <mm/vmm.hh>
 #include <util/cpuid.hh>
 
-namespace console {
-	u8 glyphsize;
-	u8* glyphs;
-	u8 glyphw, glyphh;
-	u32 num_glyphs;
+u8 con_glyphsize;
+u8* con_glyphs;
+u8 con_glyphw, con_glyphh;
+u32 con_num_glyphs;
 
-	u32 cx = 0, cy = 0;
-	u32 padx = 1, pady = 1;
+u32 con_cx = 0, con_cy = 0;
+u32 con_padx = 1, con_pady = 1;
 
-	u32 color_fg = 0xffd0d0d0, color_bg = 0xff000000;
+u32 con_color_fg = 0xffd0d0d0, con_color_bg = 0xff000000;
 
-	u32 current_fb = 0;
+u32 current_fb = 0;
 
-	u8 inited = false;
+u8 con_inited = false;
 
-	u32* backbuf = (u32*)0x6161616161616161;
-	u64 backbuf_size;
+u32* con_backbuf = (u32*)0x6161616161616161;
+u64 con_backbuf_size;
 
-	void init(void* psf) {
-		inited = true;
-		psf_hdr* p = (psf_hdr*)psf;
+constexpr u32 tab_width = 8;
 
-		if (*(u16*)psf == PSF1_MAGIC) {
-			glyphs = (u8*) ((u64)psf + sizeof(p->p1));
-			glyphsize = p->p1.glyphsize;
-			glyphw = 8;
-			glyphh = glyphsize;
-			num_glyphs = p->p1.mode.mode512 ? 512 : 256;
-			sprintk("PSF1 betűtípus");
-		} else if (*(u32*)psf == PSF2_MAGIC) {
-			glyphs = (u8*) ((u64)psf + p->p2.hdrsize);
-			glyphsize = p->p2.glyphsize;
-			glyphw = p->p2.width;
-			glyphh = p->p2.height;
-			num_glyphs = p->p2.numglyphs;
-			sprintk("PSF2 betűtípus");
-		} else {
-			sputs("Ismeretlen betűtípus\n\r");
+void con_init(void* psf) {
+	con_inited = true;
+	psf_hdr_t* p = (psf_hdr_t*)psf;
+
+	if (*(u16*)psf == PSF1_MAGIC) {
+		con_glyphs = (u8*) ((u64)psf + sizeof(p->p1));
+		con_glyphsize = p->p1.glyphsize;
+		con_glyphw = 8;
+		con_glyphh = con_glyphsize;
+		con_num_glyphs = p->p1.mode.mode512 ? 512 : 256;
+		sprintk("PSF1 betűtípus");
+	} else if (*(u32*)psf == PSF2_MAGIC) {
+		con_glyphs = (u8*) ((u64)psf + p->p2.hdrsize);
+		con_glyphsize = p->p2.glyphsize;
+		con_glyphw = p->p2.width;
+		con_glyphh = p->p2.height;
+		con_num_glyphs = p->p2.numglyphs;
+		sprintk("PSF2 betűtípus");
+	} else {
+		sputs("Ismeretlen betűtípus\n\r");
+	}
+
+	if (con_glyphw > 16) sprintk("Túl nagy a betűtípus!\n\r");
+	sprintk(" %dx%d (%d x %d glyphs)\n\r", con_glyphw, con_glyphh, con_num_glyphs, con_glyphsize);
+
+	con_backbuf_size =
+		fbs[current_fb].fb_width *
+		fbs[current_fb].fb_height *
+		(fbs[current_fb].fb_bpp / 8);
+	// cache line-ra turi ippelni ajánlott
+	con_backbuf = (u32*)kmalloc_aligned(con_backbuf_size, 64);
+	memset(con_backbuf, 0, con_backbuf_size);
+	sprintk("Backbuffer @ %p of size %llx\n\r", con_backbuf, con_backbuf_size);
+}
+
+// backbuf-t görgeti, nem swappol
+void con_scroll() {
+	const auto* fb = &fbs[current_fb];
+	u32* fb_base = con_backbuf;
+	u32 lineh = con_glyphh + con_pady;
+
+	memcpy(fb_base, fb_base + fb->fb_width * lineh, fb->fb_width * (fb->fb_height - lineh) * (fb->fb_bpp/8));
+
+	con_cy -= lineh;
+
+	memset(fb_base + (fb->fb_width * (fb->fb_height - lineh)), 0, fb->fb_width * lineh * (fb->fb_bpp/8));
+}
+
+void con_swap_buffers() {
+	// memcpy(machine.fbs[current_fb].fb_addr, backbuf, backbuf_size);
+	u32* fb_base = fbs[current_fb].fb_addr;
+
+	#ifdef __x86_64__
+	if ((con_backbuf_size & 31) == 0) {
+		// AVX move, 32 byte egyszerre
+		for (u32 i = 0; i < con_backbuf_size / 32; i++) {
+			asm volatile ("prefetchnta (%0)" :: "r"((u64)con_backbuf + i * 32 + 256));
+			asm volatile (
+				"vmovdqu (%0), %%ymm0\n"
+				"vmovntdq %%ymm0, (%1)\n" ::
+				"r"((u64)con_backbuf + i * 32), "r"((u64)fb_base + i * 32) :
+				"ymm0", "memory"
+			);
 		}
+		asm volatile ("sfence");
+		return;
+	}
+	#endif
 
-		if (glyphw > 16) sprintk("Túl nagy a betűtípus!\n\r");
-		sprintk(" %dx%d (%d x %d glyphs)\n\r", glyphw, glyphh, num_glyphs, glyphsize);
+	if (con_backbuf_size & 7)
+		for (u32 i = 0; i < con_backbuf_size / 4; i++)
+			fbs[current_fb].fb_addr[i] = con_backbuf[i];
+	else
+		for (u32 i = 0; i < con_backbuf_size / 8; i++)
+			((u64*)(fbs[current_fb].fb_addr))[i] = ((u64*)con_backbuf)[i];
+}
 
-		backbuf_size =
-			machine.fbs[current_fb].fb_width *
-			machine.fbs[current_fb].fb_height *
-			(machine.fbs[current_fb].fb_bpp / 8);
-		// cache line-ra turi ippelni ajánlott
-		backbuf = (u32*)kmalloc_aligned(backbuf_size, 64);
-		memset(backbuf, 0, backbuf_size);
-		sprintk("Backbuffer @ %p of size %llx\n\r", backbuf, backbuf_size);
+void cputc(const char c) {
+	if (!con_inited) {
+		sprintk("yo no console::init yet");
+		pause();
 	}
 
-	// backbuf-t görgeti, nem swappol
-	void scroll() {
-		const auto& fb = machine.fbs[current_fb];
-		u32* fb_base = backbuf;
-		u32 lineh = glyphh + pady;
+	switch (c) {
+		case '\n': {
+			con_cy += con_glyphh + con_pady;
+			con_cx = 0;
 
-		memcpy(fb_base, fb_base + fb.fb_width * lineh, fb.fb_width * (fb.fb_height - lineh) * (fb.fb_bpp/8));
+			if (con_cy >= fbs[current_fb].fb_height - con_glyphh)
+				con_scroll();
 
-		cy -= lineh;
-
-		memset(fb_base + (fb.fb_width * (fb.fb_height - lineh)), 0, fb.fb_width * lineh * (fb.fb_bpp/8));
-	}
-
-	void swap_buffers() {
-		// memcpy(machine.fbs[current_fb].fb_addr, backbuf, backbuf_size);
-		u32* fb_base = machine.fbs[current_fb].fb_addr;
-
-		#ifdef __x86_64__
-		if ((backbuf_size & 31) == 0) {
-			// AVX move, 32 byte egyszerre
-			for (u32 i = 0; i < backbuf_size / 32; i++) {
-				asm volatile ("prefetchnta (%0)" :: "r"((u64)backbuf + i * 32 + 256));
-				asm volatile (
-					"vmovdqu (%0), %%ymm0\n"
-					"vmovntdq %%ymm0, (%1)" ::
-					"r"((u64)backbuf + i * 32), "r"((u64)fb_base + i * 32) :
-					"ymm0", "memory"
-				);
-			}
-			asm volatile ("sfence");
 			return;
 		}
-		#endif
-
-		if (backbuf_size & 7)
-			for (u32 i = 0; i < backbuf_size / 4; i++)
-				machine.fbs[current_fb].fb_addr[i] = backbuf[i];
-		else
-			for (u32 i = 0; i < backbuf_size / 8; i++)
-				((u64*)(machine.fbs[current_fb].fb_addr))[i] = ((u64*)backbuf)[i];
+		case '\t': {
+			u32 cw = con_glyphw + con_padx;
+			con_cx += cw;
+			con_cx = align(con_cx, cw * tab_width);
+			if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
+				cputc('\n');
+			return;
+		}
+		case '\r': {
+			con_cx = 0;
+			return;
+		}
+		default: break;
 	}
 
-	void cputc(const char c) {
-		if (!inited) {
-			sprintk("yo no console::init yet\n");
-			pause();
+	if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
+		cputc('\n');
+
+	u8* start = (u8*)(con_glyphs + c * con_glyphsize);
+
+	for (u32 y = 0; y < con_glyphh; y++) {
+		u16 row = 0;
+		if (con_glyphw > 8) {
+			row = *(u16*)start;
+			row = ((row & 0xff) << 8) | ((row & 0xff00) >> 8);
+			start += 2;
+		} else {
+			row = *(u8*)start++;
 		}
 
-		switch (c) {
-			case '\n': {
-				cy += glyphh + pady;
-				cx = 0;
-
-				if (cy >= machine.fbs[current_fb].fb_height - glyphh)
-					scroll();
-
-				return;
-			}
-			case '\r': {
-				cx = 0;
-				return;
-			}
-			default: break;
-		}
-
-		if (cx + glyphw + padx > machine.fbs[current_fb].fb_width) {
-			cputc('\n');
-		}
-
-		u8* start = (u8*)(glyphs + c * glyphsize);
-
-		for (u32 y = 0; y < glyphh; y++) {
-			u16 row = 0;
-			if (glyphw > 8) {
-				row = *(u16*)start;
-				row = ((row & 0xff) << 8) | ((row & 0xff00) >> 8);
-				start += 2;
-			} else {
-				row = *(u8*)start++;
-			}
-
-			for (u32 x = 0; x < glyphw; x++)
-				fb_pixel(cx + x, cy + y, row & (1 << ((glyphw > 8 ? 16 : 8) - x)) ? color_fg : color_bg, current_fb);
-		}
-
-		cx += glyphw + padx;
+		for (u32 x = 0; x < con_glyphw; x++)
+			fb_pixel(con_cx + x, con_cy + y, row & (1 << ((con_glyphw > 8 ? 16 : 8) - x)) ? con_color_fg : con_color_bg, current_fb);
 	}
 
-	void cputs(const char* s) {
-		while (*s) {
-			cputc(*(s++));
-		}
-		swap_buffers();
-	}
+	con_cx += con_glyphw + con_padx;
+}
 
-	u32 old_color = 0;
-
-	void push_color(u32 color) {
-		old_color = color_fg;
-		color_fg = color;
+void cputs(const char* s) {
+	while (*s) {
+		cputc(*(s++));
 	}
+	con_swap_buffers();
+}
 
-	void pop_color() {
-		color_fg = old_color;
-	}
+u32 con_old_color = 0;
+
+void con_push_color(u32 color) {
+	con_old_color = con_color_fg;
+	con_color_fg = color;
+}
+
+void con_pop_color() {
+	con_color_fg = con_old_color;
 }
 
 __attribute__((format(printf, 1, 2)))
@@ -171,7 +178,7 @@ void printk(const char* fmt, ...) {
 	vprintf(fmt, list);
 	va_end(list);
 
-	console::swap_buffers();
+	con_swap_buffers();
 
 	#ifdef SERIALPRINTK
 	va_list list2;
@@ -179,6 +186,31 @@ void printk(const char* fmt, ...) {
 	vprintf2(fmt, list2);
 	va_end(list2);
 	#endif
+}
+
+
+__attribute__((format(printf, 3, 4)))
+void printkx(u32 color, bool _pause, const char* fmt, ...) {
+	con_push_color(color);
+
+	va_list list;
+	va_start(list, fmt);
+	vprintf(fmt, list);
+	va_end(list);
+
+	con_swap_buffers();
+
+	#ifdef SERIALPRINTK
+	va_list list2;
+	va_start(list2, fmt);
+	vprintf2(fmt, list2);
+	va_end(list2);
+	#endif
+
+	if (_pause)
+		pause();
+
+	con_pop_color();
 }
 
 __attribute__((format(printf, 1, 2)))

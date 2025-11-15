@@ -8,6 +8,7 @@ CCSRCS += $(subst src/,,$(shell find src -name '*.cc' -not -path '*bakexclude*')
 
 CCOBJS += $(patsubst %.cc,out/%.cc.o,$(CCSRCS))
 CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
+EXTRADEPS := Makefile ../template/Makefile
 
 MOD_NAME := $(notdir $(CURDIR))
 
@@ -20,9 +21,9 @@ endif
 	touch out/$(ARCH)
 	$(MAKE) --no-print-directory link
 
-link: $(SOBJS) $(CCOBJS)
+link: $(SOBJS) $(CCOBJS) $(EXTRADEPS)
 # 	echo "  > $(LD) $@"
-	$(LD) $(LDFLAGS) -T ../module.$(ARCH).ld -r $^ -o out/$(MOD_NAME).ko
+	$(LD) $(LDFLAGS) -T ../module.$(ARCH).ld -r $(SOBJS) $(CCOBJS) -o out/$(MOD_NAME).ko
 	$(STRIP) -d out/$(MOD_NAME).ko
 
 -include $(CCDEPS)

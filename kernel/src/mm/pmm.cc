@@ -12,78 +12,75 @@ static volatile limine_memmap_request mm_req = {
 	.response = nullptr,
 };
 
-namespace pmm {
-	u64 freemem = 0, usedmem = 0, reservedmem = 0;
-	u8 bitmapStorage[sizeof(Bitmap)];
-	Bitmap* bm;
-	void* heap_base;
-	u64 heap_size = 0;
+u64 pmm_freemem = 0, pmm_usedmem = 0, pmm_reservedmem = 0;
+u8 bitmapStorage[sizeof(bitmap_t)];
+bitmap_t* bm;
+void* pmm_heap_base;
+u64 pmm_heap_size = 0;
 
-	void init() {
-		limine_memmap_response* r = mm_req.response;
+void pmm_init() {
+	limine_memmap_response* r = mm_req.response;
 
-		machine.mmap = r;
+	mmap = r;
 
-		bm = new (bitmapStorage) Bitmap;
+	bm = new (bitmapStorage) bitmap_t;
 
-		for (u32 i = 0; i < r->entry_count; i++) {
-			switch (r->entries[i]->type) {
-				// nem tudom miért de 12 gigányi foglalt terület van qemuban
-				case MMAP_TYPES::LIMINE_MEMMAP_RESERVED:
-					break;
-
-					case MMAP_TYPES::LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-				case MMAP_TYPES::LIMINE_MEMMAP_ACPI_NVS:
-				case MMAP_TYPES::LIMINE_MEMMAP_BAD_MEMORY:
-				case MMAP_TYPES::LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-				case MMAP_TYPES::LIMINE_MEMMAP_FRAMEBUFFER:
-					// reservedmem += r->entries[i]->length;
-					break;
-				case MMAP_TYPES::LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
-					// usedmem += r->entries[i]->length;
-					break;
-				case MMAP_TYPES::LIMINE_MEMMAP_USABLE:
-					if (r->entries[i]->length > heap_size) {
-						heap_size = align_down(r->entries[i]->length, pagesize);
-						heap_base = (void*)r->entries[i]->base;
-					}
-					freemem = heap_size;
-					break;
+	for (u32 i = 0; i < r->entry_count; i++) {
+		switch (r->entries[i]->type) {
+			// nem tudom miért de 12 gigányi foglalt terület van qemuban
+			case MMAP_TYPES::LIMINE_MEMMAP_RESERVED:
 				break;
-			}
-		}
 
-		bm->init(VIRTUAL((u64*)heap_base), heap_size / pagesize);
-		// Le kell foglalni a page-eket amikben a bitmap van
-		u64 buffer_size = heap_size / pagesize / 8 / pagesize + 1;
-		for (u32 i = 0; i < buffer_size; i++) {
-			bm->set(i, true);
-			usedmem += pagesize;
-			freemem -= pagesize;
+				case MMAP_TYPES::LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+			case MMAP_TYPES::LIMINE_MEMMAP_ACPI_NVS:
+			case MMAP_TYPES::LIMINE_MEMMAP_BAD_MEMORY:
+			case MMAP_TYPES::LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
+			case MMAP_TYPES::LIMINE_MEMMAP_FRAMEBUFFER:
+				// pmm_reservedmem += r->entries[i]->length;
+				break;
+			case MMAP_TYPES::LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
+				// pmm_usedmem += r->entries[i]->length;
+				break;
+			case MMAP_TYPES::LIMINE_MEMMAP_USABLE:
+				if (r->entries[i]->length > pmm_heap_size) {
+					pmm_heap_size = align_down(r->entries[i]->length, pmm_pagesize);
+					pmm_heap_base = (void*)r->entries[i]->base;
+				}
+				pmm_freemem = pmm_heap_size;
+				break;
+			break;
 		}
-		sprintk("init pmm heap at %p size %llx (%lld MiB)\n\r", heap_base, heap_size, bytes2mibs(heap_size));
-		sprintk("bits at %p\n", bm->buffer);
 	}
 
-	void* alloc(u64 size) {
-		if (size < pagesize) size = pagesize;
-		size = align(size, pagesize);
-
-		usedmem += pagesize;
-		freemem -= pagesize;
-
-		// if (!freemem)
-		// 	fatal("freemem ran out\n");
-
-		u64 bit = bm->find_and_set();
-		// if (bit == -1ULL) {
-		// 	fatal(
-		// 		"Out of memory! free: %lld KiB, used: %lld KiB, all: %lld KiB\n",
-		// 		bytes2kibs(pmm::freemem),
-		// 		bytes2kibs(pmm::usedmem),
-		// 		bytes2kibs(pmm::heap_size)
-		// 	);
-		// }
-		return VIRTUAL((void*)((u64)heap_base + bit * pagesize));
+	bm->init(VIRTUAL((u64*)pmm_heap_base), pmm_heap_size / pmm_pagesize);
+	// Le kell foglalni a page-eket amikben a bitmap van
+	u64 buffer_size = pmm_heap_size / pmm_pagesize / 8 / pmm_pagesize + 1;
+	for (u32 i = 0; i < buffer_size; i++) {
+		bm->set(i, true);
+		pmm_usedmem += pmm_pagesize;
+		pmm_freemem -= pmm_pagesize;
 	}
+	sprintk("init pmm heap at %p size %llx (%lld MiB)\n\r", pmm_heap_base, pmm_heap_size, bytes2mibs(pmm_heap_size));
+	sprintk("bits at %p", bm->buffer);
+}
+
+void* pmm_alloc(u64 size) {
+	assert(size <= pmm_pagesize);
+
+	pmm_usedmem += pmm_pagesize;
+	pmm_freemem -= pmm_pagesize;
+
+	// if (!pmm_freemem)
+	// 	fatal("pmm_freemem ran out");
+
+	u64 bit = bm->find_and_set();
+	// if (bit == -1ULL) {
+	// 	fatal(
+	// 		"Out of memory! free: %lld KiB, used: %lld KiB, all: %lld KiB",
+	// 		bytes2kibs(pmm::pmm_freemem),
+	// 		bytes2kibs(pmm::pmm_usedmem),
+	// 		bytes2kibs(pmm::pmm_heap_size)
+	// 	);
+	// }
+	return VIRTUAL((void*)((u64)pmm_heap_base + bit * pmm_pagesize));
 }

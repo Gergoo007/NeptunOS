@@ -2,16 +2,14 @@
 #include <arch/amd64/gdt.hh>
 #include <mm/vmm.hh>
 
-namespace arch::tss {
-	tss* tss_actual;
+tss_t* tss;
 
-	void init() {
-		tss_actual = (tss*)pmm::alloc();
-		memset(tss_actual, 0, sizeof(tss));
+void arch_tss_init() {
+	tss = (tss_t*)pmm_alloc();
+	memset(tss, 0, sizeof(*tss));
 
-		tss_actual->io_bm_offset = offsetof(tss, io_bm);
+	tss->io_bm_offset = offsetof(tss_t, io_bm);
 
-		arch::gdt::add_tss(tss_actual);
-		asm volatile ("ltr %0" :: "a"((u16)0x28));
-	}
+	arch_gdt_add_tss(tss);
+	asm volatile ("ltr %0" :: "a"((u16)0x28));
 }

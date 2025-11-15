@@ -1,6 +1,6 @@
 **/*.o
 **/*.d
-**/amd64
-**/aarch64
+**/out/amd64
+**/out/aarch64
 **/*.ko
 **/out/*
