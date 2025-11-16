@@ -8,6 +8,8 @@
 
 // itt lehet mókolni, a firefox elvikeg cap*cap-et használ
 static constexpr u64 growfun(u64 cap) {
+	if (cap == 0)
+		return 8;
 	return cap * 2;
 }
 
@@ -49,34 +51,32 @@ template <typename T>
 struct vector {
 	using iter = _generic_iter<T>;
 
-	T* data;
-	u64 size;
-	u64 capacity;
+	T* data = nullptr;
+	u64 size = 0;
+	u64 capacity = default_vec_size;
 
 	vector() {
-		capacity = default_vec_size;
-		size = 0;
-		data = (T*)kmalloc(capacity * sizeof(T));
+		if (capacity)
+			data = (T*)kmalloc(capacity * sizeof(T));
 	}
 
 	vector(u64 cap): capacity(cap) {
-		size = 0;
-		data = (T*)kmalloc(capacity * sizeof(T));
+		if (capacity)
+			data = (T*)kmalloc(capacity * sizeof(T));
 	}
 
 	vector(std::initializer_list<T> items) {
 		capacity = align(items.size(), 8);
-		size = 0;
-		data = (T*)kmalloc(capacity * sizeof(T));
-		for (const auto& e : items)
-			emplace(e);
+
+		if (capacity) {
+			data = (T*)kmalloc(capacity * sizeof(T));
+			for (const auto& e : items)
+				emplace(e);
+		}
 	}
 
 	vector(vector& o) {
-		capacity = 0;
-		data = nullptr;
-		if (capacity < o.capacity)
-			reserve(o.capacity);
+		reserve(o.capacity);
 
 		size = o.size;
 
@@ -93,10 +93,10 @@ struct vector {
 		size = o.size;
 		capacity = o.capacity;
 
-		o.data = nullptr;
+		if (o.data)
+			kfree(o.data);
 		o.size = 0;
 		o.capacity = 0;
-		kfree(o.data);
 		o.data = nullptr;
 	}
 
@@ -108,7 +108,7 @@ struct vector {
 		size = o.size;
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i](o[i]);
+			data[i].T(o[i]);
 
 		return *this;
 	}
@@ -123,28 +123,40 @@ struct vector {
 
 	void reserve(u64 cap) {
 		capacity = cap;
-		data = (T*)krealloc((void*)data, capacity * sizeof(T));
+		if (cap == 0)
+			data = nullptr;
+		else
+			data = (T*)krealloc((void*)data, capacity * sizeof(T));
 	}
 
 	T& operator[](u64 idx) {
 		if constexpr (debug) {
 			if (!data)
-				fatal("vector data null (was it moved?)!");
+				fatal("vector data null (uninitialized)!");
 			if (idx > size)
 				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
 		}
 		return data[idx];
 	}
 
+	bool operator==(vector& o) {
+		if (o.size != size) return false;
+		for (u64 i = 0; i < size; i++) {
+			if (data[i] != o.data[i])
+				return false;
+		}
+		return true;
+	}
+
 	T& push_back(T item) {
-		if (size == capacity)
+		if (size >= capacity)
 			reserve(growfun(capacity));
-		data[size++] = item;
+		return data[size++] = item;
 	}
 
 	template <typename... Args>
 	T& emplace(Args&&... args) {
-		if (size == capacity)
+		if (size >= capacity)
 			reserve(growfun(capacity));
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
@@ -155,9 +167,8 @@ struct vector {
 
 // a size-ba NINCS bele számítva a null terminator
 struct string : vector<char> {
-	string(const char* str) {
+	string(const char* str): vector<char>(strlen(str)+1) {
 		size = strlen(str);
-		reserve(size);
 		memcpy((void*)data, (void*)str, size+1);
 	}
 

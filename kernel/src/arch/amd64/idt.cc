@@ -15,12 +15,12 @@ extern "C" void onInterrupt(arch_idt_frame_t* frame) {
 	}
 
 	error("EXCEPTION %02x [%04llx] @ %02x:%p", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
-	print_reg(frame, rax, rbx); printk("\n");
-	print_reg(frame, rcx, rdx); printk("\n");
-	print_reg(frame, rdi, rsi); printk("\n");
-	print_reg(frame, rdx, cr2); printk("\n");
-	print_reg(frame, rip, rfl); printk("\n");
-	print_reg(frame, rsp, rbp); printk("\n");
+	print_reg(frame, rax, rbx);
+	print_reg(frame, rcx, rdx);
+	print_reg(frame, rdi, rsi);
+	print_reg(frame, rdx, cr2);
+	print_reg(frame, rip, rfl);
+	print_reg(frame, rsp, rbp);
 	con_push_color(0xff710627);
 	printk("Halting...\n");
 	asm volatile ("movq %0, %%rsp" :: "r"(frame->rsp));

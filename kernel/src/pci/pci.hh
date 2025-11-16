@@ -103,27 +103,27 @@ struct register_t {
 
 struct Regs {
 	static constexpr register_t VENDOR 		= { 0x00,	16	};
-	static constexpr register_t PRODUCT 		= { 0x02,	16	};
-	static constexpr register_t CMD 			= { 0x04,	16	};
-	static constexpr register_t STS 			= { 0x06,	16	};
+	static constexpr register_t PRODUCT 	= { 0x02,	16	};
+	static constexpr register_t CMD 		= { 0x04,	16	};
+	static constexpr register_t STS 		= { 0x06,	16	};
 	static constexpr register_t REVID 		= { 0x08,	8	};
 	static constexpr register_t PROGIF 		= { 0x09,	8	};
-	static constexpr register_t SUBCLASS 		= { 0x0a,	8	};
+	static constexpr register_t SUBCLASS 	= { 0x0a,	8	};
 	static constexpr register_t CLASS 		= { 0x0b,	8	};
-	static constexpr register_t HDRTYPE 		= { 0x0e,	8	};
-	static constexpr register_t BAR0 			= { 0x10,	32	};
-	static constexpr register_t BAR1 			= { 0x14,	32	};
-	static constexpr register_t BAR2 			= { 0x18,	32	};
+	static constexpr register_t HDRTYPE 	= { 0x0e,	8	};
+	static constexpr register_t BAR0 		= { 0x10,	32	};
+	static constexpr register_t BAR1 		= { 0x14,	32	};
+	static constexpr register_t BAR2 		= { 0x18,	32	};
 	static constexpr register_t PRIMARYBUS 	= { 0x18,	8	};
-	static constexpr register_t SECONDARYBUS 	= { 0x19,	8	};
-	static constexpr register_t BAR3 			= { 0x1c,	32	};
-	static constexpr register_t BAR4 			= { 0x20,	32	};
-	static constexpr register_t BAR5 			= { 0x24,	32	};
-	static constexpr register_t BAR6 			= { 0x28,	32	};
-	static constexpr register_t INTLINE 		= { 0x3c,	8	};
+	static constexpr register_t SECONDARYBUS= { 0x19,	8	};
+	static constexpr register_t BAR3 		= { 0x1c,	32	};
+	static constexpr register_t BAR4 		= { 0x20,	32	};
+	static constexpr register_t BAR5 		= { 0x24,	32	};
+	static constexpr register_t BAR6 		= { 0x28,	32	};
+	static constexpr register_t INTLINE 	= { 0x3c,	8	};
 	static constexpr register_t INTPIN 		= { 0x3d,	8	};
-	static constexpr register_t MINGRANT 		= { 0x3e,	8	};
-	static constexpr register_t MAXLATEN 		= { 0x3f,	8	};
+	static constexpr register_t MINGRANT 	= { 0x3e,	8	};
+	static constexpr register_t MAXLATEN 	= { 0x3f,	8	};
 };
 
 extern mcfg_t* mcfg;

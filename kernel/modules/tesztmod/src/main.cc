@@ -1,16 +1,13 @@
-// #include <gfx/console.hh>
-// #include <devmgr/module.hh>
+#include <gfx/console.hh>
+#include <devmgr/module.hh>
 
-// __attribute__((section(".modinfo"), used))
-// volatile constexpr modules::ModuleInfo _modinfo {
-// 	.trigger {
-// 		.type = modules::Trigger::Type::ANY,
-// 		.bus = modules::Trigger::Bus::ANY,
-// 		.VendorProduct { 0xffff, 0xffff },
-// 	},
-// };
-// const char* _MODNAME = "tesztmod";
+__attribute__((section(".modinfo"), used))
+volatile constexpr module_metadata_t _modinfo {
+	.name = "tesztmod",
+	.triggertype = ModuleTriggerTypes::ANY,
+	.trigger = {  }
+};
 
-// void mod_main() {
-// 	warn("tesztmod turi ip");
-// }
+void mod_main() {
+	warn("tesztmod loaded successfully!");
+}

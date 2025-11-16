@@ -1,6 +1,7 @@
 #include <pci/pci.hh>
 #include <arch/amd64/io.hh>
 #include <arch/amd64/paging.hh>
+#include <devmgr/devmgr.hh>
 
 #define numbits(x) ((1ULL << (x)) - 1)
 
@@ -74,21 +75,27 @@ void pci_write(u8 bus, u8 slot, u8 func, register_t reg, u32 data) {
 
 void check_bus(u8 bus);
 void check_device(u8 bus, u8 dev) {
-	for (u32 i = 0; i < 8; i++) {
+	for (u8 i = 0; i < 8; i++) {
 		if (pci_read(bus, dev, i, Regs::VENDOR) == 0xffff)
 			continue;
 
 		u32 hdrt = pci_read(bus, dev, i, Regs::HDRTYPE);
 
-		report(
-			"device '%02x:%02x:%01x' %04x:%04x class %x %x hdrt %x",
-			bus, dev, i,
-			pci_read(bus, dev, i, Regs::VENDOR),
-			pci_read(bus, dev, i, Regs::PRODUCT),
-			pci_read(bus, dev, i, Regs::CLASS),
-			pci_read(bus, dev, i, Regs::SUBCLASS),
-			pci_read(bus, dev, i, Regs::HDRTYPE)
-		);
+		devmgr_add_device(device_t {
+			.subsys = Subsystems::PCI,
+			.props = {
+				.PCI {
+					.vendor = (u16)pci_read(bus, dev, i, Regs::VENDOR),
+					.product = (u16)pci_read(bus, dev, i, Regs::PRODUCT),
+					.class_ = (u8)pci_read(bus, dev, i, Regs::CLASS),
+					.subclass = (u8)pci_read(bus, dev, i, Regs::SUBCLASS),
+					.progif = (u8)pci_read(bus, dev, i, Regs::PROGIF),
+					.bus = bus,
+					.dev = dev,
+					.fun = i,
+				}
+			}
+		});
 
 		if ((hdrt & 3) == 1) {
 			u8 secondary = pci_read(bus, dev, i, Regs::SECONDARYBUS);

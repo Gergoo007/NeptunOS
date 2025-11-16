@@ -10,6 +10,8 @@
 #include <devmgr/module.hh>
 #include <util/ksyms.hh>
 #include <test.hh>
+#include <cppcompat.hh>
+#include <devmgr/devmgr.hh>
 
 extern "C" noret void khang();
 
@@ -35,16 +37,30 @@ extern "C" void kmain() {
 	arch_late_init();
 	vmm_init();
 
+	cpp_construct_objects();
+
 	con_init(FONTFILE_START);
 
-	// test_and_pause();
+	test();
 
 	ksyms_read();
+
+	modules_register_all();
 
 	// acpi_init();
 	pci_init();
 
-	// modules_register_all();
+	for (const auto& d : devices) {
+		report(
+			"device '%02x:%02x:%01x' %04x:%04x class %x %x hdrt %x",
+			d.props.PCI.bus, d.props.PCI.dev, d.props.PCI.fun,
+			d.props.PCI.vendor,
+			d.props.PCI.product,
+			d.props.PCI.class_,
+			d.props.PCI.subclass,
+			d.props.PCI.progif
+		);
+	}
 
 	printk("Heap @ %p [%lld MiB]\n\r", pmm_heap_base, bytes2mibs(pmm_heap_size));
 	printk(

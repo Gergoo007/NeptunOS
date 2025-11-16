@@ -111,7 +111,10 @@ u64 modules_link(void* a, u64 size) {
 	return entry;
 }
 
-void modules_load(void* a, u64 size) {
+void modules_load(const module_t& m) {
+	void* a = m.content;
+	u64 size = m.size;
+
 	// Ehhez a címhez képest lesznek a section-ök elhelyezve
 	u64 modid = bm.find_and_set();
 	u64 modbase = MODULES_BASE + gib2bytes(1) * modid;
@@ -161,6 +164,31 @@ void modules_load(void* a, u64 size) {
 	entry();
 }
 
+void modules_register(void* a, u64 size, const char* modfilename) {
+	Elf64_Ehdr* e = (Elf64_Ehdr*)a;
+	// Ennek \127-nek kéne lennie, 2002 óta nem lett kijavítva ez az elf.h-ban
+	assert(!strncmp("\177ELF", (char*)e->e_ident, 4));
+
+	module_metadata_t* md = nullptr;
+	Elf64_Shdr* shdrs = (Elf64_Shdr*) ((u64)a + e->e_shoff);
+	const char* shstrtab = (char*) ((u64)a + shdrs[e->e_shstrndx].sh_offset);
+	for (u32 i = 0; i < e->e_shnum; i++) {
+		if (!strcmp(".modinfo", shstrtab + shdrs[i].sh_name)) {
+			md = (module_metadata_t*) ((u64)a + shdrs[i].sh_offset);
+			break;
+		}
+	}
+
+	if (!md) {
+		error("Invalid module (no .modinfo section found): %s", modfilename);
+	} else {
+		module_t mod { .content = a, .size = size, .metadata = md, };
+		modules.emplace(mod);
+		if (md->triggertype == ModuleTriggerTypes::ANY)
+			modules_load(mod);
+	}
+}
+
 void modules_register_all() {
 	auto* r = module_req.response;
 	if (!r) {
@@ -175,8 +203,8 @@ void modules_register_all() {
 			auto files = ustar_list(r->modules[i]->address, r->modules[i]->size);
 
 			for (const auto& f : files) {
-				report("found module: %s; %p", f.name, f.address);
-				modules_load(f.address, f.size);
+				// Érvényes modul fájl?
+				modules_register(f.address, f.size, f.name);
 			}
 		}
 	}

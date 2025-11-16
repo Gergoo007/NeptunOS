@@ -2,8 +2,24 @@
 
 #include <types.hh>
 
-u8 strlen(const char* str);
-u8 wstrlen(const wchar* str);
+// Szöveg hossza a null terminátor nélkül
+constexpr u8 strlen(const char* str) {
+	u8 len = 0;
+	while (*(str++))
+		len++;
+
+	return len;
+}
+
+// Szöveg hossza de a szöveg UTF-16/UCS-2
+constexpr u8 wstrlen(const wchar* str) {
+	u8 len = 0;
+	while (*(str++))
+		len++;
+
+	return len;
+}
+
 u32 utf16_to_ascii(wchar* in, char* out);
 void utf16_to_asciin(wchar* in, char* out, u32 n);
 u32 strcpy(const char* src, char* dest);

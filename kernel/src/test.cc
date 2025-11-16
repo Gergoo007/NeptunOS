@@ -6,17 +6,17 @@ struct Test {
 	const char* name;
 
 	Test(const char* name): name(name) {
-		printk("%s tests commencing...\n", name);
+		// printk("%s tests commencing...\n", name);
 	}
 
 	~Test() {
-		printk("%s test have finished\n", name);
+		// printk("%s test have finished\n", name);
 	}
 };
 
 void test_libk() {
 	{
-		auto o = Test("libk->Vector");
+		auto _ = Test("libk->Vector");
 
 		vector<u32> vec;
 		vec.emplace(20);
@@ -44,29 +44,41 @@ void test_libk() {
 		assert(vec3[2] == 40);
 
 		assert(!vec.data);
+
+		vector<u32> vec5 { 67, 61, 41 };
+		vector<u32> vec6 = vec5;
+		assert(vec5 == vec6);
+
+		// Nullméretű vektor: nem használ memóriát, csak ha pusholnak bele
+		vector<u32> vec7(0);
+		assert(vec7.size == 0);
+		assert(vec7.capacity == 0);
+		assert(vec7.data == nullptr);
+		vec7.push_back(10);
+		assert(vec7.size == 1);
+		assert(vec7.data != nullptr);
 	}
 
 	{
-		auto o = Test("libk->String");
+		auto _ = Test("libk->String");
 
-		string teszt = "";
+		const char constexpr* TESZTSTR = "hello world";
+		string teszt = TESZTSTR;
+		assert(!strcmp(teszt.data, TESZTSTR));
+		assert(teszt.size == strlen(TESZTSTR));
 	}
 
 	{
-		auto o = Test("libk->Variant");
+		auto _ = Test("libk->Variant");
 	}
 }
 
-void test_and_pause() {
+void test() {
 	u32 allocs = vmm_count_allocs();
 
 	// test_mm();
 	test_libk();
 
 	if (vmm_count_allocs() != allocs)
-		error("Mismatch between vmm link count: %d", allocs);
-	else
-		printkx(0x00119911, false, "No errors reported\n");
-
-	pause();
+		fatal("Mismatch between vmm link count: %d", allocs);
 }

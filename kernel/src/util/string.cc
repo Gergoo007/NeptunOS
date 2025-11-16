@@ -1,23 +1,5 @@
 #include <util/string.hh>
 
-// Szöveg hossza a null terminátor nélkül
-u8 strlen(const char* str) {
-	u8 len = 0;
-	while (*(str++))
-		len++;
-
-	return len;
-}
-
-// Szöveg hossza de a szöveg UTF-16/UCS-2
-u8 wstrlen(const wchar* str) {
-	u8 len = 0;
-	while (*(str++))
-		len++;
-
-	return len;
-}
-
 u32 utf16_to_ascii(wchar* in, char* out) {
 	u32 count = 0;
 	while (in[count]) {
