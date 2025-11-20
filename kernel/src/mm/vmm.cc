@@ -304,6 +304,25 @@ u64 vmm_dump() {
 	return addr - vmm_heap_base;
 }
 
+void vmm_info(void* p) {
+	link_t* i = vmm_first;
+	u64 addr = vmm_heap_base;
+
+	while (i) {
+		if (addr == (u64)p) {
+			report("itt az info %p:", p);
+			report("szabad: %d; meret: %lld (%llx)", i->free, i->length, i->length);
+			report("next: %p prev: %p", i->next, i->prev);
+			return;
+		}
+
+		addr += i->length;
+		i = i->next;
+	}
+
+	fatal("Nincs allokacio ilyen cimen: %p", p);
+}
+
 void vmm_free(void* p, const char* file, const char* function) {
 	if (!p) return;
 

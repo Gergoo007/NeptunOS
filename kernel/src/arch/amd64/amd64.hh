@@ -7,3 +7,4 @@
 void sinit();
 void sputc(const char c);
 char sgetc();
+void arch_sleep(u64 ms);

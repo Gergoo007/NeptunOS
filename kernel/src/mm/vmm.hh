@@ -19,4 +19,5 @@ void* vmm_alloc(u64 size, const char* file, u32 line);
 void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line);
 void* vmm_realloc(void* ptr, u64 newsize);
 void vmm_free(void* p, const char* file, const char* function);
+void vmm_info(void* p);
 u64 vmm_dump();

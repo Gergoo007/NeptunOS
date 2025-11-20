@@ -3,6 +3,7 @@
 #include <arch/amd64/gdt.hh>
 #include <arch/amd64/tss.hh>
 #include <arch/amd64/io.hh>
+#include <arch/amd64/pit.hh>
 #include <mm/vmm.hh>
 
 #define PORT 0x3f8
@@ -18,6 +19,8 @@ void arch_late_init() {
 	arch_gdt_init();
 	arch_tss_init();
 	arch_idt_init();
+
+	arch_pit_init();
 }
 
 void arch_halt() {
@@ -58,3 +61,8 @@ char sgetc() {
 	return inb(PORT);
 }
 
+extern u64 tmr_counter;
+void arch_sleep(u64 ms) {
+	u64 end = tmr_counter + ms;
+	while (tmr_counter < end) arch_halt();
+}

@@ -1,2 +1,5 @@
 CompileFlags:
   Add: [ -DIS_MODULE, -I../../src ]
+
+Diagnostics:
+  UnusedIncludes: None

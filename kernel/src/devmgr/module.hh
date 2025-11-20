@@ -31,10 +31,12 @@ struct module_metadata_t {
 struct module_t {
 	void* content;
 	u64 size;
+	u64 entry;
 	module_metadata_t* metadata;
+	bool loaded = false;
 };
 
 extern vector<module_t> modules;
 
 void modules_register_all();
-void modules_load(const module_t& m);
+void modules_launch(module_t& m, void* dev);

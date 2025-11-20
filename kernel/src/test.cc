@@ -57,6 +57,16 @@ void test_libk() {
 		vec7.push_back(10);
 		assert(vec7.size == 1);
 		assert(vec7.data != nullptr);
+
+		array<4, u32> asd { 1, 2, 3, 4, };
+		array<4, u32> asd2 = asd;
+		assert(asd[0] == asd2[0]);
+		assert(asd[1] == asd2[1]);
+		assert(asd[2] == asd2[2]);
+		assert(asd[3] == asd2[3]);
+		assert(asd == asd2);
+		assert(!(asd != asd2));
+		assert(asd.size == 4 && asd2.size == 4);
 	}
 
 	{

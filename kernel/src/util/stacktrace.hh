@@ -2,8 +2,8 @@
 
 #include <types.hh>
 
-pstruct Stackframe {
-	Stackframe* rbp;
+pstruct stackframe_t {
+	stackframe_t* rbp;
 	u64 rip;
 };
 

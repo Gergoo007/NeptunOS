@@ -83,8 +83,11 @@ extern void* higherhalf;
 
 #define bitset(x, n, b) ((typeof(x))((b) ? (((u64)x) | (1ULL << (n))) : (((u64)x) & ~(1ULL << (n)))))
 
-#define VIRTUAL(a) ((typeof(a))(((u64)(a)) | ((u64)(higherhalf))))
-#define PHYSICAL(a) ((typeof(a))(((u64)(a)) & ~((u64)(higherhalf))))
+template <typename T>
+constexpr T VIRTUAL(T addr) { return (T)((u64)addr | (u64)higherhalf); }
+
+template <typename T>
+constexpr T PHYSICAL(T addr) { return (T)((u64)addr & ~(u64)higherhalf); }
 
 __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...);

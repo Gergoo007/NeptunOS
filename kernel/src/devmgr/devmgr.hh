@@ -8,23 +8,23 @@ enum struct Subsystems : i32 {
 	USB,
 };
 
-union properties_t {
-	struct {
-		u16 vendor, product;
-		u8 class_, subclass, progif;
-		u8 bus, dev, fun;
-	} PCI;
-
-	struct {
-		u16 vendor, product;
-		u8 class_, subclass, progif;
-	} USB;
-};
 
 // A bus-ok is eszköznek számítanak
 struct device_t {
 	Subsystems subsys;
-	properties_t props;
+	union {
+		struct {
+			u16 vendor, product;
+			u8 class_, subclass, progif;
+			u8 bus, dev, fun;
+		} PCI;
+
+		struct {
+			u16 vendor, product;
+			u8 class_, subclass, progif;
+			device_t* hci;
+		} USB;
+	};
 };
 
 extern vector<device_t> devices;

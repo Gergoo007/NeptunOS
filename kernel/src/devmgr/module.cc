@@ -40,7 +40,7 @@ u64 modules_link(void* a, u64 size) {
 	}
 
 	u64 entry = 0;
-	constexpr const char* entryname = "_Z8mod_mainv";
+	constexpr const char* entryname = "mod_main";
 	for (u32 i = 0; i < num_syms; i++) {
 		if (!strcmp(strtab + symtab[i].st_name, entryname)) {
 			entry = shdrs[symtab[i].st_shndx].sh_addr + symtab[i].st_value;
@@ -111,17 +111,14 @@ u64 modules_link(void* a, u64 size) {
 	return entry;
 }
 
-void modules_load(const module_t& m) {
-	void* a = m.content;
-	u64 size = m.size;
-
+void modules_load(module_t& m) {
 	// Ehhez a címhez képest lesznek a section-ök elhelyezve
 	u64 modid = bm.find_and_set();
 	u64 modbase = MODULES_BASE + gib2bytes(1) * modid;
 	u64 sectionbase = modbase;
 	
-	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)a;
-	Elf64_Shdr* shdrs = (Elf64_Shdr*)((u64)a + ehdr->e_shoff);
+	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)m.content;
+	Elf64_Shdr* shdrs = (Elf64_Shdr*)((u64)m.content + ehdr->e_shoff);
 	for (u32 i = 0; i < ehdr->e_shnum; i++) {
 		if ((shdrs[i].sh_flags & SHF_ALLOC) && shdrs[i].sh_size) {
 			// Hogy linkelés közben vissza lehessen olvasni anélkül
@@ -149,7 +146,7 @@ void modules_load(const module_t& m) {
 			} else {
 				memcpy(
 					(void*)sectionbase,
-					(void*)((u64)a + shdrs[i].sh_offset),
+					(void*)((u64)m.content + shdrs[i].sh_offset),
 					shdrs[i].sh_size
 				);
 			}
@@ -158,10 +155,20 @@ void modules_load(const module_t& m) {
 		}
 	}
 
-	void (*entry)() = (void (*)()) modules_link(a, size);
+	m.entry = modules_link(m.content, m.size);
+	m.loaded = true;
+}
+
+void modules_launch(module_t& m, void* dev) {
+	if (!m.loaded)
+		modules_load(m);
+
+	// TODO: bss lenullázása
+
+	void (*entry)(void* d) = (void (*)(void* d))m.entry;
 
 	// Futtatás a mod_main() által
-	entry();
+	entry(dev);
 }
 
 void modules_register(void* a, u64 size, const char* modfilename) {
@@ -182,10 +189,12 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 	if (!md) {
 		error("Invalid module (no .modinfo section found): %s", modfilename);
 	} else {
-		module_t mod { .content = a, .size = size, .metadata = md, };
-		modules.emplace(mod);
+		module_t mod { .content = a, .size = size, .entry = 0, .metadata = md };
+
 		if (md->triggertype == ModuleTriggerTypes::ANY)
-			modules_load(mod);
+			modules_launch(mod, nullptr);
+
+		modules.emplace(mod);
 	}
 }
 
@@ -196,7 +205,6 @@ void modules_register_all() {
 		return;
 	}
 
-	report("num mods: %lld", r->module_count);
 	for (u32 i = 0; i < r->module_count; i++) {
 		if (!strcmp(r->modules[i]->path, "/modules.tar")) {
 			check_pages((u64)r->modules[i]->address, r->modules[i]->size);

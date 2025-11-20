@@ -8,6 +8,6 @@ volatile constexpr module_metadata_t _modinfo {
 	.trigger = {  }
 };
 
-void mod_main() {
+extern "C" void mod_main() {
 	warn("template module turi ip");
 }

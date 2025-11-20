@@ -8,10 +8,10 @@ endif
 
 QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q35 $(QEMU_FLAGS) \
 		-smp 1 -drive id=disk,file=disk.img,if=none -device pci-bridge,id=bridge0,chassis_nr=1 \
-		-device ich9-usb-uhci6,bus=bridge0,id=uhci -device qemu-xhci,bus=bridge0,id=xhci \
-		-device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 \
-		-device usb-mouse,bus=uhci.0 -device usb-tablet,bus=xhci.0 \
-		-boot d -cpu SandyBridge
+		-device ich9-usb-uhci6,bus=bridge0,id=uhci -device ich9-usb-uhci6,bus=bridge0,id=uhci2 \
+		-device qemu-xhci,bus=bridge0,id=xhci -device ahci,id=ahci \
+		-device ide-hd,drive=disk,bus=ahci.0 -device usb-mouse,bus=uhci.0 \
+		-device usb-tablet,bus=xhci.0 -boot d -cpu SandyBridge $(QEMUFLAGS)
 
 QEMU_FLAGS_X86_64_UEFI := -drive if=pflash,format=raw,unit=0,file="emu/OVMF/OVMF_CODE.fd",readonly=on \
 		-drive if=pflash,format=raw,unit=1,file="emu/OVMF/OVMF_VARS.fd",readonly=on \
@@ -30,11 +30,15 @@ test: prepare_img
 	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -d int
 
 debug:
-	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) \
-		-S -s > /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
+	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -S -s \
+		> /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 bochs: prepare_img
 	bochs -dbg -qf emu/.bochsrc -rc emu/bochscmd
+
+bochs2: prepare_img
+	/opt/bochsgdb/bin/bochs -qf emu/.bochsrc2 \
+		> /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 prepare_img:
 	@$(MAKE) -C kernel
@@ -51,3 +55,4 @@ prepare_img_aarch64:
 
 clean:
 	@$(MAKE) -C kernel clean
+	@$(MAKE) -C kernel/modules clean

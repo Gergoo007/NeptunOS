@@ -53,7 +53,7 @@ void pci_write(u8 bus, u8 slot, u8 func, u8 offset, u32 data, u8 bits = 32) {
 	pci_write32(bus, slot, func, realoffset, new_value);
 }
 
-u32 pci_read(u8 bus, u8 slot, u8 func, register_t reg) {
+u32 pci_read(u8 bus, u8 slot, u8 func, pci_register_t reg) {
 	u32 realoffset = align_down(reg.offset, 4);
 	if (align_down(reg.offset, 4) != align_down(reg.offset + (reg.bits/8) - 1, 4))
 		error("overlapping reads not supported: %d bits @ %08x", reg.bits, reg.offset);
@@ -63,7 +63,7 @@ u32 pci_read(u8 bus, u8 slot, u8 func, register_t reg) {
 	return data;
 }
 
-void pci_write(u8 bus, u8 slot, u8 func, register_t reg, u32 data) {
+void pci_write(u8 bus, u8 slot, u8 func, pci_register_t reg, u32 data) {
 	u32 realoffset = align_down(reg.offset, 4);
 	if (align_down(reg.offset, 4) != align_down(reg.offset + (reg.bits/8) - 1, 4))
 		error("overlapping writes not supported: %d bits @ %08x", reg.bits, reg.offset);
@@ -73,33 +73,33 @@ void pci_write(u8 bus, u8 slot, u8 func, register_t reg, u32 data) {
 	pci_write32(bus, slot, func, realoffset, new_value);
 }
 
+u32 pci_read(device_t& dev, pci_register_t reg) { return pci_read(dev.PCI.bus, dev.PCI.dev, dev.PCI.fun, reg); }
+void pci_write(device_t& dev, pci_register_t reg, u32 data) { pci_write(dev.PCI.bus, dev.PCI.dev, dev.PCI.fun, reg, data); }
+
 void check_bus(u8 bus);
 void check_device(u8 bus, u8 dev) {
 	for (u8 i = 0; i < 8; i++) {
-		if (pci_read(bus, dev, i, Regs::VENDOR) == 0xffff)
+		if (pci_read(bus, dev, i, PciRegs::VENDOR) == 0xffff)
 			continue;
 
-		u32 hdrt = pci_read(bus, dev, i, Regs::HDRTYPE);
-
+		u32 hdrt = pci_read(bus, dev, i, PciRegs::HDRTYPE);
+	
 		devmgr_add_device(device_t {
 			.subsys = Subsystems::PCI,
-			.props = {
-				.PCI {
-					.vendor = (u16)pci_read(bus, dev, i, Regs::VENDOR),
-					.product = (u16)pci_read(bus, dev, i, Regs::PRODUCT),
-					.class_ = (u8)pci_read(bus, dev, i, Regs::CLASS),
-					.subclass = (u8)pci_read(bus, dev, i, Regs::SUBCLASS),
-					.progif = (u8)pci_read(bus, dev, i, Regs::PROGIF),
-					.bus = bus,
-					.dev = dev,
-					.fun = i,
-				}
+			.PCI {
+				.vendor = (u16)pci_read(bus, dev, i, PciRegs::VENDOR),
+				.product = (u16)pci_read(bus, dev, i, PciRegs::PRODUCT),
+				.class_ = (u8)pci_read(bus, dev, i, PciRegs::CLASS),
+				.subclass = (u8)pci_read(bus, dev, i, PciRegs::SUBCLASS),
+				.progif = (u8)pci_read(bus, dev, i, PciRegs::PROGIF),
+				.bus = bus,
+				.dev = dev,
+				.fun = i,
 			}
 		});
 
 		if ((hdrt & 3) == 1) {
-			u8 secondary = pci_read(bus, dev, i, Regs::SECONDARYBUS);
-			warn("detected additional bus: %02x", secondary);
+			u8 secondary = pci_read(bus, dev, i, PciRegs::SECONDARYBUS);
 			check_bus(secondary);
 		}
 
@@ -109,7 +109,7 @@ void check_device(u8 bus, u8 dev) {
 
 void check_bus(u8 bus) {
 	for (u32 i = 0; i < 32; i++) {
-		if (pci_read(bus, i, 0, Regs::VENDOR) == 0xffff) continue;
+		if (pci_read(bus, i, 0, PciRegs::VENDOR) == 0xffff) continue;
 		check_device(bus, i);
 	}
 }
@@ -122,16 +122,14 @@ void pci_init() {
 	}
 
 	for (u32 fun = 0; fun < 8; fun++) {
-		if (pci_read(0, 0, fun, Regs::VENDOR) == 0xffff)
+		if (pci_read(0, 0, fun, PciRegs::VENDOR) == 0xffff)
 			continue;
-		u8 cl = pci_read(0, 0, fun, Regs::CLASS);
-		u8 scl = pci_read(0, 0, fun, Regs::SUBCLASS);
+		u8 cl = pci_read(0, 0, fun, PciRegs::CLASS);
+		u8 scl = pci_read(0, 0, fun, PciRegs::SUBCLASS);
 		if (cl == 6 && scl == 4) {
-			printk("detected pci2pci bridge %d\n", fun);
-			check_bus(pci_read(0, 0, fun, Regs::PRIMARYBUS));
-			check_bus(pci_read(0, 0, fun, Regs::SECONDARYBUS));
+			check_bus(pci_read(0, 0, fun, PciRegs::PRIMARYBUS));
+			check_bus(pci_read(0, 0, fun, PciRegs::SECONDARYBUS));
 		} else if (cl == 6 && scl == 0) {
-			printk("detected pci host bridge %d\n", fun);
 			check_bus(fun);
 		} else {
 			warn("pci root func unknown %02x:%02x.%01x (class 0x%x 0x%x)", 0, 0, fun, cl, scl);

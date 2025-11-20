@@ -1,8 +1,8 @@
 #include <gfx/console.hh>
 #include <util/mem.hh>
+#include <util/stacktrace.hh>
 #include <arch/arch.hh>
 #include <mm/vmm.hh>
-#include <util/cpuid.hh>
 
 u8 con_glyphsize;
 u8* con_glyphs;
@@ -207,8 +207,11 @@ void printkx(u32 color, bool _pause, const char* fmt, ...) {
 	va_end(list2);
 	#endif
 
-	if (_pause)
+	if (_pause) {
+		if constexpr (stacktrace_on_fatal)
+			stacktrace();
 		pause();
+	}
 
 	con_pop_color();
 }

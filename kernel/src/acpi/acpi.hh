@@ -3,6 +3,18 @@
 #include <types.hh>
 #include <pci/pci.hh>
 
+struct AcpiSignatures {
+#ifdef __x86_64__
+	static constexpr u32 MCFG = 'GFCM';
+	static constexpr u32 APIC = 'CIPA';
+	static constexpr u32 FADT = 'PCAF';
+#else
+	static constexpr u32 MCFG = 'MCFG';
+	static constexpr u32 APIC = 'APIC';
+	static constexpr u32 FADT = 'FACP';
+#endif
+};
+
 pstruct gas_t {
 	u8 addr_space; // 0 - sys mem, 1 - io mem
 	u8 reg_bit_width;

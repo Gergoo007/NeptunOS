@@ -108,7 +108,7 @@ struct vector {
 		size = o.size;
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i].T(o[i]);
+			data[i] = T(o[i]);
 
 		return *this;
 	}
@@ -131,15 +131,19 @@ struct vector {
 
 	T& operator[](u64 idx) {
 		if constexpr (debug) {
-			if (!data)
-				fatal("vector data null (uninitialized)!");
 			if (idx > size)
 				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
+			if (!data)
+				fatal("vector data null (uninitialized)!");
 		}
 		return data[idx];
 	}
 
-	bool operator==(vector& o) {
+	T& last() const {
+		return data[size - 1];
+	}
+
+	bool operator==(vector& o) const {
 		if (o.size != size) return false;
 		for (u64 i = 0; i < size; i++) {
 			if (data[i] != o.data[i])
@@ -149,20 +153,20 @@ struct vector {
 	}
 
 	T& push_back(T item) {
-		if (size >= capacity)
+		if (size*sizeof(T) >= capacity)
 			reserve(growfun(capacity));
 		return data[size++] = item;
 	}
 
 	template <typename... Args>
 	T& emplace(Args&&... args) {
-		if (size >= capacity)
+		if (size*sizeof(T) >= capacity)
 			reserve(growfun(capacity));
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
 
-	const iter begin() { return iter(data); }
-	const iter end() { return iter(data + size); }
+	const iter begin() const { return iter(data); }
+	const iter end() const { return iter(data + size); }
 };
 
 // a size-ba NINCS bele számítva a null terminator
@@ -175,6 +179,74 @@ struct string : vector<char> {
 	char* c_str() const {
 		return (char*)data;
 	}
+};
+
+template <u32 S, typename T>
+struct array {
+	using iter = _generic_iter<T>;
+	static constexpr u32 size = S;
+
+	T data[S] = {};
+
+	array();
+
+	array(std::initializer_list<T> items) {
+		assert(items.__size_ <= size);
+
+		u32 idx = 0;
+		for (const auto& e : items)
+			data[idx++] = e;
+	}
+
+	array(array& o) {
+		static_assert(size == o.size);
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i].~T();
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i] = T(o[i]);
+	}
+
+
+	array(array&& o) = default;
+
+	array& operator=(array& o) {
+		static_assert(size == o.size);
+	
+		for (const auto& e : *this)
+			e.~T();
+
+		for (u64 i = 0; i < o.size; i++)
+			data[i] = T(o[i]);
+
+		return *this;
+	}
+
+	~array() {
+		for (auto& e : *this)
+			e.~T();
+	}
+
+	T& operator[](u64 idx) {
+		if constexpr (debug) {
+			if (idx > S)
+				fatal("array<> access out of bounds! idx %lld size %lld", idx, size);
+		}
+		return data[idx];
+	}
+
+	bool operator==(array& o) {
+		if (o.size != size) return false;
+		for (u64 i = 0; i < size; i++) {
+			if (!(data[i] == o.data[i]))
+				return false;
+		}
+		return true;
+	}
+
+	const iter begin() { return iter(data); }
+	const iter end() { return iter(data + size); }
 };
 
 template <typename T>

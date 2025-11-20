@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: [ -std=gnu++23, -Wall, -Wextra, -Wshadow, -Wunused-variable, -Wunused-but-set-variable, -Wno-unused-function, -Wno-address-of-packed-member, -Wno-incompatible-library-redeclaration, -Wno-unused-parameter, -Wno-main-return-type, -nostdlib, -nostdinc ]
+  Add: [ -std=gnu++23, -Wall, -Wextra, -Wshadow, -Wno-missing-braces, -Wunused-variable, -Wunused-but-set-variable, -Wno-unused-function, -Wno-address-of-packed-member, -Wno-incompatible-library-redeclaration, -Wno-unused-parameter, -Wno-main-return-type, -nostdlib, -nostdinc ]

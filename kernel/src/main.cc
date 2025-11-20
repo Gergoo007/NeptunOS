@@ -1,13 +1,15 @@
 #include <types.hh>
-#include <arch/arch.hh>
 #include <gfx/console.hh>
 #include <mm/pmm.hh>
 #include <mm/vmm.hh>
 #include <pci/pci.hh>
 #include <acpi/acpi.hh>
+#include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
+#include <arch/amd64/amd64.hh>
 #include <util/storage.hh>
 #include <devmgr/module.hh>
+#include <util/stacktrace.hh>
 #include <util/ksyms.hh>
 #include <test.hh>
 #include <cppcompat.hh>
@@ -47,20 +49,8 @@ extern "C" void kmain() {
 
 	modules_register_all();
 
-	// acpi_init();
+	acpi_init();
 	pci_init();
-
-	for (const auto& d : devices) {
-		report(
-			"device '%02x:%02x:%01x' %04x:%04x class %x %x hdrt %x",
-			d.props.PCI.bus, d.props.PCI.dev, d.props.PCI.fun,
-			d.props.PCI.vendor,
-			d.props.PCI.product,
-			d.props.PCI.class_,
-			d.props.PCI.subclass,
-			d.props.PCI.progif
-		);
-	}
 
 	printk("Heap @ %p [%lld MiB]\n\r", pmm_heap_base, bytes2mibs(pmm_heap_size));
 	printk(
@@ -70,6 +60,12 @@ extern "C" void kmain() {
 		bytes2mibs(pmm_freemem + pmm_usedmem + pmm_reservedmem),
 		bytes2mibs((u64)pmm_heap_base), bytes2mibs(pmm_heap_size)
 	);
+
+	error("turi");
+	while (1) {
+		arch_sleep(550);
+		error("ip");
+	}
 
 	printk("End of kmain()\n");
 

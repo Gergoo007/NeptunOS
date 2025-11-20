@@ -1,32 +1,46 @@
 #include <arch/amd64/idt.hh>
 #include <arch/amd64/paging.hh>
+#include <arch/amd64/apic.hh>
 #include <mm/vmm.hh>
 #include <gfx/console.hh>
 
 #define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
+u64 tmr_counter = 0;
+
 extern "C" void onInterrupt(arch_idt_frame_t* frame) {
-	if (frame->exc == 0xe) {
-		if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
-			// this s2M flag cost me a piece of my soul
-			map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc()), KDATA | s2M);
-			return;
+	switch (frame->exc) {
+		case 0xe: {
+			if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
+				// this s2M flag cost me a piece of my soul
+				map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc()), KDATA | s2M);
+				return;
+			}
+		}
+		default: {
+			error("EXCEPTION %02x [%04llx] @ %02x:%p", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
+			print_reg(frame, rax, rbx);
+			print_reg(frame, rcx, rdx);
+			print_reg(frame, rdi, rsi);
+			print_reg(frame, rdx, cr2);
+			print_reg(frame, rip, rfl);
+			print_reg(frame, rsp, rbp);
+			con_push_color(0xff710627);
+			printk("Halting...\n");
+			asm volatile ("movq %0, %%rsp" :: "r"(frame->rsp));
+			asm volatile ("movq %0, %%rbp" :: "r"(frame->rbp));
+			asm volatile ("cli");
+			asm volatile ("hlt");
+
+			break;
+		}
+
+		case 0x40: {
+			tmr_counter++;
+			arch_lapic_eoi();
+			break;
 		}
 	}
-
-	error("EXCEPTION %02x [%04llx] @ %02x:%p", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
-	print_reg(frame, rax, rbx);
-	print_reg(frame, rcx, rdx);
-	print_reg(frame, rdi, rsi);
-	print_reg(frame, rdx, cr2);
-	print_reg(frame, rip, rfl);
-	print_reg(frame, rsp, rbp);
-	con_push_color(0xff710627);
-	printk("Halting...\n");
-	asm volatile ("movq %0, %%rsp" :: "r"(frame->rsp));
-	asm volatile ("movq %0, %%rbp" :: "r"(frame->rbp));
-	asm volatile ("cli");
-	asm volatile ("hlt");
 }
 
 idt_entry_t* idt;
@@ -63,6 +77,8 @@ void arch_idt_init() {
 	idt_add_entry(0x0e, (u64)exc14, 0b1111);
 	idt_add_entry(0x0f, (u64)exc15, 0b1111);
 	idt_add_entry(0x10, (u64)exc16, 0b1111);
+
+	idt_add_entry(0x40, (u64)exc64, 0b1111);
 
 	idtr_t i { 0x0fff, idt };
 	asm volatile ("lidt %0" :: "m"(i));
