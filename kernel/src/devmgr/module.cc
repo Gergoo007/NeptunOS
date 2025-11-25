@@ -19,6 +19,7 @@ static volatile limine_module_request module_req {
 
 vector<module_t> modules;
 // 64 modul van max, így mindegyiknek jut 1 GiB
+static bool bm_init = false;
 static bitmap_t bm;
 
 u64 modules_link(void* a, u64 size) {
@@ -112,6 +113,9 @@ u64 modules_link(void* a, u64 size) {
 }
 
 void modules_load(module_t& m) {
+	if (!bm_init)
+		bm.init(kmalloc(8), 64);
+
 	// Ehhez a címhez képest lesznek a section-ök elhelyezve
 	u64 modid = bm.find_and_set();
 	u64 modbase = MODULES_BASE + gib2bytes(1) * modid;

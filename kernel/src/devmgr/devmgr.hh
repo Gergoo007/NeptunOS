@@ -2,7 +2,7 @@
 
 #include <util/storage.hh>
 
-enum struct Subsystems : i32 {
+enum struct DevmgrSubsys : i32 {
 	NONE = -1,
 	PCI,
 	USB,
@@ -11,22 +11,32 @@ enum struct Subsystems : i32 {
 
 // A bus-ok is eszköznek számítanak
 struct device_t {
-	Subsystems subsys;
+	DevmgrSubsys subsys;
 	union {
 		struct {
-			u16 vendor, product;
-			u8 class_, subclass, progif;
-			u8 bus, dev, fun;
+			u16 vendor;
+			u16 product;
+			void* extra;
+			u8 class_;
+			u8 subclass;
+			u8 progif;
+			u8 bus;
+			u8 dev;
+			u8 fun;
 		} PCI;
 
 		struct {
-			u16 vendor, product;
-			u8 class_, subclass, progif;
+			u16 vendor;
+			u16 product;
 			device_t* hci;
+			u16 mps;
+			u8 class_;
+			u8 subclass;
+			u8 progif;
 		} USB;
 	};
 };
 
 extern vector<device_t> devices;
 
-void devmgr_add_device(device_t&& d);
+device_t& devmgr_add_device(device_t&& d);

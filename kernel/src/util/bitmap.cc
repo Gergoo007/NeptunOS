@@ -34,9 +34,9 @@ u64 bitmap_t::find_and_set() {
 	return -1;
 }
 
-void bitmap_t::init(void* _buffer, u64 _size) {
+void bitmap_t::init(void* _buffer, u64 units) {
 	buffer = (u64*)_buffer;
-	size = _size;
+	size = units;
 
 	size = align(size, 64);
 	for (u64 i = 0; i < size / 64; i++)

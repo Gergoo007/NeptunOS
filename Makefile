@@ -1,4 +1,4 @@
-RAMSIZE ?= 4G
+RAMSIZE ?= 256M
 
 ifeq ($(OS),Windows_NT)
 QEMU_ACCEL ?= whpx,kernel-irqchip=off
@@ -15,7 +15,7 @@ QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q
 
 QEMU_FLAGS_X86_64_UEFI := -drive if=pflash,format=raw,unit=0,file="emu/OVMF/OVMF_CODE.fd",readonly=on \
 		-drive if=pflash,format=raw,unit=1,file="emu/OVMF/OVMF_VARS.fd",readonly=on \
-		$(_QEMU_FLAGS) $(QEMU_FLAGS_UEFI)
+		$(QEMU_FLAGS_X86_64)
 
 run: prepare_img
 	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -accel $(QEMU_ACCEL)
@@ -34,7 +34,7 @@ debug:
 		> /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 bochs: prepare_img
-	bochs -dbg -qf emu/.bochsrc -rc emu/bochscmd
+	/usr/bin/bochs -dbg -qf emu/.bochsrc -rc emu/bochscmd
 
 bochs2: prepare_img
 	/opt/bochsgdb/bin/bochs -qf emu/.bochsrc2 \

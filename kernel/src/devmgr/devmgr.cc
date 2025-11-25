@@ -3,8 +3,8 @@
 
 vector<device_t> devices;
 
-void devmgr_add_device(device_t&& d) {
-	devices.emplace(move<device_t>(d));
+device_t& devmgr_add_device(device_t&& d) {
+	device_t& ret = devices.emplace(move<device_t>(d));
 
 	// Van modul erre az eszközre?
 	for (auto& m : modules) {
@@ -34,4 +34,6 @@ void devmgr_add_device(device_t&& d) {
 			}
 		}
 	}
+
+	return ret;
 }

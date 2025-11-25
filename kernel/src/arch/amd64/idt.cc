@@ -6,7 +6,7 @@
 
 #define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
-u64 tmr_counter = 0;
+volatile u64 tmr_counter = 0;
 
 extern "C" void onInterrupt(arch_idt_frame_t* frame) {
 	switch (frame->exc) {

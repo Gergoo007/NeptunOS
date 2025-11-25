@@ -8,3 +8,5 @@ void sinit();
 void sputc(const char c);
 char sgetc();
 void arch_sleep(u64 ms);
+u64 arch_get_time();
+bool arch_elapsed(u64 timestamp, u64 ms);

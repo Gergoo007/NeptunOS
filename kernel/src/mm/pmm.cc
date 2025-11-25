@@ -84,3 +84,11 @@ void* pmm_alloc(u64 size) {
 	// }
 	return VIRTUAL((void*)((u64)pmm_heap_base + bit * pmm_pagesize));
 }
+
+void pmm_free(void* p) {
+	pmm_usedmem -= pmm_pagesize;
+	pmm_freemem += pmm_pagesize;
+	u64 idx = ((u64)p - (u64)pmm_heap_base) / pmm_pagesize;
+	if constexpr (debug) assert(((u64)p - (u64)pmm_heap_base) % pmm_pagesize == 0);
+	bm->set(idx, false);
+}

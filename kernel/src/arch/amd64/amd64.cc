@@ -61,8 +61,16 @@ char sgetc() {
 	return inb(PORT);
 }
 
-extern u64 tmr_counter;
+extern volatile u64 tmr_counter;
 void arch_sleep(u64 ms) {
 	u64 end = tmr_counter + ms;
 	while (tmr_counter < end) arch_halt();
+}
+
+u64 arch_get_time() {
+	return tmr_counter;
+}
+
+bool arch_elapsed(u64 timestamp, u64 ms) {
+	return timestamp + ms <= tmr_counter;
 }

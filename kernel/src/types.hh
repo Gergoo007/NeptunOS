@@ -53,7 +53,7 @@ typedef __SIZE_TYPE__ size_t;
 #define gib2bytes(gibs) ((gibs) << 30)
 #define tib2bytes(tibs) ((tibs) << 40)
 
-#define assert(c) if (!(c)) fatal("Assert failed: "#c" (" __FILE__ ":%d)", __LINE__)
+#define assert(c) if (!(c)) fatal("Assert failed: %s (" __FILE__ ":%d)", #c, __LINE__)
 
 // #define align(x, n) ((typeof(x))(((x) & ((n)-1)) ? (((x) | ((n)-1))+1) : (x)))
 #define align_down(x, n) ((typeof(x))(((u64)x) & ~(((u64)n)-1)))

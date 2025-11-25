@@ -59,6 +59,6 @@ com4: enabled=false
 magic_break: enabled=1
 
 usb_uhci: enabled=1, port1=mouse, options1="speed:full"
-# usb_debug: type=uhci, reset=false, enable=false, start_frame=false, doorbell=true, event=false, non_exist=false
+# usb_debug: type=uhci, reset=1, enable=1, start_frame=0, doorbell=1, event=1, data=1, non_exist=1
 
 # gdbstub: enabled=1, port=1234
