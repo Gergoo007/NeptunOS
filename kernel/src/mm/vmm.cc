@@ -156,11 +156,11 @@ void* vmm_alloc(u64 size, const char* file, u32 line) {
 
 	link_t* current = vmm_first;
 	u64 address = vmm_heap_base;
-	while (!current->free || current->length < size) {
+	while (!current->free || current->length <= size) {
 		address += current->length;
-
 		current = current->next;
 		if (!current) {
+			vmm_dump();
 			fatal(
 				"Elfogyott a memoria!\npmm used vs free %llu MiB %llu MiB\nvmm used vs free %llu MiB %llu MiB",
 				bytes2mibs(pmm_usedmem), bytes2mibs(pmm_freemem),

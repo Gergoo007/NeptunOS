@@ -1,63 +1,134 @@
 #include <devmgr/usb/usb.hh>
 #include <devmgr/devmgr.hh>
 #include <arch/amd64/paging.hh>
+#include <arch/amd64/amd64.hh>
 
 void* usb_alloc() {
 	u64 a = (u64)pmm_alloc();
-	if constexpr(debug) assert(!(paging_lookup(a) >> 32));
-	return PHYSICAL((void*)a);
+	assert(!(paging_lookup(a) >> 32));
+	return (void*)a;
 }
 
-// Elküldi az inicializáló parancsokat a 0-ás címre
-void usb_init(device_t& usbdev) {
-	usb_request* devdesc = (usb_request*)usb_alloc();
-	devdesc->bmRequestType = 0x80;
-	devdesc->bRequest = UsbRequests::GET_DESCRIPTOR;
-	devdesc->wValue = (1 << 8) | 0;
-	devdesc->wIndex = 0;
-	devdesc->wLength = usbdev.USB.mps;
+void usb_free(void* ptr) { pmm_free(ptr); }
 
-	usb_descriptor_device* buf = (usb_descriptor_device*)pmm_alloc();
+char* usb_get_string(device_t& usbdev, usb_descriptor_device* devdesc, u8 idx) {
+	auto* hciint = (usb_hci_interface_t*)usbdev.USB.hci->PCI.extra;
+
+	usb_request* request = (usb_request*)usb_alloc();
+	request->bmRequestType = 0x80;
+	request->bRequest = UsbRequests::GET_DESCRIPTOR;
+	request->wIndex = usbdev.USB.langid;
+	request->wValueH = 3;
+	request->wValueL = idx;
+	// Először csak a bLength kell
+	request->wLength = 2;
+
+	usb_descriptor_string* string = (usb_descriptor_string*)usb_alloc();
+	request->wIndex = usbdev.USB.langid;
+	request->wValueL = idx;
+	request->bmRequestType = 0x80;
+	// Először csak a bLength kell
+	request->wLength = 2;
+	hciint->usb_send(usbdev, 0, request, string);
+	request->wLength = string->hdr.bLength;
+	hciint->usb_send(usbdev, 0, request, string);
+
+	u32 len = (string->hdr.bLength - 2) / 2;
+	char* str = (char*)kmalloc(len / 2 + 1);
+	str[len] = 0;
+	ucs2_to_asciin(string->string, str, len);
+
+	usb_free(request);
+	usb_free(string);
+
+	return str;
+}
+
+// Kiegészíti a DEVICE leírót (ha MSP < 8), ad egy címet az eszköznek
+void usb_init(device_t& usbdev) {
+	usb_request* request = (usb_request*)usb_alloc();
+	request->bmRequestType = 0x80;
+	request->bRequest = UsbRequests::GET_DESCRIPTOR;
+	request->wValue = (1 << 8) | 0;
+	request->wIndex = 0;
+	request->wLength = usbdev.USB.mps;
+
+	usb_descriptor_device* devdesc = (usb_descriptor_device*)(request + 64);
+	memset(devdesc, 0, sizeof(*devdesc));
 
 	auto hciint = ((usb_hci_interface_t*)(usbdev.USB.hci->PCI.extra));
-	hciint->usb_send(usbdev, 0, 0, devdesc, buf, 8);
-
-	usbdev.USB.mps = buf->bMaxPacketSize;
+	debug("Sending GET_DESCRIPTOR DEVICE request #1...");
+	hciint->usb_send(usbdev, 0, request, devdesc);
+	usbdev.USB.mps = devdesc->bMaxPacketSize;
+	if (!(devdesc->bMaxPacketSize == 8 || devdesc->bMaxPacketSize == 16 || devdesc->bMaxPacketSize == 32 || devdesc->bMaxPacketSize == 64))
+		fatal("Invalid MPS: %d", devdesc->bMaxPacketSize);
 	u32 addr = hciint->usb_make_address(*usbdev.USB.hci);
-	// report("Max Packet Size for device is %d; address to be assigned: %d", mps, addr);
 
-	// // uhci_send(hci, 0, 0, port.ls, devdesc, buf, 8, 8);
-	// // while (1);
+	request->bmRequestType = 0x00;
+	request->bRequest = UsbRequests::SET_ADDRESS;
+	request->wValue = addr;
+	request->wIndex = 0;
+	request->wLength = 0;
 
-	// usb_request* setaddr = (usb_request*)usb_alloc();
-	// setaddr->bmRequestType = 0x00;
-	// setaddr->bRequest = UsbRequests::SET_ADDRESS;
-	// setaddr->wValue = addr;
-	// setaddr->wIndex = 0;
-	// setaddr->wLength = 0;
+	debug("Sending SET_ADDRESS request...");
+	hciint->usb_send(usbdev, 0, request, nullptr);
 
-	// arch_sleep(100);
+	usbdev.USB.addr = addr;
 
-	// warn("sending setaddr");
-	// uhci_send(hci, 0, 0, port.ls, setaddr, nullptr, 0, 8);
-	// arch_sleep(2);
+	arch_sleep(10);
 
-	// warn("sent setaddr");
+	usb_descriptor_string_langids* langids = (usb_descriptor_string_langids*)usb_alloc();
 
-	// devdesc->wLength = 18;
+	request->bmRequestType = 0x80;
+	request->bRequest = UsbRequests::GET_DESCRIPTOR;
+	request->wValueL = 0;
+	request->wValueH = 3;
+	request->wIndex = 0;
+	request->wLength = 2;
 
-	// uhci_send(hci, addr, 0, port.ls, devdesc, buf, 18, 8);
+	hciint->usb_send(usbdev, 0, request, langids);
+	u32 num_langids = (langids->hdr.bLength - 2) / 2;
+	request->wLength = 2 + num_langids * 2;
+	hciint->usb_send(usbdev, 0, request, langids);
 
-	// warn("done: %04x:%04x", buf->idVendor, buf->idProduct);
+	// Default is US English
+	usbdev.USB.langid = num_langids ? langids->wLangID[0] : 0x0409;
+	for (u32 i = 0; i < num_langids; i++) {
+		debug("Device supports LANGID %04x", langids->wLangID[i]);
+		if (langids->wLangID[i] == 0x040e) // Hunagrian
+			usbdev.USB.langid = langids->wLangID[i];
+	}
 
-	// uhci_free(devdesc);
+	request->bmRequestType = 0x80;
+	request->bRequest = UsbRequests::GET_DESCRIPTOR;
+	request->wValue = (1 << 8) | 0;
+	request->wIndex = 0;
+	request->wLength = 18;
+
+	debug("Sending GET_DESCRIPTOR DEVICE request #2...");
+	hciint->usb_send(usbdev, 0, request, devdesc);
+
+	if (!devdesc->iManufacturer && !devdesc->iProduct && !devdesc->iSerialNumber) {
+		warn("Device %04x:%04x does not support STRING descriptors!", devdesc->idVendor, devdesc->idProduct);
+	} else {
+		debug("Sending GET_DESCRIPTOR STRING requests...");
+		
+		usbdev.USB.manufacturerName = usb_get_string(usbdev, devdesc, devdesc->iManufacturer);
+		usbdev.USB.productName = usb_get_string(usbdev, devdesc, devdesc->iProduct);
+		usbdev.USB.serial = usb_get_string(usbdev, devdesc, devdesc->iSerialNumber);
+	}
+
+	warn("Device initialized: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
+
+	usb_free(request);
+	usb_free(langids);
 }
 
 void usb_init_all() {
-	// for (auto& d : devices) {
-	// 	if (d.subsys != DevmgrSubsys::USB)
-	// 		continue;
+	for (auto& d : devices) {
+		if (d->subsys != DevmgrSubsys::USB)
+			continue;
 
-	// 	usb_init(d);
-	// }
+		usb_init(*d);
+	}
 }

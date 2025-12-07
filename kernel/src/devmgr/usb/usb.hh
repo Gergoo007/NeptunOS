@@ -25,14 +25,24 @@ struct UsbRequests {
 pstruct usb_request {
 	u8 bmRequestType;
 	u8 bRequest;
-	u16 wValue;
+	punion {
+		u16 wValue;
+		pstruct {
+			u8 wValueL;
+			u8 wValueH;
+		};
+	};
 	u16 wIndex;
 	u16 wLength;
 };
 
-pstruct usb_descriptor_device {
+pstruct usb_descriptor_header {
 	u8 bLength;
-	u8 bDescriptorSize;
+	u8 bDescriptorType;
+};
+
+pstruct usb_descriptor_device {
+	usb_descriptor_header hdr;
 	u16 bcdUSB;
 	u8 bDeviceClass;
 	u8 bDeviceSubClass;
@@ -47,9 +57,19 @@ pstruct usb_descriptor_device {
 	u8 bNumConfigurations;
 };
 
+pstruct usb_descriptor_string_langids {
+	usb_descriptor_header hdr;
+	u16 wLangID[];
+};
+
+pstruct usb_descriptor_string {
+	usb_descriptor_header hdr;
+	wchar string[];
+};
+
 struct device_t;
 struct usb_hci_interface_t {
-	void (*usb_send)(device_t& usbdev, u8 addr, u8 endp, usb_request* request, void* databuf, u64 size);
+	void (*usb_send)(device_t& usbdev, u8 endp, usb_request* request, void* databuf);
 	void (*usb_reset_port)(device_t& usbdev);
 	u8 (*usb_make_address)(device_t& hcidev);
 };

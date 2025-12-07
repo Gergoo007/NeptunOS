@@ -53,6 +53,8 @@ extern "C" void kmain() {
 	acpi_init();
 	pci_init();
 
+	usb_init_all();
+
 	printk("Heap @ %p [%lld MiB]\n\r", pmm_heap_base, bytes2mibs(pmm_heap_size));
 	printk(
 		"Framebuffer %p: %dx%dx%d; font %dx%d; %llu MiBs; Heap: at %llu MiB, of size %llu MiB\n",
@@ -62,7 +64,15 @@ extern "C" void kmain() {
 		bytes2mibs((u64)pmm_heap_base), bytes2mibs(pmm_heap_size)
 	);
 
-	usb_init_all();
+	printk("Mem usage:\n");
+	printk(
+		"VMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
+		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2kibs(vmm_freemem + vmm_usedmem)
+	);
+	printk(
+		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
+		bytes2kibs(pmm_freemem), bytes2kibs(pmm_usedmem), bytes2kibs(pmm_freemem + pmm_usedmem)
+	);
 
 	printk("End of kmain()\n");
 

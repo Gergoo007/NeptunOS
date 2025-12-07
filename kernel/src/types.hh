@@ -77,9 +77,25 @@ extern void* higherhalf;
 #define FONTFILE_START &_binary_src_font_psf_start
 #define FONTFILE_END &_binary_src_font_psf_end
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define abs(a) ((a) < 0 ? (-(a)) : (a))
+// #define min(a, b) ((a) < (b) ? (a) : (b))
+template <typename T>
+constexpr T min(const T& asd1) { return asd1; }
+template <typename T, typename U>
+constexpr T min(const T& asd1, const U& asd2) { return asd1 < asd2 ? asd1 : asd2; }
+template <typename T, typename U, typename... Args>
+constexpr T min(const T& asd1, const U& asd2, const Args&... args) { return min(min(asd1, asd2), args...); }
+
+// #define max(a, b) ((a) > (b) ? (a) : (b))
+template <typename T>
+constexpr T max(const T& asd1) { return asd1; }
+template <typename T, typename U>
+constexpr T max(const T& asd1, const U& asd2) { return asd1 < asd2 ? asd1 : asd2; }
+template <typename T, typename U, typename... Args>
+constexpr T max(const T& asd1, const U& asd2, const Args&... args) { return max(max(asd1, asd2), args...); }
+
+// #define abs(a) ((a) < 0 ? (-(a)) : (a))
+template <typename T>
+constexpr T abs(const T& asd1) { if (asd1 < 0) return -asd1; else return asd1; }
 
 #define bitset(x, n, b) ((typeof(x))((b) ? (((u64)x) | (1ULL << (n))) : (((u64)x) & ~(1ULL << (n)))))
 
@@ -98,22 +114,24 @@ void printk(const char* fmt, ...);
 __attribute__((format(printf, 1, 2)))
 void sprintk(const char* fmt, ...);
 
-__attribute__((format(printf, 2, 3)))
-void printkx(u32 color, const char* fmt, ...);
-__attribute__((format(printf, 2, 3)))
-[[noreturn]] void printkxnoret(u32 color, const char* fmt, ...);
+__attribute__((format(printf, 3, 4)))
+void printkx(u32 lvl, const char* FILENAME, const char* fmt, ...);
+__attribute__((format(printf, 3, 4))) [[noreturn]]
+void printkxnoret(u32 lvl, const char* FILENAME, const char* fmt, ...);
 #ifdef IS_MODULE
 struct module_metadata_t;
 extern const volatile module_metadata_t _modinfo;
-#define report(fmt, ...) printkx(0xffd0d0d0, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define warn(fmt, ...) printkx(0xffEB6534, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define error(fmt, ...) printkx(0xffC41E3D, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define fatal(fmt, ...) printkxnoret(0xff710627, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define debug(fmt, ...) printkx(0, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define report(fmt, ...) printkx(1, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(2, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(3, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkxnoret(4, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #else
-#define report(fmt, ...) printkx(0xffd0d0d0, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define warn(fmt, ...) printkx(0xffEB6534, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define error(fmt, ...) printkx(0xffC41E3D, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define fatal(fmt, ...) printkxnoret(0xff710627, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define debug(fmt, ...) printkx(0, __FILE_NAME__, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define report(fmt, ...) printkx(1, __FILE_NAME__, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(2, __FILE_NAME__, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(3, __FILE_NAME__, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkxnoret(4, __FILE_NAME__, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #endif
 
 void arch_halt();

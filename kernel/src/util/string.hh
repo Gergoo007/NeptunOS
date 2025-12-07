@@ -20,8 +20,8 @@ constexpr u8 wstrlen(const wchar* str) {
 	return len;
 }
 
-u32 utf16_to_ascii(wchar* in, char* out);
-void utf16_to_asciin(wchar* in, char* out, u32 n);
+u32 ucs2_to_ascii(wchar* in, char* out);
+void ucs2_to_asciin(wchar* in, char* out, u32 n);
 u32 strcpy(const char* src, char* dest);
 u8 strncmp(const char* s1, const char* s2, u32 chars);
 u8 strcmp(const char* s1, const char* s2);

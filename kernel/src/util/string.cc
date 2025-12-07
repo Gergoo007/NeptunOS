@@ -1,6 +1,8 @@
 #include <util/string.hh>
 
-u32 utf16_to_ascii(wchar* in, char* out) {
+static_assert(sizeof(wchar) == 2);
+
+u32 ucs2_to_ascii(wchar* in, char* out) {
 	u32 count = 0;
 	while (in[count]) {
 		out[count] = in[count];
@@ -10,7 +12,7 @@ u32 utf16_to_ascii(wchar* in, char* out) {
 	return count;
 }
 
-void utf16_to_asciin(wchar* in, char* out, u32 n) {
+void ucs2_to_asciin(wchar* in, char* out, u32 n) {
 	out[n] = '\0';
 	while (n--) {
 		*out = *in;

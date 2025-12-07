@@ -391,23 +391,35 @@ bool uhci_init_port(uhci_internal& uhci, uhci_dev_extra_t* hci, u8 portnum) {
 		// MPS méretű DEVICE desc., reset, set address, DEVICE descriptor de teljes méretbe
 		device_t& dev = devmgr_add_device(device_t {
 			.subsys = DevmgrSubsys::USB,
-			.USB = {  },
+			.USB = {
+				.vendor = 0,
+				.product = 0,
+				.hci = &uhci.hci,
+				.mps = (u16)(port.ls ? 8 : 64),
+				.langid = (u16)-1,
+				.addr = 0,
+				.hci_portnum = portnum,
+				.class_ = 0,
+				.subclass = 0,
+				.progif = 0,
+				.speed = port.ls ? UsbSpeed::LS : UsbSpeed::FS
+			},
 		});
 		dev.USB.hci = &uhci.hci;
 		dev.USB.hci_portnum = portnum;
-		dev.USB.ls = port.ls;
+		dev.USB.speed = port.ls ? UsbSpeed::LS : UsbSpeed::FS;
 		dev.USB.mps = port.ls ? 8 : 64;
 	}
 
 	return port.dev_present;
 }
 
-void uhci_send2(device_t& usbdev, u8 addr, u8 endp, usb_request* request, void* databuf, u64 size) {
+void uhci_send2(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	uhci_internal uhci {
 		.extra = (uhci_dev_extra_t*)usbdev.USB.hci->PCI.extra,
 		.hci = *usbdev.USB.hci,
 	};
-	uhci_send(uhci, addr, endp, usbdev.USB.ls, request, databuf, size, usbdev.USB.mps);
+	uhci_send(uhci, usbdev.USB.addr, endp, usbdev.USB.speed == UsbSpeed::LS, request, databuf, request->wLength, usbdev.USB.mps);
 }
 
 void uhci_send_reset2(device_t& usbdev) {

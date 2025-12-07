@@ -180,7 +180,7 @@ pstruct ehci_qtd {
 		u32 ptr;
 	} alt_next_qtd;
 
-	pstruct {
+	volatile pstruct {
 		punion {
 			pstruct {
 				u32 ping : 1;
@@ -202,12 +202,12 @@ pstruct ehci_qtd {
 		u32 data : 1;
 	} token;
 
-	u32 buffers[5];
+	volatile u32 buffers[5];
 };
 
 pstruct ehci_qh {
 	// DWORD 0
-	punion {
+	volatile punion {
 		pstruct {
 			u32 t : 1;
 			EhciQHType type : 2;
@@ -250,17 +250,30 @@ pstruct ehci_qh {
 
 	// DWORD 3
 	// Ez a jelenlegi qTD, ahova visszaírja a vezérlő az overlayt a tranzakció konklúzióját követően.
-	u32 current_qtd;
-	ehci_qtd overlay;
+	volatile u32 current_qtd;
+	volatile ehci_qtd overlay;
 };
 
+void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf);
+void ehci_send_reset(device_t& usbdev);
+u8 ehci_make_address(device_t& hc);
+
 struct ehci_internal {
+	usb_hci_interface_t ehci_module_interface {
+		.usb_send = ehci_send,
+		.usb_reset_port = ehci_send_reset,
+		.usb_make_address = ehci_make_address,
+	};
 	u64 mmio;
+	device_t* hc;
+	bitmap_t addresses;
 	u8 caplength;
 
 	ehci_qh* head;
 };
-extern ehci_internal context;
+extern ehci_internal* context;
+
+static_assert(offsetof(ehci_internal, ehci_module_interface) == 0);
 
 pstruct ehci_reg {
 	u32 offset;
@@ -274,9 +287,9 @@ pstruct ehci_reg {
 	EhciRegUnion read() const {
 		EhciRegUnion ret;
 
-		u64 addr = context.mmio + offset;
+		u64 addr = context->mmio + offset;
 		if (opreg)
-			addr += context.caplength;
+			addr += context->caplength;
 
 		if (length == 4)
 			ret._raw = *(volatile u32*)addr;
@@ -291,9 +304,9 @@ pstruct ehci_reg {
 	}
 
 	void write(const EhciRegUnion& val) const {
-		u64 addr = context.mmio + offset;
+		u64 addr = context->mmio + offset;
 		if (opreg)
-			addr += context.caplength;
+			addr += context->caplength;
 
 		if (length == 4)
 			*(volatile u32*)addr = val._raw;

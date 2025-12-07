@@ -136,13 +136,13 @@ void pci_init() {
 
 		u8 cl = pci_read(0, 0, fun, PciRegs::CLASS);
 		u8 scl = pci_read(0, 0, fun, PciRegs::SUBCLASS);
-		warn("root found %d %d", cl, scl);
+		debug("root found %d %d", cl, scl);
 		if (cl == 6 && scl == 4) {
-			error("pci2pci @ %d & %d", pci_read(0, 0, fun, PciRegs::PRIMARYBUS), pci_read(0, 0, fun, PciRegs::SECONDARYBUS));
+			debug("pci2pci @ %d & %d", pci_read(0, 0, fun, PciRegs::PRIMARYBUS), pci_read(0, 0, fun, PciRegs::SECONDARYBUS));
 			check_bus(pci_read(0, 0, fun, PciRegs::PRIMARYBUS));
 			check_bus(pci_read(0, 0, fun, PciRegs::SECONDARYBUS));
 		} else if (cl == 6 && scl == 0) {
-			error("host bridge @ %d", fun);
+			debug("host bridge @ %d", fun);
 			check_bus(fun);
 		} else {
 			warn("pci root func unknown %02x:%02x.%01x (class 0x%x 0x%x)", 0, 0, fun, cl, scl);

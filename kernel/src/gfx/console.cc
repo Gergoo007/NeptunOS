@@ -188,10 +188,21 @@ void printk(const char* fmt, ...) {
 	#endif
 }
 
+static constexpr u32 colors[5] = {
+	0xffa0a0a0,
+	0xffd0d0d0,
+	0xffEB6534,
+	0xffC41E3D,
+	0xff710627,
+};
 
-__attribute__((format(printf, 2, 3)))
-void printkx(u32 color, const char* fmt, ...) {
-	con_push_color(color);
+__attribute__((format(printf, 3, 4)))
+void printkx(u32 lvl, const char* FILENAME, const char* fmt, ...) {
+	// Debug?
+	// Ha nincs a fájl a debug files listába, ne is printeljen
+	if (!cfg_willitprint(lvl, FILENAME)) return;
+
+	con_push_color(colors[lvl]);
 
 	va_list list;
 	va_start(list, fmt);
@@ -210,9 +221,11 @@ void printkx(u32 color, const char* fmt, ...) {
 	con_pop_color();
 }
 
-__attribute__((format(printf, 2, 3)))
-void printkxnoret(u32 color, const char* fmt, ...) {
-	con_push_color(color);
+__attribute__((format(printf, 3, 4)))
+void printkxnoret(u32 lvl, const char* FILENAME, const char* fmt, ...) {
+	if (!cfg_willitprint(lvl, FILENAME)) pause();
+
+	con_push_color(colors[lvl]);
 
 	va_list list;
 	va_start(list, fmt);

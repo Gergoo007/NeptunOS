@@ -8,3 +8,34 @@ constexpr bool debug = true;
 constexpr bool stacktrace_on_fatal = true;
 constexpr bool ioapic_fix = true;
 static constexpr unsigned long long default_vec_size = 0;
+
+static constexpr const char* debug_files[] = {
+	"ehci.cc",
+	"usb.cc",
+	"pci.cc"
+};
+
+// Lowest log level that will get printed; 0 is debug, 5 is fatal
+static constexpr unsigned int loglevel = 0;
+
+static constexpr unsigned char cfg_strcmp(const char* s1, const char* s2) {
+	while (*s1 && *s2) {
+		if (*s1 != *s2)
+			return 1;
+		s1++;
+		s2++;
+	}
+	if (*s1 != *s2) return 1;
+	return 0;
+}
+
+static constexpr bool cfg_willitprint(unsigned int lvl, const char* file) {
+	if (lvl < loglevel) return false;
+	// The List only applies to debug prints
+	if (lvl > 0) return true;
+	for (unsigned long i = 0; i < sizeof(debug_files) / 8; i++) {
+		if (!cfg_strcmp(debug_files[i], file))
+			return true;
+	}
+	return false;
+}

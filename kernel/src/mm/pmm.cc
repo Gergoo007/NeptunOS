@@ -86,6 +86,7 @@ void* pmm_alloc(u64 size) {
 }
 
 void pmm_free(void* p) {
+	p = PHYSICAL(p);
 	pmm_usedmem -= pmm_pagesize;
 	pmm_freemem += pmm_pagesize;
 	u64 idx = ((u64)p - (u64)pmm_heap_base) / pmm_pagesize;

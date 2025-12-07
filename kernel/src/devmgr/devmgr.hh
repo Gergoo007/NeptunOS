@@ -13,6 +13,8 @@ struct device_t;
 extern vector<unique_ptr<device_t>> devices;
 struct usb_hci_interface_t;
 
+enum struct UsbSpeed { LS, FS, HS, SS };
+
 // A bus-ok is eszköznek számítanak
 struct device_t {
 	DevmgrSubsys subsys;
@@ -32,14 +34,18 @@ struct device_t {
 		struct {
 			u16 vendor;
 			u16 product;
-			// usb_hci_interface_t* hci;
 			device_t* hci;
-			u8 hci_portnum;
+			const char* manufacturerName;
+			const char* productName;
+			const char* serial;
 			u16 mps;
+			u16 langid; // -1 if no STRING descriptors
+			u8 addr;
+			u8 hci_portnum;
 			u8 class_;
 			u8 subclass;
 			u8 progif;
-			bool ls;
+			UsbSpeed speed;
 		} USB;
 	};
 };
