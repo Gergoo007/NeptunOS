@@ -189,8 +189,8 @@ void printk(const char* fmt, ...) {
 }
 
 
-__attribute__((format(printf, 3, 4)))
-void printkx(u32 color, bool _pause, const char* fmt, ...) {
+__attribute__((format(printf, 2, 3)))
+void printkx(u32 color, const char* fmt, ...) {
 	con_push_color(color);
 
 	va_list list;
@@ -207,11 +207,30 @@ void printkx(u32 color, bool _pause, const char* fmt, ...) {
 	va_end(list2);
 	#endif
 
-	if (_pause) {
-		if constexpr (stacktrace_on_fatal)
-			stacktrace();
-		pause();
-	}
+	con_pop_color();
+}
+
+__attribute__((format(printf, 2, 3)))
+void printkxnoret(u32 color, const char* fmt, ...) {
+	con_push_color(color);
+
+	va_list list;
+	va_start(list, fmt);
+	vprintf(fmt, list);
+	va_end(list);
+
+	con_swap_buffers();
+
+	#ifdef SERIALPRINTK
+	va_list list2;
+	va_start(list2, fmt);
+	vprintf2(fmt, list2);
+	va_end(list2);
+	#endif
+
+	if constexpr (stacktrace_on_fatal)
+		stacktrace();
+	pause();
 
 	con_pop_color();
 }

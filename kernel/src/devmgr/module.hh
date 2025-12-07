@@ -38,5 +38,6 @@ struct module_t {
 
 extern vector<module_t> modules;
 
+struct device_t;
 void modules_register_all();
-void modules_launch(module_t& m, void* dev);
+void modules_launch(module_t& m, device_t& dev);

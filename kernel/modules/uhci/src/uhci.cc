@@ -16,38 +16,36 @@ volatile constexpr module_metadata_t _modinfo {
 	.trigger = { .PCI_CLASS_SUBCLASS_PROGIF { 0xc, 0x3, 0x0 } }
 };
 
-static u16 hciio;
-
-u32 uhci_read(const uhci_register& reg) {
+u32 uhci_read(uhci_internal& uhci, const uhci_register& reg) {
 	if (reg.bytes == 2)
-		return inw(hciio + reg.io);
+		return inw(uhci.extra->hciio + reg.io);
 	else if (reg.bytes == 4)
-		return inl(hciio + reg.io);
+		return inl(uhci.extra->hciio + reg.io);
 	else
 		fatal("wgat");
 	return 0;
 }
 
-void uhci_write(const uhci_register& reg, u32 val) {
+void uhci_write(uhci_internal& uhci, const uhci_register& reg, u32 val) {
 	if (reg.bytes == 2)
-		outw(hciio + reg.io, val);
+		outw(uhci.extra->hciio + reg.io, val);
 	else if (reg.bytes == 4)
-		outl(hciio + reg.io, val);
+		outl(uhci.extra->hciio + reg.io, val);
 	else
 		fatal("wgat");
 }
 
-void uhci_set_running(bool run) {
+void uhci_set_running(uhci_internal& uhci, bool run) {
 	uhci_usbcmd_t cmd;
-	cmd.raw = uhci_read(UhciRegs::USBCMD);
+	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.run = run;
-	uhci_write(UhciRegs::USBCMD, cmd.raw);
+	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
 }
 
-u32 uhci_num_ports() {
+u32 uhci_num_ports(uhci_internal& uhci) {
 	u32 i = 1;
 	while (true) {
-		u16 val = uhci_read(uhci_register(i));
+		u16 val = uhci_read(uhci, uhci_register(i));
 		if ((val & (1 << 7)) == 0)
 			break;
 
@@ -56,153 +54,154 @@ u32 uhci_num_ports() {
 	return i - 1;
 }
 
-void uhci_send_reset(u8 portnum) {
+void uhci_send_reset(uhci_internal& uhci, u8 portnum) {
 	uhci_port_t port;
-	port.raw = uhci_read(uhci_register(portnum));
+	port.raw = uhci_read(uhci, uhci_register(portnum));
 	port.reset = 1;
 	port.dev_present_ch = 1;
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
 	arch_sleep(50);
-	port.raw = uhci_read(uhci_register(portnum));
+	port.raw = uhci_read(uhci, uhci_register(portnum));
 	port.reset = 0;
 	port.dev_present_ch = 0;
 	port.port_enable = 0;
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
 
 	arch_sleep(1);
 
-	port.raw = uhci_read(uhci_register(portnum));
+	port.raw = uhci_read(uhci, uhci_register(portnum));
 	assert(port.reset == 0);
-	assert(port.port_enable == 0);
+	// assert(port.port_enable == 0);
 
 	port.dev_present_ch = 1;
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
 	port.dev_present_ch = 0;
 	port.port_enable = 1;
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
 
 	arch_sleep(1);
 
-	port.raw = uhci_read(uhci_register(portnum));
-	assert(port.port_enable);
+	port.raw = uhci_read(uhci, uhci_register(portnum));
 	port.port_enable = 1;
 	port.port_enable_ch = 1;
 	port.dev_present_ch = 1;
 
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
+
+	arch_sleep(1);
+
+	assert(port.port_enable);
 
 	// Reset recovery
 	arch_sleep(200);
 }
 
-void uhci_hc_init(device_t* dev) {
+void uhci_hc_init(uhci_internal& uhci) {
 	// TODO: legacy support kikapcs?
 
 	// Bus mastering bekapcs
-	u32 pcicmd = pci_read(*dev, PciRegs::CMD);
+	u32 pcicmd = pci_read(uhci.hci, PciRegs::CMD);
 	pcicmd |= 1 << 2;
-	pci_write(*dev, PciRegs::CMD, pcicmd);
+	pci_write(uhci.hci, PciRegs::CMD, pcicmd);
 
-	report("uhci port: %04x", hciio);
+	report("uhci port: %04x", uhci.extra->hciio);
 	
 	// Stop, vezérlő reset
 	uhci_usbcmd_t cmd;
-	cmd.raw = uhci_read(UhciRegs::USBCMD);
+	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.run = 0;
 	cmd.hcreset = 1;
 	// Minden trazakció után megáll a vezérlő
 	cmd.swdebug = 0;
-	uhci_write(UhciRegs::USBCMD, cmd.raw);
+	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
 
 	// hcreset
-	while (uhci_read(UhciRegs::USBCMD) & 2);
+	while (uhci_read(uhci, UhciRegs::USBCMD) & 2);
 	arch_sleep(10);
 
 	// HCHalted
-	assert(uhci_read(UhciRegs::USBSTS) & (1 << 5));
+	assert(uhci_read(uhci, UhciRegs::USBSTS) & (1 << 5));
 
 	// Reset az eszközökbe
-	cmd.raw = uhci_read(UhciRegs::USBCMD);
+	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.globalreset = 1;
-	uhci_write(UhciRegs::USBCMD, cmd.raw);
+	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
 	arch_sleep(100);
-	cmd.raw = uhci_read(UhciRegs::USBCMD);
+	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.globalreset = 0;
-	uhci_write(UhciRegs::USBCMD, cmd.raw);
+	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
 
 	// Megszakítások majd ha lesz ACPI akkor
-	uhci_write(UhciRegs::USBINTR, 0x0000);
+	uhci_write(uhci, UhciRegs::USBINTR, 0x0000);
 
-	cmd.raw = uhci_read(UhciRegs::USBCMD);
-	uhci_write(UhciRegs::FRNUM, 0x0000);
-	if (uhci_read(UhciRegs::FRNUM))
-		fatal("Invalid FRNUM: %d; %04x", uhci_read(UhciRegs::FRNUM), cmd.raw);
-
-	uhci_dev_extra_t* hci = (uhci_dev_extra_t*)dev->PCI.extra;
+	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
+	uhci_write(uhci, UhciRegs::FRNUM, 0x0000);
+	if (uhci_read(uhci, UhciRegs::FRNUM))
+		fatal("Invalid FRNUM: %d; %04x", uhci_read(uhci, UhciRegs::FRNUM), cmd.raw);
 
 	// Megszakításoknak
-	hci->qh1 = uhci_alloc_qh();
-	hci->qh2 = uhci_alloc_qh();
-	hci->qh4 = uhci_alloc_qh();
-	hci->qh8 = uhci_alloc_qh();
-	hci->qh16 = uhci_alloc_qh();
-	hci->qh32 = uhci_alloc_qh();
-	hci->qh64 = uhci_alloc_qh();
-	hci->qh128 = uhci_alloc_qh();
+	uhci.extra->qh1 = uhci_alloc_qh();
+	uhci.extra->qh2 = uhci_alloc_qh();
+	uhci.extra->qh4 = uhci_alloc_qh();
+	uhci.extra->qh8 = uhci_alloc_qh();
+	uhci.extra->qh16 = uhci_alloc_qh();
+	uhci.extra->qh32 = uhci_alloc_qh();
+	uhci.extra->qh64 = uhci_alloc_qh();
+	uhci.extra->qh128 = uhci_alloc_qh();
 
 	// Kontroll/Bulk tranzakcióknak
 	// Külön LS QH kell, mert elvileg a low speed eszközöket később
 	// kell turi ippelni
-	hci->qhfs = uhci_alloc_qh();
-	hci->qhls = uhci_alloc_qh();
+	uhci.extra->qhfs = uhci_alloc_qh();
+	uhci.extra->qhls = uhci_alloc_qh();
 
-	hci->qh128->head.headptr = ulookup(hci->qh64) | 2;
-	hci->qh64->head.headptr = ulookup(hci->qh32) | 2;
-	hci->qh32->head.headptr = ulookup(hci->qh16) | 2;
-	hci->qh16->head.headptr = ulookup(hci->qh8) | 2;
-	hci->qh8->head.headptr = ulookup(hci->qh4) | 2;
-	hci->qh4->head.headptr = ulookup(hci->qh2) | 2;
-	hci->qh2->head.headptr = ulookup(hci->qh1) | 2;
-	hci->qh1->head.headptr = ulookup(hci->qhfs) | 2;
-	hci->qhfs->head.headptr = ulookup(hci->qhls) | 2;
-	hci->qhls->head.t = 1;
+	uhci.extra->qh128->head.headptr = ulookup(uhci.extra->qh64) | 2;
+	uhci.extra->qh64->head.headptr = ulookup(uhci.extra->qh32) | 2;
+	uhci.extra->qh32->head.headptr = ulookup(uhci.extra->qh16) | 2;
+	uhci.extra->qh16->head.headptr = ulookup(uhci.extra->qh8) | 2;
+	uhci.extra->qh8->head.headptr = ulookup(uhci.extra->qh4) | 2;
+	uhci.extra->qh4->head.headptr = ulookup(uhci.extra->qh2) | 2;
+	uhci.extra->qh2->head.headptr = ulookup(uhci.extra->qh1) | 2;
+	uhci.extra->qh1->head.headptr = ulookup(uhci.extra->qhfs) | 2;
+	uhci.extra->qhfs->head.headptr = ulookup(uhci.extra->qhls) | 2;
+	uhci.extra->qhls->head.t = 1;
 
-	hci->qh128->elem.t = 1;
-	hci->qh64->elem.t = 1;
-	hci->qh32->elem.t = 1;
-	hci->qh16->elem.t = 1;
-	hci->qh8->elem.t = 1;
-	hci->qh4->elem.t = 1;
-	hci->qh2->elem.t = 1;
-	hci->qh1->elem.t = 1;
-	hci->qhfs->elem.t = 1;
-	hci->qhls->elem.t = 1;
+	uhci.extra->qh128->elem.t = 1;
+	uhci.extra->qh64->elem.t = 1;
+	uhci.extra->qh32->elem.t = 1;
+	uhci.extra->qh16->elem.t = 1;
+	uhci.extra->qh8->elem.t = 1;
+	uhci.extra->qh4->elem.t = 1;
+	uhci.extra->qh2->elem.t = 1;
+	uhci.extra->qh1->elem.t = 1;
+	uhci.extra->qhfs->elem.t = 1;
+	uhci.extra->qhls->elem.t = 1;
 
 	uhci_frame_t* frlist = (uhci_frame_t*)pmm_alloc();
 	for (u32 i = 0; i < 1024; i++) {
 		if (i % 128 == 0)
-			frlist[i].frptr = ulookup(hci->qh128) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh128) | 2;
 		else if (i % 64 == 0)
-			frlist[i].frptr = ulookup(hci->qh64) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh64) | 2;
 		else if (i % 32 == 0)
-			frlist[i].frptr = ulookup(hci->qh32) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh32) | 2;
 		else if (i % 16 == 0)
-			frlist[i].frptr = ulookup(hci->qh16) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh16) | 2;
 		else if (i % 8 == 0)
-			frlist[i].frptr = ulookup(hci->qh8) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh8) | 2;
 		else if (i % 4 == 0)
-			frlist[i].frptr = ulookup(hci->qh4) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh4) | 2;
 		else if (i % 2 == 0)
-			frlist[i].frptr = ulookup(hci->qh2) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh2) | 2;
 		else
-			frlist[i].frptr = ulookup(hci->qh1) | 2;
+			frlist[i].frptr = ulookup(uhci.extra->qh1) | 2;
 	}
 
-	uhci_set_running(false);
-	uhci_write(UhciRegs::FRBASE, ulookup(frlist));
+	uhci_set_running(uhci, false);
+	uhci_write(uhci, UhciRegs::FRBASE, ulookup(frlist));
 }
 
-void uhci_send(uhci_dev_extra_t* hci, u8 addr, u8 endp, bool ls, usb_request* request, void* response, u64 size, u64 mps) {
+void uhci_send(uhci_internal& uhci, u8 addr, u8 endp, bool ls, usb_request* request, void* databuf, u64 size, u64 mps) {
 	uhci_qh_t* qh = uhci_alloc_qh();
 
 	uhci_td_t* setup = uhci_alloc_td();
@@ -263,7 +262,7 @@ void uhci_send(uhci_dev_extra_t* hci, u8 addr, u8 endp, bool ls, usb_request* re
 			.reserved = 0,
 			.maxlen = size ? (u32)(min(size, mps) - 1) : 0x7ff,
 		};
-		td2->dword3 = ulookup(response) + i * mps;
+		td2->dword3 = ulookup(databuf) + i * mps;
 
 		size -= mps;
 		datatoggle = !datatoggle;
@@ -337,26 +336,25 @@ void uhci_send(uhci_dev_extra_t* hci, u8 addr, u8 endp, bool ls, usb_request* re
 	qh->elem.elemptr = ulookup(setup);
 	qh->elem.qh = 0;
 
-	uhci_set_running(false);
+	uhci_set_running(uhci, false);
 
 	// Státusz lenullázása
-	uhci_write(UhciRegs::USBSTS, 0xffff);
+	uhci_write(uhci, UhciRegs::USBSTS, 0xffff);
 
-	hci->qhfs->elem.elemptr = ulookup<uhci_qh_t>(qh) | 2;
+	uhci.extra->qhfs->elem.elemptr = ulookup<uhci_qh_t>(qh) | 2;
 
-	uhci_set_running(true);
+	uhci_set_running(uhci, true);
 	arch_sleep(1);
 	// running
-	assert(uhci_read(UhciRegs::USBCMD) & 1);
+	assert(uhci_read(uhci, UhciRegs::USBCMD) & 1);
 
-	u64 time = arch_get_time();
-	while ((uhci_read(UhciRegs::USBSTS) & 1) == 0) {
-		if (arch_elapsed(time, 100)) {
+	arch_start_timer();
+	while ((uhci_read(uhci, UhciRegs::USBSTS) & 1) == 0) {
+		if (arch_elapsed(100)) {
 			error("Timeout! Status: %02x %02x", setup->dword1.sts.raw, status->dword1.sts.raw);
 			break;
 		}
 	}
-	// printk("ms elapsed %lld\n", arch_get_time() - time);
 
 	if (setup->dword1.sts.raw != 0)
 		error("Setup status non-zero: %02x", setup->dword1.sts.raw);
@@ -373,98 +371,87 @@ void uhci_send(uhci_dev_extra_t* hci, u8 addr, u8 endp, bool ls, usb_request* re
 	uhci_free(status);
 }
 
-bool uhci_init_port(uhci_dev_extra_t* hci, u8 portnum) {
+bool uhci_init_port(uhci_internal& uhci, uhci_dev_extra_t* hci, u8 portnum) {
 	uhci_port_t port;
-	uhci_send_reset(portnum);
+	uhci_send_reset(uhci, portnum);
 
 	arch_sleep(20);
 
-	port.raw = uhci_read(uhci_register(1));
+	port.raw = uhci_read(uhci, uhci_register(1));
 	port.port_enable = 1;
 	port.port_enable_ch = 1;
-	uhci_write(uhci_register(portnum), port.raw);
+	uhci_write(uhci, uhci_register(portnum), port.raw);
 
-	port.raw = uhci_read(uhci_register(portnum));
+	port.raw = uhci_read(uhci, uhci_register(portnum));
 	if (!port.port_enable && port.dev_present)
 		warn("Port %d has device but failed to be enabled", portnum);
 
 	if (port.dev_present) {
 		// Eszköz inicializálása
-		// MPS méretű DEVICE desc., reset, set address, device descriptor de teljes méretbe
+		// MPS méretű DEVICE desc., reset, set address, DEVICE descriptor de teljes méretbe
 		device_t& dev = devmgr_add_device(device_t {
 			.subsys = DevmgrSubsys::USB,
-			.USB = {  }
+			.USB = {  },
 		});
-
-		u32 mps = port.ls ? 8 : 64;
-		usb_request* devdesc = (usb_request*)uhci_alloc_qh();
-		devdesc->bmRequestType = 0x80;
-		devdesc->bRequest = UsbRequests::GET_DESCRIPTOR;
-		devdesc->wValue = (1 << 8) | 0;
-		devdesc->wIndex = 0;
-		devdesc->wLength = mps;
-
-		usb_descriptor_device* buf = (usb_descriptor_device*)pmm_alloc();
-
-		uhci_send(hci, 0, 0, port.ls, devdesc, buf, 8, 8);
-		uhci_send_reset(portnum);
-
-		mps = buf->bMaxPacketSize;
-		u32 addr = hci->addresses.find_and_set();
-		report("Max Packet Size for device is %d; address to be assigned: %d", mps, addr);
-
-		// uhci_send(hci, 0, 0, port.ls, devdesc, buf, 8, 8);
-		// while (1);
-
-		usb_request* setaddr = (usb_request*)uhci_alloc_qh();
-		setaddr->bmRequestType = 0x00;
-		setaddr->bRequest = UsbRequests::SET_ADDRESS;
-		setaddr->wValue = addr;
-		setaddr->wIndex = 0;
-		setaddr->wLength = 0;
-
-		arch_sleep(100);
-
-		warn("sending setaddr");
-		uhci_send(hci, 0, 0, port.ls, setaddr, nullptr, 0, 8);
-		arch_sleep(2);
-
-		warn("sent setaddr");
-
-		devdesc->wLength = 18;
-
-		uhci_send(hci, addr, 0, port.ls, devdesc, buf, 18, 8);
-
-		warn("done: %04x:%04x", buf->idVendor, buf->idProduct);
-
-		uhci_free(devdesc);
+		dev.USB.hci = &uhci.hci;
+		dev.USB.hci_portnum = portnum;
+		dev.USB.ls = port.ls;
+		dev.USB.mps = port.ls ? 8 : 64;
 	}
 
 	return port.dev_present;
 }
 
-extern "C" void mod_main(device_t* dev) {
-	hciio = pci_read(*dev, PciRegs::BAR4);
+void uhci_send2(device_t& usbdev, u8 addr, u8 endp, usb_request* request, void* databuf, u64 size) {
+	uhci_internal uhci {
+		.extra = (uhci_dev_extra_t*)usbdev.USB.hci->PCI.extra,
+		.hci = *usbdev.USB.hci,
+	};
+	uhci_send(uhci, addr, endp, usbdev.USB.ls, request, databuf, size, usbdev.USB.mps);
+}
 
-	assert(hciio & 1);
+void uhci_send_reset2(device_t& usbdev) {
+	uhci_internal uhci {
+		.extra = (uhci_dev_extra_t*)usbdev.USB.hci->PCI.extra,
+		.hci = *usbdev.USB.hci,
+	};
+	uhci_send_reset(uhci, usbdev.USB.hci_portnum);
+}
 
-	// Az alsó 2 bit metadata, le kell azokat szedni
-	hciio &= ~0b11u;
+u8 uhci_make_address(device_t& hcidev) {
+	uhci_dev_extra_t* hci = (uhci_dev_extra_t*)hcidev.PCI.extra;
+	return hci->addresses.find_and_set();
+}
+
+extern "C" void mod_main(device_t& devptr) {
+	return;
+	device_t* dev = &devptr;
 
 	dev->PCI.extra = kmalloc(sizeof(uhci_dev_extra_t));
 	uhci_dev_extra_t* hci = (uhci_dev_extra_t*)dev->PCI.extra;
 	hci->addresses.init(kmalloc(128 / 8), 128);
 	hci->addresses.set(0, true);
 
-	u32 num_ports = uhci_num_ports();
-	uhci_hc_init(dev);
+	hci->usb_send = uhci_send2;
+	hci->usb_reset_port = uhci_send_reset2;
+
+	hci->hciio = pci_read(*dev, PciRegs::BAR4);
+	assert(hci->hciio & 1);
+
+	// Az alsó 2 bit metadata, le kell azokat szedni
+	hci->hciio &= ~0b11u;
+
+	uhci_internal uhci {
+		.extra = (uhci_dev_extra_t*)devptr.PCI.extra,
+		.hci = devptr,
+	};
+
+	u32 num_ports = uhci_num_ports(uhci);
+	uhci_hc_init(uhci);
 
 	report("UHCI num ports: %d", num_ports);
 
 	// Portok
-	for (u32 i = 1; i <= num_ports; i++) {
-		report("Port %d: device %s", i, uhci_init_port(hci, i) ? "present" : "not present");
-	}
-
-	pause();
+	for (u32 i = 1; i <= num_ports; i++)
+		report("Port %d: device %s", i, uhci_init_port(uhci, hci, i) ? "present" : "not present");
 }

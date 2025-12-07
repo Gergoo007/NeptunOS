@@ -40,8 +40,9 @@ port_e9_hack: enabled=false, all_rings=false
 private_colormap: enabled=0
 clock: sync=realtime, time0=local, rtc_sync=0
 # no cmosimage
-log: -
+log: bochslog.txt
 logprefix: %t%e%d
+# debug: action=report
 debug: action=ignore
 info: action=report
 error: action=report
@@ -58,7 +59,8 @@ com4: enabled=false
 
 magic_break: enabled=1
 
-usb_uhci: enabled=1, port1=mouse, options1="speed:full"
+# usb_uhci: enabled=1, port1=mouse, options1="speed:full"
+usb_ehci: enabled=1, port1=mouse, options1="speed:high", port2=keyboard, options2="speed:full"
 # usb_debug: type=uhci, reset=1, enable=1, start_frame=0, doorbell=1, event=1, data=1, non_exist=1
 
 # gdbstub: enabled=1, port=1234

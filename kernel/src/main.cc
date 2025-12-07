@@ -14,6 +14,7 @@
 #include <test.hh>
 #include <cppcompat.hh>
 #include <devmgr/devmgr.hh>
+#include <devmgr/usb/usb.hh>
 
 extern "C" noret void khang();
 
@@ -61,11 +62,7 @@ extern "C" void kmain() {
 		bytes2mibs((u64)pmm_heap_base), bytes2mibs(pmm_heap_size)
 	);
 
-	error("turi");
-	while (1) {
-		arch_sleep(550);
-		error("ip");
-	}
+	usb_init_all();
 
 	printk("End of kmain()\n");
 

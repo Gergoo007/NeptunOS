@@ -98,24 +98,26 @@ void printk(const char* fmt, ...);
 __attribute__((format(printf, 1, 2)))
 void sprintk(const char* fmt, ...);
 
-__attribute__((format(printf, 3, 4)))
-void printkx(u32 color, bool pause, const char* fmt, ...);
+__attribute__((format(printf, 2, 3)))
+void printkx(u32 color, const char* fmt, ...);
+__attribute__((format(printf, 2, 3)))
+[[noreturn]] void printkxnoret(u32 color, const char* fmt, ...);
 #ifdef IS_MODULE
 struct module_metadata_t;
 extern const volatile module_metadata_t _modinfo;
-#define report(fmt, ...) printkx(0xffd0d0d0, false, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define warn(fmt, ...) printkx(0xffEB6534, false, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define error(fmt, ...) printkx(0xffC41E3D, false, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define fatal(fmt, ...) printkx(0xff710627, true, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define report(fmt, ...) printkx(0xffd0d0d0, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(0xffEB6534, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(0xffC41E3D, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkxnoret(0xff710627, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #else
-#define report(fmt, ...) printkx(0xffd0d0d0, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define warn(fmt, ...) printkx(0xffEB6534, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define error(fmt, ...) printkx(0xffC41E3D, false, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
-#define fatal(fmt, ...) printkx(0xff710627, true, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define report(fmt, ...) printkx(0xffd0d0d0, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define warn(fmt, ...) printkx(0xffEB6534, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define error(fmt, ...) printkx(0xffC41E3D, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
+#define fatal(fmt, ...) printkxnoret(0xff710627, "[%s:%d]: " fmt "\n", __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #endif
 
 void arch_halt();
-static inline void pause() { while(1) { arch_halt(); } }
+[[noreturn]] static inline void pause() { while (1) { arch_halt(); } }
 
 // thank you osdev.org
 static inline int oct2bin(u8* str, int size) {

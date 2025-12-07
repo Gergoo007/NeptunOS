@@ -53,6 +53,3 @@ void con_swap_buffers();
 
 __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...);
-
-__attribute__((format(printf, 3, 4)))
-void printkx(u32 color, bool pause, const char* fmt, ...);

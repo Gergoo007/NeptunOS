@@ -2,6 +2,8 @@
 
 #include <types.hh>
 #include <util/bitmap.hh>
+#include <devmgr/usb/usb.hh>
+#include <devmgr/devmgr.hh>
 
 struct uhci_register {
 	u16 io;
@@ -158,7 +160,9 @@ punion uhci_port_t {
 	u16 raw;
 };
 
-struct uhci_dev_extra_t {
+struct uhci_dev_extra_t : usb_hci_interface_t {
+	// usb_hci_interface_t interface;
+
 	uhci_qh_t* qh1;
 	uhci_qh_t* qh2;
 	uhci_qh_t* qh4;
@@ -171,4 +175,11 @@ struct uhci_dev_extra_t {
 	uhci_qh_t* qhls;
 
 	bitmap_t addresses;
+
+	u16 hciio;
+};
+
+struct uhci_internal {
+	uhci_dev_extra_t* extra;
+	device_t& hci;
 };

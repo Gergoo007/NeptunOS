@@ -30,7 +30,23 @@ u32 pci_read32(u8 bus, u8 slot, u8 func, u8 offset) {
 }
 
 void pci_write32(u8 bus, u8 slot, u8 func, u8 offset, u32 data) {
-	error("pci_write not implemented");
+	if (offset & 3)
+		error("unaligned read!");
+
+	if (mcfg) {
+		u64 mmio = VIRTUAL((u64)mcfg->cfg_spaces[0].base);
+		mmio += (bus << 20) + (slot << 15) + (func << 12) + offset;
+		check_page(mmio, UC);
+		*(volatile u32*)mmio = data;
+	} else {
+		u32 address;
+
+		address = (u32)((((u32)(bus)) << 16) | (((u32)(slot)) << 11) |
+				(((u32)(func)) << 8) | offset | 0x80000000UL);
+
+		outl(CFG_ADDR, address);
+		outl(CFG_DATA, data);
+	}
 }
 
 u32 pci_read(u8 bus, u8 slot, u8 func, u8 offset, u8 bits = 32) {
@@ -89,6 +105,7 @@ void check_bus(u8 bus) {
 				.PCI {
 					.vendor = (u16)pci_read(bus, j, i, PciRegs::VENDOR),
 					.product = (u16)pci_read(bus, j, i, PciRegs::PRODUCT),
+					.extra = nullptr,
 					.class_ = (u8)pci_read(bus, j, i, PciRegs::CLASS),
 					.subclass = (u8)pci_read(bus, j, i, PciRegs::SUBCLASS),
 					.progif = (u8)pci_read(bus, j, i, PciRegs::PROGIF),
@@ -131,7 +148,4 @@ void pci_init() {
 			warn("pci root func unknown %02x:%02x.%01x (class 0x%x 0x%x)", 0, 0, fun, cl, scl);
 		}
 	}
-
-	for (auto& e : devices)
-		error("at the end %d %d", e.PCI.class_, e.PCI.subclass);
 }

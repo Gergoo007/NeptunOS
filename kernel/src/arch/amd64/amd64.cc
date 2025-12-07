@@ -67,10 +67,16 @@ void arch_sleep(u64 ms) {
 	while (tmr_counter < end) arch_halt();
 }
 
-u64 arch_get_time() {
-	return tmr_counter;
+// TODO: thread safety!!
+static u64 timer;
+void arch_start_timer() {
+	timer = tmr_counter;
 }
 
-bool arch_elapsed(u64 timestamp, u64 ms) {
-	return timestamp + ms <= tmr_counter;
+u64 arch_ms_passed() {
+	return tmr_counter - timer;
+}
+
+bool arch_elapsed(u64 ms) {
+	return tmr_counter > timer + ms;
 }

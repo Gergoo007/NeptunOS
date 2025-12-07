@@ -46,3 +46,12 @@ pstruct usb_descriptor_device {
 	u8 iSerialNumber;
 	u8 bNumConfigurations;
 };
+
+struct device_t;
+struct usb_hci_interface_t {
+	void (*usb_send)(device_t& usbdev, u8 addr, u8 endp, usb_request* request, void* databuf, u64 size);
+	void (*usb_reset_port)(device_t& usbdev);
+	u8 (*usb_make_address)(device_t& hcidev);
+};
+
+void usb_init_all();

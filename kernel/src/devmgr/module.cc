@@ -1,4 +1,5 @@
 #include <devmgr/module.hh>
+#include <devmgr/devmgr.hh>
 #include <arch/limine.hh>
 #include <util/ustar.hh>
 #include <util/string.hh>
@@ -163,16 +164,16 @@ void modules_load(module_t& m) {
 	m.loaded = true;
 }
 
-void modules_launch(module_t& m, void* dev) {
+void modules_launch(module_t& m, device_t& devptr) {
 	if (!m.loaded)
 		modules_load(m);
 
 	// TODO: bss lenullázása
 
-	void (*entry)(void* d) = (void (*)(void* d))m.entry;
+	void (*entry)(device_t&) = (void (*)(device_t&))m.entry;
 
 	// Futtatás a mod_main() által
-	entry(dev);
+	entry(devptr);
 }
 
 void modules_register(void* a, u64 size, const char* modfilename) {
@@ -196,7 +197,7 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 		module_t mod { .content = a, .size = size, .entry = 0, .metadata = md };
 
 		if (md->triggertype == ModuleTriggerTypes::ANY)
-			modules_launch(mod, nullptr);
+			modules_launch(mod, *(device_t*)1); // Ezért megköveznek gec
 
 		modules.emplace(mod);
 	}

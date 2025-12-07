@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/storage.hh>
+#include <util/smartptrs.hh>
 
 enum struct DevmgrSubsys : i32 {
 	NONE = -1,
@@ -8,6 +9,9 @@ enum struct DevmgrSubsys : i32 {
 	USB,
 };
 
+struct device_t;
+extern vector<unique_ptr<device_t>> devices;
+struct usb_hci_interface_t;
 
 // A bus-ok is eszköznek számítanak
 struct device_t {
@@ -28,15 +32,16 @@ struct device_t {
 		struct {
 			u16 vendor;
 			u16 product;
+			// usb_hci_interface_t* hci;
 			device_t* hci;
+			u8 hci_portnum;
 			u16 mps;
 			u8 class_;
 			u8 subclass;
 			u8 progif;
+			bool ls;
 		} USB;
 	};
 };
-
-extern vector<device_t> devices;
 
 device_t& devmgr_add_device(device_t&& d);

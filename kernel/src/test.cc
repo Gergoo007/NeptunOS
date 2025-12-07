@@ -1,6 +1,7 @@
 #include <test.hh>
 
 #include <util/storage.hh>
+#include <util/smartptrs.hh>
 
 struct Test {
 	const char* name;
@@ -80,6 +81,14 @@ void test_libk() {
 
 	{
 		auto _ = Test("libk->Variant");
+	}
+
+	{
+		auto _ = Test("unique_ptr");
+
+		unique_ptr<u32> p(10);
+		assert(p.ptr);
+		assert(*p == 10);
 	}
 }
 

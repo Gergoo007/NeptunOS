@@ -1,10 +1,10 @@
 #include <devmgr/devmgr.hh>
 #include <devmgr/module.hh>
 
-vector<device_t> devices;
+vector<unique_ptr<device_t>> devices;
 
-device_t& devmgr_add_device(device_t&& d) {
-	device_t& ret = devices.emplace(move<device_t>(d));
+device_t& devmgr_add_device(device_t&& _d) {
+	device_t& d = *devices.emplace((move<device_t>(_d)));
 
 	// Van modul erre az eszközre?
 	for (auto& m : modules) {
@@ -19,13 +19,13 @@ device_t& devmgr_add_device(device_t&& d) {
 			case ModuleTriggerTypes::PCI_CLASS_SUBCLASS: {
 				if (md.trigger.PCI_CLASS_SUBCLASS.class_ == d.PCI.class_ &&
 				md.trigger.PCI_CLASS_SUBCLASS.subclass == d.PCI.subclass)
-					modules_launch(m, &d);
+					modules_launch(m, d);
 				break;
 			}
 			case ModuleTriggerTypes::PCI_VENDOR_PRODUCT: {
 				if (md.trigger.PCI_VENDOR_PRODUCT.vendor == d.PCI.vendor &&
 				md.trigger.PCI_VENDOR_PRODUCT.product == d.PCI.product)
-					modules_launch(m, &d);
+					modules_launch(m, d);
 				break;
 			}
 			default: {
@@ -35,5 +35,5 @@ device_t& devmgr_add_device(device_t&& d) {
 		}
 	}
 
-	return ret;
+	return d;
 }
