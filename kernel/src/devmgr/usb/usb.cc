@@ -12,12 +12,12 @@ void* usb_alloc() {
 
 void usb_free(void* ptr) { pmm_free(ptr); }
 
-const char* usb_get_string(device_t& usbdev, usb_descriptor_device* devdesc, u8 idx) {
+const char* usb_get_string(device_t& usbdev, u8 idx) {
 	if (!idx) return "\0";
 	auto* hciint = (usb_hci_interface_t*)usbdev.USB.hci->PCI.extra;
 
 	usb_request* request = (usb_request*)usb_alloc();
-	if (!usbdev.USB.langid) {
+	if (usbdev.USB.langid == (u16)-1) {
 		// Van már LANGID?
 		usb_descriptor_string_langids* langids = (usb_descriptor_string_langids*)usb_alloc();
 
@@ -27,7 +27,7 @@ const char* usb_get_string(device_t& usbdev, usb_descriptor_device* devdesc, u8 
 		request->wValueH = 3;
 		request->wIndex = 0;
 		request->wLength = 2;
-
+		
 		hciint->usb_send(usbdev, 0, request, langids);
 		u32 num_langids = (langids->hdr.bLength - 2) / 2;
 		request->wLength = 2 + num_langids * 2;
@@ -118,7 +118,7 @@ void usb_send_reset(device_t& usbdev) {
 		auto& hub = *usbdev.parent;
 		assert(hub.subsys == DevmgrSubsys::USB);
 
-		usb_hub_send_reset(usbdev, usbdev.USB.portnum);
+		usb_hub_send_reset(hub, usbdev.USB.portnum);
 	} else {
 		debug("Device to be reset is directly on the root hub...");
 		hciint->usb_reset_port(usbdev);
@@ -130,7 +130,8 @@ void usb_init(device_t& usbdev) {
 	usb_request* request = (usb_request*)usb_alloc();
 	request->bmRequestType = 0x80;
 	request->bRequest = UsbRequests::GET_DESCRIPTOR;
-	request->wValue = (1 << 8) | 0;
+	request->wValueH = 1;
+	request->wValueL = 0;
 	request->wIndex = 0;
 	request->wLength = usbdev.USB.mps;
 	if (request->wLength < 18)
@@ -143,6 +144,8 @@ void usb_init(device_t& usbdev) {
 	debug("Sending GET_DESCRIPTOR DEVICE request #1...");
 	hciint->usb_send(usbdev, 0, request, devdesc);
 
+	usb_send_reset(usbdev);
+
 	usbdev.USB.mps = devdesc->bMaxPacketSize;
 	usbdev.USB.classcode = devdesc->classcode;
 	usbdev.USB.vendor = devdesc->idVendor;
@@ -150,6 +153,8 @@ void usb_init(device_t& usbdev) {
 	
 	if (!(devdesc->bMaxPacketSize == 8 || devdesc->bMaxPacketSize == 16 || devdesc->bMaxPacketSize == 32 || devdesc->bMaxPacketSize == 64))
 		fatal("Invalid MPS: %d", devdesc->bMaxPacketSize);
+	// else
+	// 	debug("Device MPS is %d", devdesc->bMaxPacketSize);
 	u32 addr = hciint->usb_make_address(*usbdev.USB.hci);
 
 	request->bmRequestType = 0x00;
@@ -167,16 +172,21 @@ void usb_init(device_t& usbdev) {
 
 	request->bmRequestType = 0x80;
 	request->bRequest = UsbRequests::GET_DESCRIPTOR;
-	request->wValue = (1 << 8) | 0;
+	request->wValueH = 1;
+	request->wValueL = 0;
 	request->wIndex = 0;
 	request->wLength = 18;
+	debug("Sending GET_DESCRIPTOR DEVICE request #2...");
+	hciint->usb_send(usbdev, 0, request, devdesc);
 
-	usbdev.USB.manufacturerName = usb_get_string(usbdev, devdesc, devdesc->iManufacturer);
-	usbdev.USB.productName = usb_get_string(usbdev, devdesc, devdesc->iProduct);
-	usbdev.USB.serial = usb_get_string(usbdev, devdesc, devdesc->iSerialNumber);
+	usbdev.USB.manufacturerName = usb_get_string(usbdev, devdesc->iManufacturer);
+	usbdev.USB.productName = usb_get_string(usbdev, devdesc->iProduct);
+	usbdev.USB.serial = usb_get_string(usbdev, devdesc->iSerialNumber);
 
 	if (devdesc->iProduct || devdesc->iManufacturer)
 		debug("USB device read: %s %s %s", usbdev.USB.manufacturerName, usbdev.USB.productName, usbdev.USB.serial);
+	else
+		debug("USB device without strings: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
 
 	// Select config
 	request->bmRequestType = 0x80;
@@ -192,7 +202,7 @@ void usb_init(device_t& usbdev) {
 		request->wValueL = i;
 		hciint->usb_send(usbdev, 0, request, config);
 		
-		const char* s = usb_get_string(usbdev, devdesc, config->iConfiguration);
+		const char* s = usb_get_string(usbdev, config->iConfiguration);
 		debug("config \"%s\": %d mA; %d interfaces; ", s, config->bMaxPower * 2, config->bNumInterfaces);
 		preferredConfig = config->bConfigurationValue;
 	}

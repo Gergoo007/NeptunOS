@@ -95,7 +95,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	volatile ehci_qtd* status_td = ehci_alloc_qtd();
 
 	EhciPid datapid = (request->bmRequestType & 0x80) ? EhciPid::IN : EhciPid::OUT;
-	EhciPid statuspid = datapid == EhciPid::IN ? EhciPid::OUT : EhciPid::IN;
+	EhciPid statuspid = datapid == EhciPid::OUT ? EhciPid::IN : EhciPid::OUT;
 	u16 size = request->wLength;
 	if (size == 0)
 		statuspid = EhciPid::IN;
@@ -205,7 +205,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	qh->endpoint_characteristics.ctl_endpoint = 0;
 	qh->endpoint_characteristics.endpoint = endp;
 	qh->endpoint_characteristics.addr = usbdev.USB.addr;
-	qh->endpoint_characteristics.data_toggle_ctl = 0;
+	qh->endpoint_characteristics.data_toggle_ctl = 1;
 	qh->endpoint_characteristics.inactive_on_success = 0;
 	qh->endpoint_characteristics.mps = usbdev.USB.mps;
 	qh->endpoint_characteristics.nak_reload_counter = 4;
