@@ -4,6 +4,7 @@
 #include <arch/amd64/tss.hh>
 #include <arch/amd64/io.hh>
 #include <arch/amd64/pit.hh>
+#include <arch/amd64/cpuid.hh>
 #include <mm/vmm.hh>
 
 #define PORT 0x3f8
@@ -62,7 +63,12 @@ char sgetc() {
 }
 
 extern volatile u64 tmr_counter;
-void arch_sleep(u64 ms) {
+void arch_sleep(u64 ms, bool skippable) {
+	// Emulátoron nem kell várni a hardverre
+	if (skippable && cpuid_is_emu()) return;
+
+	if (skippable && cpuid_is_emu())
+		return;
 	u64 end = tmr_counter + ms;
 	while (tmr_counter < end) arch_halt();
 }

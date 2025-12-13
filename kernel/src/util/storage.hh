@@ -4,6 +4,7 @@
 #include <util/bitmap.hh>
 #include <util/string.hh>
 #include <util/helpers.hh>
+#include <util/stacktrace.hh>
 #include <cppcompat.hh>
 
 // itt lehet mókolni, a firefox elvikeg cap*cap-et használ
@@ -143,7 +144,7 @@ struct vector {
 		return data[size - 1];
 	}
 
-	bool operator==(vector& o) const {
+	bool operator==(const vector& o) const {
 		if (o.size != size) return false;
 		for (u64 i = 0; i < size; i++) {
 			if (data[i] != o.data[i])
@@ -153,14 +154,14 @@ struct vector {
 	}
 
 	T& push_back(T item) {
-		if (size*sizeof(T) >= capacity)
+		if (size >= capacity)
 			reserve(growfun(capacity));
 		return data[size++] = item;
 	}
 
 	template <typename... Args>
 	T& emplace(Args&&... args) {
-		if (size*sizeof(T) >= capacity)
+		if (size >= capacity)
 			reserve(growfun(capacity));
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}

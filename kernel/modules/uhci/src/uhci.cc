@@ -32,7 +32,7 @@ void uhci_write(uhci_internal& uhci, const uhci_register& reg, u32 val) {
 	else if (reg.bytes == 4)
 		outl(uhci.extra->hciio + reg.io, val);
 	else
-		fatal("wgat");
+		fatal("wgat2");
 }
 
 void uhci_set_running(uhci_internal& uhci, bool run) {
@@ -60,14 +60,14 @@ void uhci_send_reset(uhci_internal& uhci, u8 portnum) {
 	port.reset = 1;
 	port.dev_present_ch = 1;
 	uhci_write(uhci, uhci_register(portnum), port.raw);
-	arch_sleep(50);
+	arch_sleep(50, true);
 	port.raw = uhci_read(uhci, uhci_register(portnum));
 	port.reset = 0;
 	port.dev_present_ch = 0;
 	port.port_enable = 0;
 	uhci_write(uhci, uhci_register(portnum), port.raw);
 
-	arch_sleep(1);
+	arch_sleep(1, true);
 
 	port.raw = uhci_read(uhci, uhci_register(portnum));
 	assert(port.reset == 0);
@@ -79,7 +79,7 @@ void uhci_send_reset(uhci_internal& uhci, u8 portnum) {
 	port.port_enable = 1;
 	uhci_write(uhci, uhci_register(portnum), port.raw);
 
-	arch_sleep(1);
+	arch_sleep(1, true);
 
 	port.raw = uhci_read(uhci, uhci_register(portnum));
 	port.port_enable = 1;
@@ -88,12 +88,12 @@ void uhci_send_reset(uhci_internal& uhci, u8 portnum) {
 
 	uhci_write(uhci, uhci_register(portnum), port.raw);
 
-	arch_sleep(1);
+	arch_sleep(1, true);
 
 	assert(port.port_enable);
 
 	// Reset recovery
-	arch_sleep(200);
+	arch_sleep(200, true);
 }
 
 void uhci_hc_init(uhci_internal& uhci) {
@@ -117,7 +117,7 @@ void uhci_hc_init(uhci_internal& uhci) {
 
 	// hcreset
 	while (uhci_read(uhci, UhciRegs::USBCMD) & 2);
-	arch_sleep(10);
+	arch_sleep(10, true);
 
 	// HCHalted
 	assert(uhci_read(uhci, UhciRegs::USBSTS) & (1 << 5));
@@ -126,7 +126,7 @@ void uhci_hc_init(uhci_internal& uhci) {
 	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.globalreset = 1;
 	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
-	arch_sleep(100);
+	arch_sleep(100, true);
 	cmd.raw = uhci_read(uhci, UhciRegs::USBCMD);
 	cmd.globalreset = 0;
 	uhci_write(uhci, UhciRegs::USBCMD, cmd.raw);
@@ -223,8 +223,6 @@ void uhci_send(uhci_internal& uhci, u8 addr, u8 endp, bool ls, usb_request* requ
 
 	bool datatoggle = true;
 	for (u32 i = 0; i < num_data; i++) {
-		warn("assigning data stage with len %d", size ? (u32)(min(size, mps) - 1) : 0x7ff);
-
 		u32 next;
 		if (i == num_data - 1)
 			next = ulookup(status);
@@ -344,7 +342,7 @@ void uhci_send(uhci_internal& uhci, u8 addr, u8 endp, bool ls, usb_request* requ
 	uhci.extra->qhfs->elem.elemptr = ulookup<uhci_qh_t>(qh) | 2;
 
 	uhci_set_running(uhci, true);
-	arch_sleep(1);
+	arch_sleep(1, true);
 	// running
 	assert(uhci_read(uhci, UhciRegs::USBCMD) & 1);
 
@@ -375,7 +373,7 @@ bool uhci_init_port(uhci_internal& uhci, uhci_dev_extra_t* hci, u8 portnum) {
 	uhci_port_t port;
 	uhci_send_reset(uhci, portnum);
 
-	arch_sleep(20);
+	arch_sleep(20, true);
 
 	port.raw = uhci_read(uhci, uhci_register(1));
 	port.port_enable = 1;
@@ -389,26 +387,7 @@ bool uhci_init_port(uhci_internal& uhci, uhci_dev_extra_t* hci, u8 portnum) {
 	if (port.dev_present) {
 		// Eszköz inicializálása
 		// MPS méretű DEVICE desc., reset, set address, DEVICE descriptor de teljes méretbe
-		device_t& dev = devmgr_add_device(device_t {
-			.subsys = DevmgrSubsys::USB,
-			.USB = {
-				.vendor = 0,
-				.product = 0,
-				.hci = &uhci.hci,
-				.mps = (u16)(port.ls ? 8 : 64),
-				.langid = (u16)-1,
-				.addr = 0,
-				.hci_portnum = portnum,
-				.class_ = 0,
-				.subclass = 0,
-				.progif = 0,
-				.speed = port.ls ? UsbSpeed::LS : UsbSpeed::FS
-			},
-		});
-		dev.USB.hci = &uhci.hci;
-		dev.USB.hci_portnum = portnum;
-		dev.USB.speed = port.ls ? UsbSpeed::LS : UsbSpeed::FS;
-		dev.USB.mps = port.ls ? 8 : 64;
+		usb_device_add_skeleton(uhci.hci, portnum, port.ls ? UsbSpeed::LS : UsbSpeed::FS);
 	}
 
 	return port.dev_present;
@@ -427,7 +406,7 @@ void uhci_send_reset2(device_t& usbdev) {
 		.extra = (uhci_dev_extra_t*)usbdev.USB.hci->PCI.extra,
 		.hci = *usbdev.USB.hci,
 	};
-	uhci_send_reset(uhci, usbdev.USB.hci_portnum);
+	uhci_send_reset(uhci, usbdev.USB.portnum);
 }
 
 u8 uhci_make_address(device_t& hcidev) {
@@ -461,9 +440,9 @@ extern "C" void mod_main(device_t& devptr) {
 	u32 num_ports = uhci_num_ports(uhci);
 	uhci_hc_init(uhci);
 
-	report("UHCI num ports: %d", num_ports);
+	debug("UHCI num ports: %d", num_ports);
 
 	// Portok
 	for (u32 i = 1; i <= num_ports; i++)
-		report("Port %d: device %s", i, uhci_init_port(uhci, hci, i) ? "present" : "not present");
+		debug("Port %d: device %s", i, uhci_init_port(uhci, hci, i) ? "present" : "not present");
 }

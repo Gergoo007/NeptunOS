@@ -4,3 +4,4 @@
 **/out/aarch64
 **/*.ko
 **/out/*
+bochslog.txt

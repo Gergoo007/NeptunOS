@@ -24,5 +24,4 @@ void* vmm_realloc(void* ptr, u64 newsize);
 void vmm_free(void* p, const char* file, const char* function);
 void vmm_info(void* p);
 u64 vmm_dump();
-
-
+void vmm_print_files(void* around);

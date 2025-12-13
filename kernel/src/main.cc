@@ -30,9 +30,6 @@ extern "C" noret void khang();
 #include <util/cpuid.hh>
 
 extern "C" void kmain() {
-	// Ehhez nem kell semmi se szinte
-	// ksyms_read();
-
 	// Korai inicializáció
 	arch_init();
 	arch_read_boot_info();
@@ -67,11 +64,11 @@ extern "C" void kmain() {
 	printk("Mem usage:\n");
 	printk(
 		"VMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
-		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2kibs(vmm_freemem + vmm_usedmem)
+		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2mibs(vmm_freemem + vmm_usedmem)
 	);
 	printk(
 		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
-		bytes2kibs(pmm_freemem), bytes2kibs(pmm_usedmem), bytes2kibs(pmm_freemem + pmm_usedmem)
+		bytes2kibs(pmm_freemem), bytes2kibs(pmm_usedmem), bytes2mibs(pmm_freemem + pmm_usedmem)
 	);
 
 	printk("End of kmain()\n");

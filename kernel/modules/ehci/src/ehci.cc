@@ -39,7 +39,7 @@ static void hcreset() {
 
 static u64 pool;
 static bitmap_t bm;
-static constexpr u32 unitsize = 64;
+static constexpr u32 unitsize = 128;
 static bool bm_init = false;
 
 [[nodiscard]]
@@ -164,18 +164,50 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	qh->overlay.next_qtd.ptr = elookup(setup_td);
 
 	qh->endpoint_caps.high_bw_pipe_multiplier = EhciTAPerUframe::ONE_PER_UFRAME;
-	qh->endpoint_caps.hub_addr = 0;
 	qh->endpoint_caps.int_sched_mask = 0;
 	qh->endpoint_caps.split_completion_mask = 0;
-	qh->endpoint_caps.port_num = 0;
+
+	
+	if (usbdev.USB.hci != usbdev.parent && usbdev.USB.speed != UsbSpeed::HS) {
+		assert(usbdev.USB.speed != UsbSpeed::SS);
+
+		// This LS/FS device is on a USB hub, usbdev.parent
+		// First, find the hub closest to the device that is high speed
+		auto* dev = usbdev.parent;
+		u8 port = usbdev.USB.portnum;
+
+		// Start with the hub closest to the device and move upstream
+		// Stop when I find an HS hub
+		while (dev->parent->subsys == DevmgrSubsys::USB && dev->USB.speed != UsbSpeed::HS) {
+			port = dev->USB.portnum;
+			dev = dev->parent;
+		}
+		
+		qh->endpoint_caps.hub_addr = dev->USB.addr;
+		qh->endpoint_caps.port_num = port;
+
+		EhciEndpointSpeed speed;
+		if (usbdev.USB.speed == UsbSpeed::FS)
+			speed = EhciEndpointSpeed::FS;
+		else if (usbdev.USB.speed == UsbSpeed::LS)
+			speed = EhciEndpointSpeed::LS;
+		else
+			fatal("EHCI split transaction almost attempted with invalid speed: %d", usbdev.USB.speed);
+
+		qh->endpoint_characteristics.endpoint_speed = speed;
+	} else {
+		assert(usbdev.USB.speed == UsbSpeed::HS);
+		qh->endpoint_caps.hub_addr = 0;
+		qh->endpoint_caps.port_num = 0;
+		qh->endpoint_characteristics.endpoint_speed = EhciEndpointSpeed::HS;
+	}
 
 	qh->endpoint_characteristics.ctl_endpoint = 0;
 	qh->endpoint_characteristics.endpoint = endp;
-	qh->endpoint_characteristics.endpoint_speed = EhciEndpointSpeed::HS;
 	qh->endpoint_characteristics.addr = usbdev.USB.addr;
 	qh->endpoint_characteristics.data_toggle_ctl = 0;
 	qh->endpoint_characteristics.inactive_on_success = 0;
-	qh->endpoint_characteristics.mps = 64;
+	qh->endpoint_characteristics.mps = usbdev.USB.mps;
 	qh->endpoint_characteristics.nak_reload_counter = 4;
 
 	insert_qh(qh);
@@ -196,6 +228,8 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 			pause();
 		}
 	}
+	if (status_td->token.sts.raw)
+		error("Status token bad: %02x", status_td->token.sts.raw);
 }
 
 static bool ehci_send_reset0(u8 portnum) {
@@ -214,18 +248,18 @@ static bool ehci_send_reset0(u8 portnum) {
 	reg.write(port);
 	port = reg.read().PORTSC;
 
-	arch_sleep(10);
+	arch_sleep(10, true);
 	port.reset = 1;
 	port.port_enabled = 0;
 	port.port_pwr = 1;
 	reg.write(port);
-	arch_sleep(50);
+	arch_sleep(50, true);
 
 	port = reg.read().PORTSC;
 
 	port.reset = 0;
 	reg.write(port);
-	arch_sleep(3);
+	arch_sleep(3, true);
 
 	port = reg.read().PORTSC;
 	assert(!port.reset);
@@ -245,27 +279,32 @@ static bool ehci_send_reset0(u8 portnum) {
 static void init_port(u8 portnum) {
 	if (ehci_send_reset0(portnum) == false) return;
 
-	devmgr_add_device(device_t {
-		.subsys = DevmgrSubsys::USB,
-		.USB = {
-			.vendor = 0,
-			.product = 0,
-			.hci = context->hc,
-			.mps = 64,
-			.langid = (u16)-1,
-			.addr = 0,
-			.hci_portnum = portnum,
-			.class_ = 0,
-			.subclass = 0,
-			.progif = 0,
-			.speed = UsbSpeed::HS
-		},
-	});
+	// devmgr_add_device(device_t {
+	// 	.subsys = DevmgrSubsys::USB,
+	// 	.USB = {
+	// 		.vendor = 0,
+	// 		.product = 0,
+	// 		.hci = context->hc,
+	// 		.manufacturerName = nullptr,
+	// 		.productName = nullptr,
+	// 		.serial = nullptr,
+	// 		.mps = 64,
+	// 		.langid = (u16)-1,
+	// 		.addr = 0,
+	// 		.portnum = portnum,
+	// 		.class_ = 0,
+	// 		.subclass = 0,
+	// 		.progif = 0,
+	// 		.speed = UsbSpeed::HS
+	// 	},
+	// });
+
+	usb_device_add_skeleton(*context->hc, portnum, UsbSpeed::HS);
 }
 
 void ehci_send_reset(device_t& usbdev) {
 	ehci_update_context(*usbdev.USB.hci);
-	ehci_send_reset0(usbdev.USB.hci_portnum);
+	ehci_send_reset0(usbdev.USB.portnum);
 }
 
 u8 ehci_make_address(device_t& hc) {
@@ -325,7 +364,7 @@ extern "C" void mod_main(device_t& dev) {
 		USBLEGSUP usblegsup = pci_read(dev, usblegsupreg);
 		usblegsup.hc_os_owned = true;
 		pci_write(dev, usblegsupreg, usblegsup.raw);
-		arch_sleep(1);
+		arch_sleep(1, true);
 		usblegsup = pci_read(dev, usblegsupreg);
 	} else {
 		warn("No EHCI USB legacy support??");

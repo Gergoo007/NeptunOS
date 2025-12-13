@@ -12,7 +12,7 @@ static constexpr unsigned long long default_vec_size = 0;
 static constexpr const char* debug_files[] = {
 	"ehci.cc",
 	"usb.cc",
-	"pci.cc"
+	"hub.cc"
 };
 
 // Lowest log level that will get printed; 0 is debug, 5 is fatal

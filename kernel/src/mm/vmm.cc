@@ -1,11 +1,13 @@
 #include <mm/vmm.hh>
 #include <cppcompat.hh>
 
+#define VMM_DEBUG 1
+
 struct link_t {
 	link_t* next;
 	link_t* prev;
 
-	#ifdef DEBUG
+	#ifdef VMM_DEBUG
 	const char* file;
 	u32 line;
 	#endif
@@ -53,7 +55,7 @@ void vmm_init() {
 		.next = nullptr,
 		.prev = nullptr,
 
-		#ifdef DEBUG
+		#ifdef VMM_DEBUG
 		.file = "",
 		.line = 0,
 		#endif
@@ -170,11 +172,11 @@ void* vmm_alloc(u64 size, const char* file, u32 line) {
 	}
 
 	// current átállítása a used linkké, majd egy új free link beillesztése utána
-	auto l = allocate_into_free(current, size, 0);
+	auto& l = allocate_into_free(current, size, 0);
 	(void)l;
-	#ifdef DEBUG
-	l.file = file;
-	l.line = line;
+	#ifdef VMM_DEBUG
+		l.file = file;
+		l.line = line;
 	#endif
 
 	vmm_usedmem += size;
@@ -216,7 +218,7 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 			// az alignfix-et is le kell vonni, külön a size-tól
 			auto link = allocate_into_free(l, size, alignfix);
 			(void)link;
-			#ifdef DEBUG
+			#ifdef VMM_DEBUG
 			link.file = file;
 			link.line = line;
 			#endif
@@ -340,7 +342,7 @@ void vmm_free(void* p, const char* file, const char* function) {
 		i = i->next;
 	}
 
-	#ifdef DEBUG
+	#ifdef VMM_DEBUG
 	if (linksize == -1ULL)
 		fatal("turi ipő ip");
 	if (!i || addr != (u64)p)
@@ -359,4 +361,25 @@ void vmm_free(void* p, const char* file, const char* function) {
 	i->free = true;
 
 	vmm_merge(i);
+}
+
+void vmm_print_files(void* around) {
+	#ifdef VMM_DEBUG
+		link_t* l = vmm_first;
+		u64 addr = vmm_heap_base;
+		while (l) {
+			if (addr == (u64)around)
+				break;
+			addr += l->length;
+			l = l->next;
+		}
+
+		if (l->prev)
+			report("Prev   alloc [%p, %d]: %s:L%d", (void*)(addr - l->prev->length), l->length, l->prev->file, l->prev->line);
+		report("Callee alloc [%p, %d]: %s:L%d", (void*)(addr), l->length, l->file, l->line);
+		if (l->next)
+			report("Next   alloc [%p, %d]: %s:L%d", (void*)(addr + l->length), l->length, l->next->file, l->next->line);
+	#else
+		error("vmm_print_files needs to be enabled by defining VMM_DEBUG!")
+	#endif
 }

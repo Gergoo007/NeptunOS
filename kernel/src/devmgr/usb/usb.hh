@@ -1,5 +1,6 @@
 #pragma once
 
+#include "devmgr/devmgr.hh"
 #include <types.hh>
 
 struct UsbPid {
@@ -20,6 +21,10 @@ struct UsbRequests {
 	static constexpr u8 GET_INTERFACE		=	10;
 	static constexpr u8 SET_INTERFACE		=	11;
 	static constexpr u8 SYNC_FRAME			=	12;
+};
+
+struct UsbClass {
+	static constexpr u8 HUB		= 0x09;
 };
 
 pstruct usb_request {
@@ -44,9 +49,14 @@ pstruct usb_descriptor_header {
 pstruct usb_descriptor_device {
 	usb_descriptor_header hdr;
 	u16 bcdUSB;
-	u8 bDeviceClass;
-	u8 bDeviceSubClass;
-	u8 bDeviceProtocol;
+	punion {
+		pstruct {
+			u8 bDeviceClass;
+			u8 bDeviceSubClass;
+			u8 bDeviceProtocol;
+		};
+		u32 classcode : 24;
+	};
 	u8 bMaxPacketSize;
 	u16 idVendor;
 	u16 idProduct;
@@ -56,6 +66,57 @@ pstruct usb_descriptor_device {
 	u8 iSerialNumber;
 	u8 bNumConfigurations;
 };
+
+pstruct usb_descriptor_configuration {
+	usb_descriptor_header hdr;
+	u16 wTotalLength;
+	u8 bNumInterfaces;
+	u8 bConfigurationValue;
+	u8 iConfiguration;
+	pstruct {
+		u8 : 5;
+		u8 remote_wakeup : 1;
+		u8 self_powered : 1;
+		u8 : 1;
+	} bmAttributes;
+	u8 bMaxPower;
+};
+
+pstruct usb_descriptor_hub {
+	usb_descriptor_header hdr;
+	u8 bNbrPorts;
+	u8 wHubCharacteristics;
+	u8 bPowerOnGood;
+	u8 bHubContrCurrent;
+	u8 bmRemovable[];
+};
+
+punion usb_hub_port_feats {
+	pstruct {
+		u16 PORT_CONNECTION : 1;
+		u16 PORT_ENABLE : 1;
+		u16 PORT_SUSPEND : 1;
+		u16 PORT_OVER_CURRENT : 1;
+		u16 PORT_RESET : 1;
+		u16 : 3;
+		u16 PORT_POWER : 1;
+		u16 PORT_LOW_SPEED : 1;
+		u16 PORT_HIGH_SPEED : 1;
+		u16 : 5;
+		u16 C_PORT_CONNECTION : 1;
+		u16 C_PORT_ENABLE : 1;
+		u16 C_PORT_SUSPEND : 1;
+		u16 C_PORT_OVER_CURRENT : 1;
+		u16 C_PORT_RESET : 1;
+		u16 PORT_TEST : 1;
+		u16 PORT_INDICATOR : 1;
+	};
+	u32 raw : 24;
+
+	usb_hub_port_feats(u32 r): raw(r) {  }
+};
+
+static_assert(offsetof(usb_descriptor_device, bMaxPacketSize) == 7);
 
 pstruct usb_descriptor_string_langids {
 	usb_descriptor_header hdr;
@@ -75,3 +136,12 @@ struct usb_hci_interface_t {
 };
 
 void usb_init_all();
+void usb_init(device_t& usbdev);
+device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed);
+
+
+
+
+
+void* usb_alloc();
+void usb_free(void* ptr);

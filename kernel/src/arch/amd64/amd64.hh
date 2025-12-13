@@ -7,7 +7,7 @@
 void sinit();
 void sputc(const char c);
 char sgetc();
-void arch_sleep(u64 ms);
+void arch_sleep(u64 ms, bool skippable = false);
 void arch_start_timer();
 u64 arch_ms_passed();
 bool arch_elapsed(u64 ms);
