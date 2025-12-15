@@ -5,6 +5,8 @@
 #include <gfx/console.hh>
 #include <cppcompat.hh>
 
+#include <mm/pmm4g.hh>
+
 __attribute__((used, section(".limine_requests")))
 static volatile limine_memmap_request mm_req = {
 	.id = LIMINE_MEMMAP_REQUEST,
@@ -25,13 +27,15 @@ void pmm_init() {
 
 	bm = new (bitmapStorage) bitmap_t;
 
+	u64 pmm4g_base = 0, pmm4g_size = 0;
+
 	for (u32 i = 0; i < r->entry_count; i++) {
 		switch (r->entries[i]->type) {
 			// nem tudom miért de 12 gigányi foglalt terület van qemuban
 			case MMAP_TYPES::LIMINE_MEMMAP_RESERVED:
 				break;
 
-				case MMAP_TYPES::LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+			case MMAP_TYPES::LIMINE_MEMMAP_ACPI_RECLAIMABLE:
 			case MMAP_TYPES::LIMINE_MEMMAP_ACPI_NVS:
 			case MMAP_TYPES::LIMINE_MEMMAP_BAD_MEMORY:
 			case MMAP_TYPES::LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
@@ -42,15 +46,41 @@ void pmm_init() {
 				// pmm_usedmem += r->entries[i]->length;
 				break;
 			case MMAP_TYPES::LIMINE_MEMMAP_USABLE:
-				if (r->entries[i]->length > pmm_heap_size) {
-					pmm_heap_size = align_down(r->entries[i]->length, pmm_pagesize);
-					pmm_heap_base = (void*)r->entries[i]->base;
+				u64 base = r->entries[i]->base;
+				u64 len = r->entries[i]->length;
+
+				if (len > pmm_heap_size) {
+					pmm_heap_size = align_down(len, pmm_pagesize);
+					pmm_heap_base = (void*)base;
 				}
 				pmm_freemem = pmm_heap_size;
 				break;
 			break;
 		}
 	}
+
+	for (u32 i = 0; i < r->entry_count; i++) {
+		if (r->entries[i]->type == MMAP_TYPES::LIMINE_MEMMAP_USABLE) {
+			u64 base = r->entries[i]->base;
+			u64 len = r->entries[i]->length;
+
+			if (base < 0xffffffffULL && base != (u64)pmm_heap_base) {
+				u64 end = min(0xffffffffULL + 1, base + len);
+				// This cuts 'length' off if it crosses the 4G boundary
+				u64 truesize = end - base;
+				if (truesize > pmm4g_size) {
+					pmm4g_base = base;
+					pmm4g_size = truesize;
+				}
+			}
+		}
+	}
+
+	// if (!pmm4g_base)
+	// 	sprintk("No suitable pmm4g heap!\n\r");
+	// else
+	// 	sprintk("pmm4g heap: %p %d\n\r", pmm4g_base, pmm4g_size);
+	// pause();
 
 	bm->init(VIRTUAL((u64*)pmm_heap_base), pmm_heap_size / pmm_pagesize);
 	// Le kell foglalni a page-eket amikben a bitmap van
@@ -62,6 +92,8 @@ void pmm_init() {
 	}
 	sprintk("init pmm heap at %p size %llx (%lld MiB)\n\r", pmm_heap_base, pmm_heap_size, bytes2mibs(pmm_heap_size));
 	sprintk("bits at %p", bm->buffer);
+
+	pmm4g_init(pmm4g_base, pmm4g_size);
 }
 
 void* pmm_alloc(u64 size) {

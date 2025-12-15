@@ -1,6 +1,7 @@
 #include <types.hh>
 #include <gfx/console.hh>
 #include <mm/pmm.hh>
+#include <mm/pmm4g.hh>
 #include <mm/vmm.hh>
 #include <pci/pci.hh>
 #include <acpi/acpi.hh>
@@ -69,6 +70,10 @@ extern "C" void kmain() {
 	printk(
 		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
 		bytes2kibs(pmm_freemem), bytes2kibs(pmm_usedmem), bytes2mibs(pmm_freemem + pmm_usedmem)
+	);
+	printk(
+		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
+		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
 
 	printk("End of kmain()\n");

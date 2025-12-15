@@ -216,14 +216,18 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	while (status_td->token.sts.raw == 0x80) {
 		if (arch_elapsed(500)) {
 			error("Transaction didn't occur, timeout!");
-			error("Num data stages: %d", num_data_stages);
+			error("Num data stages: %d (%d / %d)", num_data_stages, request->wLength, usbdev.USB.mps);
 			error(
 				"Statuses (setup, data #0, sts): %02x %02x %02x",
 				setup_td->token.sts.raw,
 				VIRTUAL((ehci_qtd*)(u64)setup_td->next_qtd.ptr)->token.sts.raw,
 				status_td->token.sts.raw
 			);
-			error("QH state: %08x %08x %08x", qh->current_qtd, qh->overlay.next_qtd.ptr, *(u32*)&qh->overlay.token);
+			error(
+				"Request details: %02x %02x %04x %04x %04x",
+				request->bmRequestType, request->bRequest, request->wValue, request->wIndex, request->wLength
+			);
+			stacktrace();
 			error("USBCMD, USBSTS = %08x, %08x", EhciRegs::USBCMD.read()._raw, EhciRegs::USBSTS.read()._raw);
 			pause();
 		}
@@ -278,26 +282,6 @@ static bool ehci_send_reset0(u8 portnum) {
 
 static void init_port(u8 portnum) {
 	if (ehci_send_reset0(portnum) == false) return;
-
-	// devmgr_add_device(device_t {
-	// 	.subsys = DevmgrSubsys::USB,
-	// 	.USB = {
-	// 		.vendor = 0,
-	// 		.product = 0,
-	// 		.hci = context->hc,
-	// 		.manufacturerName = nullptr,
-	// 		.productName = nullptr,
-	// 		.serial = nullptr,
-	// 		.mps = 64,
-	// 		.langid = (u16)-1,
-	// 		.addr = 0,
-	// 		.portnum = portnum,
-	// 		.class_ = 0,
-	// 		.subclass = 0,
-	// 		.progif = 0,
-	// 		.speed = UsbSpeed::HS
-	// 	},
-	// });
 
 	usb_device_add_skeleton(*context->hc, portnum, UsbSpeed::HS);
 }

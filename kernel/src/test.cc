@@ -2,6 +2,8 @@
 
 #include <util/storage.hh>
 #include <util/smartptrs.hh>
+#include <mm/pmm4g.hh>
+#include <arch/amd64/paging.hh>
 
 struct Test {
 	const char* name;
@@ -91,22 +93,17 @@ void test_libk() {
 		assert(*p == 10);
 	}
 
-	// {
-	// 	auto _ = Test("memcpy");
-	// 	vector<u32> asd1 = {
-	// 		 1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
-	// 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-	// 		21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-	// 		31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	// 		41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-	// 		51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-	// 	};
-	// 	vector<u32> asd2(60);
-	// 	asd2.size = 60;
-	// 	assert(asd1 != asd2);
-	// 	memcpy(asd2.data, asd1.data, 60 * 4);
-	// 	assert(asd1 == asd2);
-	// }
+	{
+		auto _ = Test("pmm4g");
+		void* p = kmalloc4g(10);
+		assert((paging_lookup((u64)p) >> 32) == 0);
+		kfree4g(p);
+
+		p = kmalloc_aligned4g(10, 128);
+		assert((paging_lookup((u64)p) >> 32) == 0);
+		assert(((u64)p & 127) == 0);
+		kfree4g(p);
+	}
 }
 
 void test() {

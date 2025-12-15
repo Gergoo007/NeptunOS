@@ -26,7 +26,6 @@ bool bitmap_t::get(u64 idx) {
 u64 bitmap_t::find_and_set() {
 	for (u64 i = 0; i < size; i++) {
 		if (get(i) == false) {
-			sprintk("found %lld", i);
 			set(i, true);
 			return i;
 		}
