@@ -6,6 +6,7 @@
 #include <arch/amd64/io.hh>
 #include <arch/amd64/paging.hh>
 #include <devmgr/usb/usb.hh>
+#include <util/stacktrace.hh>
 
 #include "ehci.hh"
 
@@ -46,7 +47,7 @@ static bool bm_init = false;
 static ehci_qtd* ehci_alloc_qtd() {
 	u64 addr = pool + bm.find_and_set() * unitsize;
 	memset((void*)addr, 0, unitsize);
-	if constexpr (debug)
+	if constexpr (DBG)
 		assert((PHYSICAL(addr) >> 32) == 0);
 	return (ehci_qtd*)addr;
 }
@@ -55,7 +56,7 @@ static ehci_qtd* ehci_alloc_qtd() {
 static ehci_qh* ehci_alloc_qh() {
 	u64 addr = pool + bm.find_and_set() * unitsize;
 	memset((void*)addr, 0, unitsize);
-	if constexpr (debug)
+	if constexpr (DBG)
 		assert((PHYSICAL(addr) >> 32) == 0);
 	return (ehci_qh*)addr;
 }
@@ -64,7 +65,7 @@ static ehci_qh* ehci_alloc_qh() {
 static void* ehci_alloc_page() {
 	u64 addr = (u64)pmm_alloc();
 	memset((void*)addr, 0, pmm_pagesize);
-	if constexpr (debug)
+	if constexpr (DBG)
 		assert((PHYSICAL(addr) >> 32) == 0);
 	return (void*)addr;
 }
@@ -73,7 +74,7 @@ template <typename T>
 [[nodiscard]]
 static u32 elookup(T* turi) {
 	u64 i = paging_lookup((u64)turi);
-	if constexpr (debug) assert((i >> 32) == 0);
+	if constexpr (DBG) assert((i >> 32) == 0);
 	return i & 0xffffffff;
 }
 

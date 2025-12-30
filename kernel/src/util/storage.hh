@@ -4,7 +4,7 @@
 #include <util/bitmap.hh>
 #include <util/string.hh>
 #include <util/helpers.hh>
-#include <util/stacktrace.hh>
+#include <util/smartptrs.hh>
 #include <cppcompat.hh>
 
 // itt lehet mókolni, a firefox elvikeg cap*cap-et használ
@@ -25,14 +25,14 @@ struct _generic_iter {
 	_generic_iter& operator--()		{ data--; return *this; }
 	_generic_iter  operator--(int)	{ auto old = *this; data--; return old; }
 
-	_generic_iter  operator+ (T* a)	{ return _generic_iter(data + a); }
-	_generic_iter  operator- (T* a)	{ return _generic_iter(data + a); }
+	_generic_iter  operator+ (u64 a)	{ return _generic_iter(data + a); }
+	_generic_iter  operator- (u64 a)	{ return _generic_iter(data + a); }
 
-	_generic_iter& operator+=(T* a)	{ data += a; return *this; }
-	_generic_iter& operator-=(T* a)	{ data -= a; return *this; }
+	_generic_iter& operator+=(u64 a)	{ data += a; return *this; }
+	_generic_iter& operator-=(u64 a)	{ data -= a; return *this; }
 
 	T* operator-(const _generic_iter& o) { return data - o.data; }
-	T& operator[](u64 idx) { return data[idx]; }
+	T& operator[](const u64 idx) { return data[idx]; }
 
 	T* operator->()	{ return data; }
 	T& operator*()	{ return *data; }
@@ -54,7 +54,7 @@ struct vector {
 
 	T* data = nullptr;
 	u64 size = 0;
-	u64 capacity = default_vec_size;
+	u64 capacity = VEC_DEFAULT_SIZE;
 
 	vector() {
 		if (capacity)
@@ -76,32 +76,26 @@ struct vector {
 		}
 	}
 
-	vector(vector& o) {
+	vector(const vector& o) {
 		reserve(o.capacity);
 
 		size = o.size;
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i].~T();
-
-		for (u64 i = 0; i < o.size; i++)
-			data[i] = o[i];
+			new (&data[i]) T(o[i]);
 	}
-
 
 	vector(vector&& o) {
 		data = o.data;
 		size = o.size;
 		capacity = o.capacity;
 
-		if (o.data)
-			kfree(o.data);
 		o.size = 0;
 		o.capacity = 0;
 		o.data = nullptr;
 	}
 
-	vector& operator=(vector& o) {
+	vector& operator=(const vector& o) {
 		for (const auto& e : *this)
 			e.~T();
 
@@ -109,7 +103,7 @@ struct vector {
 		size = o.size;
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i] = T(o[i]);
+			new (&data[i]) T(o[i]);
 
 		return *this;
 	}
@@ -119,19 +113,32 @@ struct vector {
 			e.~T();
 
 		kfree(data);
-		data = (T*)0x6767676767676767;
+		data = nullptr;
 	}
 
 	void reserve(u64 cap) {
+		if (cap < size)
+			cap = size;
+
+		if (!data && cap) {
+			data = (T*)kmalloc(cap * sizeof(T));
+			return;
+		}
+
+		if (!vmm_try_realloc(data, cap * sizeof(T))) {
+			T* newdata = (T*)kmalloc(cap * sizeof(T));
+			for (u32 i = 0; i < size; i++)
+				new (&newdata[i]) T(move<T>(data[i]));
+			for (u32 i = 0; i < size; i++)
+				data[i].~T();
+			kfree(data);
+			data = newdata;
+		}
 		capacity = cap;
-		if (cap == 0)
-			data = nullptr;
-		else
-			data = (T*)krealloc((void*)data, capacity * sizeof(T));
 	}
 
-	T& operator[](u64 idx) {
-		if constexpr (debug) {
+	T& operator[](const u64 idx) {
+		if constexpr (DBG) {
 			if (idx > size)
 				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
 			if (!data)
@@ -140,7 +147,17 @@ struct vector {
 		return data[idx];
 	}
 
-	T& last() const {
+	const T& operator[](const u64 idx) const {
+		if constexpr (DBG) {
+			if (idx > size)
+				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
+			if (!data)
+				fatal("vector data null (uninitialized)!");
+		}
+		return data[idx];
+	}
+
+	T& last() {
 		return data[size - 1];
 	}
 
@@ -153,21 +170,30 @@ struct vector {
 		return true;
 	}
 
-	T& push_back(T item) {
+	// T& push_back(T item) {
+	// 	if (size >= capacity)
+	// 		reserve(growfun(capacity));
+	// 	return *(new (&data[size++]) T(item));
+	// }
+
+	T& push_back(T&& item) {
 		if (size >= capacity)
 			reserve(growfun(capacity));
-		return data[size++] = item;
+		// return *(new (&data[size++]) T(item));
+		return *(new (&data[size++]) T(move<T>(item)));
 	}
 
 	template <typename... Args>
 	T& emplace(Args&&... args) {
 		if (size >= capacity)
 			reserve(growfun(capacity));
+		if ((size || capacity) && !data)
+			fatal("Invalid vector state: data is null but size is %lld (cap %p)", size, &capacity);
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
 
-	const iter begin() const { return iter(data); }
-	const iter end() const { return iter(data + size); }
+	iter begin() const { return iter(data); }
+	iter end() const { return iter(data + size); }
 };
 
 // a size-ba NINCS bele számítva a null terminator
@@ -177,9 +203,7 @@ struct string : vector<char> {
 		memcpy((void*)data, (void*)str, size+1);
 	}
 
-	char* c_str() const {
-		return (char*)data;
-	}
+	char* c_str() { return (char*)data; }
 };
 
 template <u32 S, typename T>
@@ -199,27 +223,27 @@ struct array {
 			data[idx++] = e;
 	}
 
-	array(array& o) {
+	array(const array& o) {
 		static_assert(size == o.size);
 
 		for (u64 i = 0; i < o.size; i++)
 			data[i].~T();
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i] = T(o[i]);
+			new (&data[i]) T(o[i]);
 	}
 
 
 	array(array&& o) = default;
 
-	array& operator=(array& o) {
+	array& operator=(const array& o) {
 		static_assert(size == o.size);
 	
 		for (const auto& e : *this)
 			e.~T();
 
 		for (u64 i = 0; i < o.size; i++)
-			data[i] = T(o[i]);
+			new (&data[i]) T(o[i]);
 
 		return *this;
 	}
@@ -229,15 +253,23 @@ struct array {
 			e.~T();
 	}
 
-	T& operator[](u64 idx) {
-		if constexpr (debug) {
+	T& operator[](const u64 idx) {
+		if constexpr (DBG) {
 			if (idx > S)
 				fatal("array<> access out of bounds! idx %lld size %lld", idx, size);
 		}
 		return data[idx];
 	}
 
-	bool operator==(array& o) {
+	const T& operator[](const u64 idx) const {
+		if constexpr (DBG) {
+			if (idx > S)
+				fatal("array<> access out of bounds! idx %lld size %lld", idx, size);
+		}
+		return data[idx];
+	}
+
+	bool operator==(const array& o) const {
 		if (o.size != size) return false;
 		for (u64 i = 0; i < size; i++) {
 			if (!(data[i] == o.data[i]))
@@ -246,8 +278,8 @@ struct array {
 		return true;
 	}
 
-	const iter begin() { return iter(data); }
-	const iter end() { return iter(data + size); }
+	iter begin() { return iter(data); }
+	iter end() { return iter(data + size); }
 };
 
 template <typename T>
@@ -260,3 +292,196 @@ struct optional {
 	template <typename... Args>
 	T& emplace() {}
 };
+
+
+template <typename T>
+struct llist {
+	struct link_t {
+		T data;
+		link_t* next;
+		link_t* prev;
+		bool last = false;
+
+		link_t(link_t* prev, link_t* next, const T& data): next(next), prev(prev), data(data) { report("constructed link @ %p", this); }
+		~link_t() { prev = next = nullptr; }
+	};
+
+	struct iter {
+		link_t* data;
+		iter(link_t* _data): data(_data) {  }
+		
+		iter& operator++()		{ data=data->last?nullptr:data->next; return *this; }
+		iter  operator++(int)	{ auto old = *this; data=data->last?nullptr:data->next; return old; }
+		
+		iter& operator--()		{ data=data->prev; return *this; }
+		iter  operator--(int)	{ auto old = *this; data=data->prev; return old; }
+
+		iter  operator+ (T* a)	{ fatal("llist: iter operator+ not implemented"); }
+		iter  operator- (T* a)	{ fatal("llist: iter operator-(*) not implemented"); }
+
+		iter& operator+=(T* a)	{ fatal("llist: iter operator+= not implemented"); }
+		iter& operator-=(T* a)	{ fatal("llist: iter operator-= not implemented"); }
+
+		T* operator-(const iter& o) { fatal("llist: iter operator-(&) not implemented"); }
+		T& operator[](const u64 idx) { fatal("llist: iter operator[] not implemented"); }
+
+		T* operator->()	{ return &data->data; }
+		T& operator*()	{ return data->data;  }
+
+		bool operator==(const iter& o) const { return data == o.data; }
+		bool operator!=(const iter& o) const { return data != o.data; }
+		bool operator< (const iter& o) const { return data  < o.data; }
+		bool operator<=(const iter& o) const { return data <= o.data; }
+		bool operator> (const iter& o) const { return data  > o.data; }
+		bool operator>=(const iter& o) const { return data >= o.data; }
+	};
+
+	link_t* first = nullptr;
+
+	T& push_back(const T& elem) {
+		if (first) {
+			link_t* newl = new link_t(first->prev, first, elem);
+			first->prev->next = newl;
+
+			assert(first->prev->last);
+			first->prev->last = false;
+			
+			first->prev = newl;
+			newl->last = true;
+			return newl->data;
+		} else {
+			// Create the first link
+			first = new link_t(nullptr, nullptr, elem);
+			first->next = first;
+			first->prev = first;
+			first->last = true;
+			return first->data;
+		}
+	}
+
+	T& push_front(const T& elem) {
+		if (first) {
+			link_t* newfirst = new link_t(first->prev, first, elem);
+			first->prev->next = newfirst;
+			first->prev = newfirst;
+			first = newfirst;
+			return first->data;
+		} else {
+			// Create the first link
+			first = new link_t(nullptr, nullptr, elem);
+			first->prev = first;
+			first->next = first;
+			first->last = true;
+			return first->data;
+		}
+	}
+
+	void remove(link_t& l) {
+		if (l.prev)
+			l.prev->next = l.next;
+		if (l.next)
+			l.next->prev = l.prev;
+
+		if (first == &l)
+			first = l.next;
+
+		l.next = nullptr;
+		l.prev = nullptr;
+
+		delete &l;
+	}
+
+	void remove(u64 idx) {
+		u64 idx2 = idx;
+		link_t* l = first;
+		while (l && idx2) {
+			l = l->next;
+			idx2--;
+		}
+		if (idx2)
+			fatal("dlinkedlist: index out of bounds! %d", idx);
+		remove(*l);
+	}
+
+	void remove(iter it) { remove(*it); }
+
+	T& operator[](const u64 idx) {
+		u64 idx2 = idx;
+		link_t* l = first;
+		while (l && idx2) {
+			l = l->next;
+			idx2--;
+		}
+		if (idx2)
+			fatal("dlinkedlist: index out of bounds! %d", idx);
+		return l->data;
+	}
+
+	const T& operator[](const u64 idx) const {
+		u64 idx2 = idx;
+		link_t* l = first;
+		while (l && idx2) {
+			l = l->next;
+			idx2--;
+		}
+		if (idx2)
+			fatal("dlinkedlist: index out of bounds! %d", idx);
+		return l->data;
+	}
+
+	link_t& get_link(u64 idx) {
+		u64 idx2 = idx;
+		link_t* l = first;
+		while (l && idx2) {
+			l = l->next;
+			idx2--;
+		}
+		if (idx2)
+			fatal("dlinkedlist: index out of bounds! %d", idx);
+		return *l;
+	}
+
+	iter begin() { return iter(first); }
+	iter end() { return iter(nullptr); }
+
+	~llist() {
+		link_t* l = first;
+		// Különben visszajut a loop a firstre
+		first->prev->next = nullptr;
+		while (l) {
+			auto* next = l->next;
+			delete l;
+			l = next;
+		}
+	}
+};
+
+// static u64 hash(const string& s) {
+// 	return 0;
+// }
+
+// template <typename K, typename V>
+// struct hashmap {
+// 	u64 size;
+// 	struct entry {
+// 		const K key;
+// 		V value;
+
+// 		entry(const entry& e): key(e.key), value(e.value) {  }
+// 		entry(const K& k, const V& v): key(k), value(v) {  }
+// 	};
+// 	vector<dlinkedlist<entry>> values;
+
+// 	hashmap(): size(HASHMAP_DEFAULT_SIZE), values(size) {  };
+// 	hashmap(u64 s): size(s), values(size) {  }
+
+// 	V& operator[](const K& key) {
+// 		// K& key = const_cast<K&>(key0);
+// 		u64 idx = hash(key) % size;
+// 		for (auto& e : values[idx]) {
+// 			if (e.key == key) return e.value;
+// 		}
+// 		// Value was not found, needs to be appended
+// 		return values[idx].push_back(entry(key, V())).value;
+// 	}
+// };

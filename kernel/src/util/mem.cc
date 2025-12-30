@@ -1,6 +1,6 @@
 #include <util/mem.hh>
 
-void memset(void* a, const char c, u64 count) {
+void memset(void* a, u8 c, u64 count) {
 	for (u64 i = 0; i < count; i++)
 		((u8*)a)[i] = c;
 
@@ -45,8 +45,14 @@ void memcpy(void* dest, void* src, u64 count) {
 }
 
 bool memcmp(void* a, void* b, u64 count) {
-	while (count--) {
+	while (count--)
 		if (((u8*)a)[count] != ((u8*)b)[count]) return true;
-	}
+	return false;
+}
+
+// Is the memory region just 'c' repeating? Returns false if so
+bool memchk(void* a, u8 c, u64 count) {
+	while (count--)
+		if (((u8*)a)[count] != c) return true;
 	return false;
 }

@@ -42,8 +42,8 @@ clock: sync=realtime, time0=local, rtc_sync=0
 # no cmosimage
 log: bochslog.txt
 logprefix: %t%e%d
-# debug: action=report
-debug: action=ignore
+debug: action=report
+#debug: action=ignore
 info: action=report
 error: action=report
 panic: action=ask

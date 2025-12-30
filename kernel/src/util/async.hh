@@ -1,10 +1,32 @@
 #pragma once
 
-#include "types.hh"
+#include <arch/arch.hh>
 
-struct Lock {
-	volatile atomic u32 _lock = 0;
-	inline void acquire() { wait(); _lock = 1; }
-	inline void release() { _lock = 0; }
-	inline void wait() const { while (_lock); }
+struct mutex {
+	int lockvar = 0;
+
+    void lock() {
+        int expected = 0;
+        while (
+			!__atomic_compare_exchange_n(
+				&lockvar, &expected, 1, false,
+				__ATOMIC_ACQUIRE, __ATOMIC_RELAXED
+			)
+		) {
+            expected = 0;  // reset after failed CAS
+            asm volatile ("pause" ::: "memory");
+        }
+    }
+
+    void unlock() { __atomic_store_n(&lockvar, 0, __ATOMIC_RELEASE); }
+};
+
+struct lockguard {
+	mutex& m;
+
+	lockguard(mutex& m): m(m) { m.lock(); }
+	lockguard(const lockguard&) = delete("ha");
+	lockguard(lockguard&&) = delete("asd");
+	lockguard& operator=(const lockguard&) = delete("88");
+	~lockguard() { m.unlock(); }
 };

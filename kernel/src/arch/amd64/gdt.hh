@@ -45,5 +45,5 @@ pstruct gdtr_t {
 	u64 base;
 };
 
-void arch_gdt_init();
-void arch_gdt_add_tss(tss_t* t);
+gdt_entry_t* arch_gdt_init();
+void arch_gdt_add_tss(gdt_entry_t* gdt, tss_t* t);

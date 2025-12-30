@@ -8,6 +8,7 @@
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/amd64.hh>
+#include <arch/amd64/cpuid.hh>
 #include <util/storage.hh>
 #include <devmgr/module.hh>
 #include <util/stacktrace.hh>
@@ -16,35 +17,36 @@
 #include <cppcompat.hh>
 #include <devmgr/devmgr.hh>
 #include <devmgr/usb/usb.hh>
+#include <scheduler/scheduler.hh>
 
 extern "C" noret void khang();
 
-// TODO: libk reform
-// TODO: operator[] meg hasonlók küldjenek vissza Opt<T&>-t a T& helyett
-// TODO: hashmap legyen a Map<K, V>
-// TODO: csomó mindenhez csak 4k kell, nem 2m mint ahogy azt a pmm csinálja
-// TODO: modulkód rw-ként van megadva, az adat meg execute-ként
-// TODO: ELF fájlok feldolgozó kódja többször van leírva (ksyms.cc, module.cc, userspace majd)
-// TODO: fájlok összeolvasztása, rohadt sok van ahoz képest amit tud a kernel
-// TODO: UTF-8 konzol
+// TODO: int.s -> sse_state nem thread safe
 
-#include <util/cpuid.hh>
+mutex m3;
 
 extern "C" void kmain() {
 	// Korai inicializáció
-	arch_init();
+	arch_init(true);
 	arch_read_boot_info();
 	pmm_init();
-	arch_late_init();
+	arch_late_init(true);
 	vmm_init();
 
 	cpp_construct_objects();
 
 	con_init(FONTFILE_START);
 
+	report("max leaf: %02x", cpuid_max_leaf());
+	report("intel/amd %d %d", cpuid_is_intel(), cpuid_is_amd());
+
+	if (!cpuid_x2apic_supported()) warn("TODO: x2APIC needed to function!");
+
 	test();
 
 	ksyms_read();
+
+	sched_start();
 
 	modules_register_all();
 
@@ -75,6 +77,20 @@ extern "C" void kmain() {
 		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
+
+	sched_add_thread([] {
+		while (1) {
+			arch_sleep(100);
+			report("helo from thread!");
+		}
+	});
+
+	while (1) {
+		arch_sleep(100);
+		report("helo from main %d", tmr_counter);
+	}
+
+	// vmm_check_all();
 
 	printk("End of kmain()\n");
 

@@ -7,21 +7,25 @@
 #include <arch/amd64/cpuid.hh>
 #include <mm/vmm.hh>
 
+#include <arch/arch.hh>
+
 #define PORT 0x3f8
 
-extern "C" void sse_init();
-
-void arch_init() {
+void arch_init(bool bsp) {
 	sse_init();
-	sinit();
+	if (bsp)
+		sinit();
 }
 
-void arch_late_init() {
-	arch_gdt_init();
-	arch_tss_init();
+void arch_late_init(bool bsp) {
+	auto* gdt = arch_gdt_init();
+	// if (!bsp)
+	// 	pause();
+	arch_tss_init(gdt);
 	arch_idt_init();
 
-	arch_pit_init();
+	if (bsp)
+		arch_pit_init();
 }
 
 void arch_halt() {
@@ -62,7 +66,6 @@ char sgetc() {
 	return inb(PORT);
 }
 
-extern volatile u64 tmr_counter;
 void arch_sleep(u64 ms, bool skippable) {
 	// Emulátoron nem kell várni a hardverre
 	if (skippable && cpuid_is_emu()) return;

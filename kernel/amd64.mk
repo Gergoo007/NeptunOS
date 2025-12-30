@@ -10,8 +10,8 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++23 -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
 	-Wno-unused-parameter -fno-stack-protector -mno-red-zone -O0 -g -Wno-multichar \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
-	-mcmodel=large -MMD -MP -DDEBUG
-ASFLAGS +=
+	-mcmodel=large -MMD -MP -DDEBUG -fno-lto -fstack-protector-strong
+ASFLAGS += -fno-lto
 LDFLAGS += --no-gc-sections
 
 CC := x86_64-elf-g++
@@ -19,6 +19,7 @@ LD ?= x86_64-elf-ld
 AS ?= x86_64-elf-gcc
 STRIP ?= x86_64-elf-strip
 
-# CC := clang++
-# LD ?= ld.lld
-# AS ?= clang
+# CC := clang++ -fno-lto
+# LD ?= ld.lld -m elf_x86_64
+# AS ?= clang -fno-integrated-as -fno-lto
+# STRIP ?= x86_64-elf-strip

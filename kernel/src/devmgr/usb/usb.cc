@@ -6,69 +6,6 @@
 #include <arch/amd64/amd64.hh>
 #include <mm/pmm4g.hh>
 
-// const char* usb_get_string(device_t& usbdev, u8 idx) {
-// 	if (!idx) return "\0";
-// 	auto* hciint = (usb_hci_interface_t*)usbdev.USB.hci->PCI.extra;
-
-// 	usb_request* request = (usb_request*)kmalloc4g(sizeof(usb_request));
-// 	if (usbdev.USB.langid == (u16)-1) {
-// 		// Van már LANGID?
-// 		usb_descriptor_string_langids* langids = (usb_descriptor_string_langids*)kmalloc4g(sizeof(usb_descriptor_string_langids));
-
-// 		request->bmRequestType = 0x80;
-// 		request->bRequest = UsbRequests::GET_DESCRIPTOR;
-// 		request->wValueL = 0;
-// 		request->wValueH = 3;
-// 		request->wIndex = 0;
-// 		request->wLength = 2;
-		
-// 		hciint->usb_send(usbdev, 0, request, langids);
-// 		u32 num_langids = (langids->hdr.bLength - 2) / 2;
-// 		langids = (usb_descriptor_string_langids*)krealloc4g(langids, langids->hdr.bLength);
-// 		request->wLength = 2 + num_langids * 2;
-// 		hciint->usb_send(usbdev, 0, request, langids);
-
-// 		// Default is US English
-// 		usbdev.USB.langid = num_langids ? langids->wLangID[0] : 0x0409;
-// 		for (u32 i = 0; i < num_langids; i++) {
-// 			debug("Device supports LANGID %04x", langids->wLangID[i]);
-// 			if (langids->wLangID[i] == 0x040e) // Hunagrian
-// 				usbdev.USB.langid = langids->wLangID[i];
-// 		}
-
-// 		kfree4g(langids);
-// 	}
-
-// 	request->bmRequestType = 0x80;
-// 	request->bRequest = UsbRequests::GET_DESCRIPTOR;
-// 	request->wIndex = usbdev.USB.langid;
-// 	request->wValueH = 3;
-// 	request->wValueL = idx;
-// 	// Először csak a bLength kell
-// 	request->wLength = 2;
-
-// 	usb_descriptor_string* string = (usb_descriptor_string*)kmalloc4g(sizeof(usb_descriptor_string));
-// 	request->wIndex = usbdev.USB.langid;
-// 	request->wValueL = idx;
-// 	request->bmRequestType = 0x80;
-// 	// Először csak a bLength kell
-// 	request->wLength = 2;
-// 	hciint->usb_send(usbdev, 0, request, string);
-// 	request->wLength = string->hdr.bLength;
-// 	string = (usb_descriptor_string*)krealloc4g(string, string->hdr.bLength);
-// 	hciint->usb_send(usbdev, 0, request, string);
-
-// 	u32 len = (string->hdr.bLength - 2) / 2;
-// 	char* str = (char*)kmalloc(len / 2 + 1);
-// 	str[len] = 0;
-// 	ucs2_to_asciin(string->string, str, len);
-
-// 	kfree4g(request);
-// 	kfree4g(string);
-
-// 	return str;
-// }
-
 const char* usb_get_string(device_t& usbdev, u8 idx) {
 	if (!idx) return "\0";
 	auto* hciint = (usb_hci_interface_t*)usbdev.USB.hci->PCI.extra;
@@ -122,9 +59,10 @@ const char* usb_get_string(device_t& usbdev, u8 idx) {
 	hciint->usb_send(usbdev, 0, request, string);
 
 	u32 len = (string->hdr.bLength - 2) / 2;
-	char* str = (char*)kmalloc(len / 2 + 1);
+	char* str = (char*)kmalloc(len + 1);
 	str[len] = 0;
 	ucs2_to_asciin(string->string, str, len);
+	vmm_check(str);
 
 	kfree4g(request);
 	kfree4g(string);
@@ -254,7 +192,7 @@ void usb_init(device_t& usbdev) {
 	request->wValueH = 2;
 	request->wIndex = 0;
 	request->wLength = 9;
-	usb_descriptor_configuration* config = (usb_descriptor_configuration*)kmalloc4g(256);
+	usb_descriptor_configuration* config = (usb_descriptor_configuration*)kmalloc4g(64);
 
 	u8 preferredConfig = 0;
 	for (u32 i = 0; i < devdesc->bNumConfigurations; i++) {
@@ -265,11 +203,10 @@ void usb_init(device_t& usbdev) {
 		// hciint->usb_send(usbdev, 0, request, config);
 		hciint->usb_send(usbdev, 0, request, config);
 		request->wLength = config->wTotalLength;
-		// config = (usb_descriptor_configuration*)krealloc4g(config, config->wTotalLength);
-		// hciint->usb_send(usbdev, 0, request, config);
+		config = (usb_descriptor_configuration*)krealloc4g(config, config->wTotalLength);
+		hciint->usb_send(usbdev, 0, request, config);
 		
 		// i16 len = config->wTotalLength;
-		warn("iconfig %d", config->iConfiguration);
 		const char* s = usb_get_string(usbdev, config->iConfiguration);
 		debug("config \"%s\": %d mA; %d interfaces; ", s, config->bMaxPower * 2, config->bNumInterfaces);
 

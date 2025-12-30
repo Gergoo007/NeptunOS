@@ -3,21 +3,27 @@
 #include <arch/amd64/apic.hh>
 #include <mm/vmm.hh>
 #include <gfx/console.hh>
+#include <scheduler/scheduler.hh>
 
 #define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
 volatile u64 tmr_counter = 0;
 
-extern "C" void onInterrupt(arch_idt_frame_t* frame) {
+extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 	switch (frame->exc) {
 		case 0xe: {
 			if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
+				// if (pmm_bm->m.lockvar) {
+				// 	sprintk("Deadlock: PMM bitmap is already locked!");
+				// 	fatal("Deadlock: PMM bitmap is already locked!");
+				// }
 				// this s2M flag cost me a piece of my soul
 				map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc()), KDATA | s2M);
 				return;
 			}
 		}
 		default: {
+			arch_ioapic_disable_all();
 			error("EXCEPTION %02x [%04llx] @ %02x:%p", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
 			print_reg(frame, rax, rbx);
 			print_reg(frame, rcx, rdx);
@@ -38,6 +44,8 @@ extern "C" void onInterrupt(arch_idt_frame_t* frame) {
 		case 0x40: {
 			tmr_counter++;
 			arch_lapic_eoi();
+			if (tmr_counter % 100 == 0)
+				sched_tick(frame);
 			break;
 		}
 	}

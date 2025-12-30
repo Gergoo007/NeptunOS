@@ -1,9 +1,37 @@
 #pragma once
 
-#include <arch/arch.hh>
+#include <types.hh>
 
 #define COM1 0x3f8
 
+struct cpu_state_amd64_t {
+	u64 r15 = 0;
+	u64 r14 = 0;
+	u64 r13 = 0;
+	u64 r12 = 0;
+	u64 r11 = 0;
+	u64 r10 = 0;
+	u64 r9 = 0;
+	u64 r8 = 0;
+	u64 cr2 = 0;
+	u64 rbp = 0;
+	u64 rsi = 0;
+	u64 rdi = 0;
+	u64 rdx = 0;
+	u64 rcx = 0;
+	u64 rbx = 0;
+	u64 rax = 0;
+	u64 exc = 0;
+	u64 rflexc = 0;
+	u64 err = 0;
+	u64 rip = 0;
+	u64 cs = 0;
+	u64 rfl = 0;
+	u64 rsp = 0;
+	u64 ss = 0;
+};
+
+extern "C" void sse_init();
 void sinit();
 void sputc(const char c);
 char sgetc();

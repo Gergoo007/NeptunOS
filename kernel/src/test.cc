@@ -2,6 +2,7 @@
 
 #include <util/storage.hh>
 #include <util/smartptrs.hh>
+#include <util/async.hh>
 #include <mm/pmm4g.hh>
 #include <arch/amd64/paging.hh>
 
@@ -18,6 +19,14 @@ struct Test {
 };
 
 void test_libk() {
+	{
+		auto _ = Test("vmm");
+		void* p = kmalloc(128);
+		memset(p, 0xff, 128);
+		vmm_check(p);
+		kfree(p);
+	}
+
 	{
 		auto _ = Test("libk->Vector");
 
@@ -95,6 +104,7 @@ void test_libk() {
 
 	{
 		auto _ = Test("pmm4g");
+		
 		void* p = kmalloc4g(10);
 		assert((paging_lookup((u64)p) >> 32) == 0);
 		kfree4g(p);
@@ -103,6 +113,46 @@ void test_libk() {
 		assert((paging_lookup((u64)p) >> 32) == 0);
 		assert(((u64)p & 127) == 0);
 		kfree4g(p);
+	}
+
+	{
+		auto _ = Test("llist");
+
+		llist<int> dll;
+		dll.push_back(10);
+		dll.push_back(50);
+		dll.push_back(30);
+		dll.push_back(40);
+		dll.push_front(88);
+
+		assert(dll[0] == 88);
+		assert(dll[1] == 10);
+		assert(dll[2] == 50);
+		assert(dll[3] == 30);
+		assert(dll[4] == 40);
+
+		dll.remove(2);
+
+		assert(dll[0] == 88);
+		assert(dll[1] == 10);
+		assert(dll[2] == 30);
+		assert(dll[3] == 40);
+	}
+
+	{
+		auto _ = Test("async");
+		mutex m;
+		m.lock();
+
+		m.unlock();
+	}
+
+	{
+		auto _ = Test("hashmap");
+
+		// hashmap<string, int> hm;
+		// hm["helo"] = 10;
+		// assert(hm["helo"] == 10);
 	}
 }
 

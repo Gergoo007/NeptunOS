@@ -4,15 +4,23 @@
 
 #define VECTOR_NULLBYDEFAULT
 
-constexpr bool debug = true;
-constexpr bool stacktrace_on_fatal = true;
-constexpr bool ioapic_fix = true;
-static constexpr unsigned long long default_vec_size = 0;
+constexpr bool DBG = true;
+
+constexpr unsigned long VMM_REDZONE_SIZE = 64;
+constexpr unsigned char VMM_REDZONE_MAGIC = 0xbc;
+
+constexpr bool STACKTRACE_ON_FATAL = true;
+constexpr bool IOAPIC_FIX = true;
+constexpr unsigned long long VEC_DEFAULT_SIZE = 0;
+constexpr unsigned long long HASHMAP_DEFAULT_SIZE = 64;
+static_assert(HASHMAP_DEFAULT_SIZE);
+
+constexpr unsigned int SCHED_MAX_PROCESSES = 1024;
 
 static constexpr const char* debug_files[] = {
-	"ehci.cc",
-	"usb.cc",
-	"hub.cc"
+	// "ehci.cc",
+	// "usb.cc",
+	// "hub.cc"
 };
 
 // Lowest log level that will get printed; 0 is debug, 5 is fatal

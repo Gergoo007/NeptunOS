@@ -69,6 +69,8 @@ void con_scroll() {
 	con_cy -= lineh;
 
 	memset(fb_base + (fb->fb_width * (fb->fb_height - lineh)), 0, fb->fb_width * lineh * (fb->fb_bpp/8));
+
+	vmm_check(con_backbuf);
 }
 
 void con_swap_buffers() {
@@ -241,7 +243,7 @@ void printkxnoret(u32 lvl, const char* FILENAME, const char* fmt, ...) {
 	va_end(list2);
 	#endif
 
-	if constexpr (stacktrace_on_fatal)
+	if constexpr (STACKTRACE_ON_FATAL)
 		stacktrace();
 	pause();
 

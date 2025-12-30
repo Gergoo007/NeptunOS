@@ -11,6 +11,9 @@ struct framebuffer_t {
 	u32 fb_bpp; // bytes per pixel
 };
 
+#include <arch/amd64/amd64.hh>
+using cpu_state_t = cpu_state_amd64_t;
+
 extern struct limine_memmap_response* mmap;
 extern framebuffer_t fbs[2];
 
@@ -22,12 +25,14 @@ static inline u32 mr32(u64 a) {
 	return *(volatile u32*)a;
 }
 
-void arch_init();
-void arch_late_init();
+void arch_init(bool bsp);
+void arch_late_init(bool bsp);
 void arch_read_boot_info();
 void arch_halt();
 void arch_cli();
 void arch_sti();
+
+extern "C" void arch_cpu_state_load(cpu_state_t* state);
 
 void sputc(const char c);
 void sputs(const char* s);

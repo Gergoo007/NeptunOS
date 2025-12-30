@@ -22,7 +22,7 @@ uhci_td_t* uhci_alloc_td() {
 		pool_init();
 
 	u64 a = (u64)pool + bm.find_and_set() * bytesperunit;
-	if constexpr(debug) assert((a >> 32) == 0);
+	if constexpr(DBG) assert((a >> 32) == 0);
 	return VIRTUAL((uhci_td_t*)a);
 }
 
@@ -32,18 +32,18 @@ uhci_qh_t* uhci_alloc_qh() {
 		pool_init();
 
 	u64 a = (u64)pool + bm.find_and_set() * bytesperunit;
-	if constexpr(debug) assert((a >> 32) == 0);
+	if constexpr(DBG) assert((a >> 32) == 0);
 	return VIRTUAL((uhci_qh_t*)a);
 }
 
 u32 uhci_alloc_page() {
 	u64 a = (u64)pmm_alloc();
-	if constexpr(debug) assert(!(paging_lookup(a) >> 32));
+	if constexpr(DBG) assert(!(paging_lookup(a) >> 32));
 	return (u32)PHYSICAL(a);
 }
 
 void uhci_free(void *p)	{
 	u64 idx = (PHYSICAL((u64)p) - (u64)pool) / bytesperunit;
-	if constexpr (debug) assert((PHYSICAL((u64)p) - (u64)pool) % bytesperunit == 0);
+	if constexpr (DBG) assert((PHYSICAL((u64)p) - (u64)pool) % bytesperunit == 0);
 	bm.set(idx, false);
 }

@@ -1,6 +1,11 @@
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/apic.hh>
 #include <arch/amd64/io.hh>
+#include <arch/amd64/cpuid.hh>
+#include <arch/amd64/smp.hh>
+#include <arch/amd64/amd64.hh>
+
+extern "C" { void x86_64_ap_trampoline(); void x86_64_ap_trampoline_end(); }
 
 vector<ioapic_t> ioapics;
 u64 lapic_base = 0xfee00000;
@@ -22,27 +27,35 @@ void lapic_write(const lapic_register_t& reg, u32 val) {
 }
 
 void arch_parse_madt(madt_t* m) {
-	u32 num_entries = (m->sdt.length - sizeof(m->sdt)) / sizeof(m->entries[0]);
-	for (u32 i = 0; i < num_entries; i++) {
-		switch (m->entries[i].type) {
+	u32 offset = 0;
+	while (sizeof(madt_t) + offset < m->sdt.length) {
+		auto& entry = *(madt_entry_t*)((u64)m + sizeof(madt_t) + offset);
+
+		switch (entry.type) {
 			case MadtTypes::MADT_LAPIC: {
+				// Van néhány buggos szar firmware ahol több LAPIC entry van mint logikai processzor, 0-ás APIC ID-val
+				// Ezekkel nem kell foglalkozni
+				if (entry.MADT_LAPIC.apic_id == 0)
+					break;
+				report("lapic id %d acpi id %d online %d cap %d", entry.MADT_LAPIC.apic_id, entry.MADT_LAPIC.acpi_id, entry.MADT_LAPIC.enabled, entry.MADT_LAPIC.capable);
 				cpus.emplace(lapic_t {
-					.apic_id = m->entries[i].MADT_LAPIC.apic_id,
-					.acpi_id = m->entries[i].MADT_LAPIC.acpi_id,
+					.apic_id = entry.MADT_LAPIC.apic_id,
+					.acpi_id = entry.MADT_LAPIC.acpi_id,
+					.up = false,
 				});
 				break;
 			}
 			case MadtTypes::MADT_IOAPIC: {
-				map_page(VIRTUAL((u64)m->entries[i].MADT_IOAPIC.addr), (u64)m->entries[i].MADT_IOAPIC.addr, MFLAGS::KDATA, MCACHE::UC);
+				map_page(VIRTUAL((u64)entry.MADT_IOAPIC.addr), (u64)entry.MADT_IOAPIC.addr, MFLAGS::KDATA, MCACHE::UC);
 				ioapics.emplace(ioapic_t {
-					.addr = (volatile u32*)VIRTUAL((u64)m->entries[i].MADT_IOAPIC.addr),
-					.gsi_base = m->entries[i].MADT_IOAPIC.gsi_base
+					.addr = (volatile u32*)VIRTUAL((u64)entry.MADT_IOAPIC.addr),
+					.gsi_base = entry.MADT_IOAPIC.gsi_base
 				});
 				break;
 			}
 			case MadtTypes::MADT_OVERRIDE: {
-				redirection_table[m->entries[i].MADT_OVERRIDE.irq] =
-					m->entries[i].MADT_OVERRIDE.gsi;
+				redirection_table[entry.MADT_OVERRIDE.irq] =
+					entry.MADT_OVERRIDE.gsi;
 				break;
 			}
 			case MadtTypes::MADT_IOAPIC_NMI: {
@@ -54,7 +67,7 @@ void arch_parse_madt(madt_t* m) {
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_ADDR: {
-				lapic_base = m->entries[i].MADT_LAPIC_ADDR.lapic;
+				lapic_base = entry.MADT_LAPIC_ADDR.lapic;
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_X2APIC: {
@@ -62,13 +75,15 @@ void arch_parse_madt(madt_t* m) {
 				break;
 			}
 		}
+
+		offset += entry.length;
 	}
 
 	// PIC kikapcs.
 	outb(0x21, 0xff);
 	outb(0xa1, 0xff);
 
-	if constexpr (ioapic_fix) {
+	if constexpr (IOAPIC_FIX) {
 		if (!ioapics.size) {
 			map_page(VIRTUAL((u64)0xfec00000), 0xfec00000, MFLAGS::KDATA, MCACHE::UC);
 			ioapic_t asd {
@@ -97,16 +112,33 @@ void arch_parse_madt(madt_t* m) {
 
 	lapic_write(LapicRegs::SIV, lapic_read(LapicRegs::SIV) | 0x100);
 
-	u32 bspid;
-	
-	asm volatile("cpuid" : "=b"(bspid) : "a"(1) : "ecx","edx");
-	printk("current xapic id: %08x\n", bspid);
-
-	asm volatile("cpuid" : "=d"(bspid) : "a"(0x1f) : "ebx","ecx");
-	printk("current x2apic id: %08x\n", bspid);
+	u32 bspid = cpuid_xapic_id();
+	for (auto& cpu : cpus) {
+		if (cpu.apic_id == bspid) {
+			cpu.up = true;
+			break;
+		}
+	}
 
 	arch_ioapic_initialize_irq(2, 0x40, IoapicDelivmode::FIXED, 1, bspid);
 	arch_ioapic_mask_gsi(2, 0);
+
+	report("x2apic id: %d", cpuid_x2apic_id());
+	report("xapic  id: %d", cpuid_x2apic_id());
+
+	smp_init();
+
+	arch_start_timer();
+	for (auto& cpu : cpus) {
+		while (!cpu.up) {
+			if (arch_elapsed(300)) {
+				error("Timeout for CPU %d (ACPI ID %d)!", cpu.apic_id, cpu.acpi_id);
+				break;
+			}
+		}
+	}
+
+	report("All CPUs up!");
 }
 
 // Visszaadja a GSI-hoz lévő legközelebbi IOAPIC-ot
@@ -122,9 +154,10 @@ static ioapic_t& bestmatch(u32 gsi) {
 		}
 	}
 
-	if constexpr (debug)
-		assert(smallestdiff < 24);
-
+	if (smallestdiff > 24) {
+		error("Failed to find GSI's IOAPIC! Closest match's GSI base: %d; searchee: %d", a.gsi_base, gsi);
+	}
+	
 	return a;
 }
 
@@ -167,4 +200,15 @@ void arch_ioapic_mask_irq(u8 irq, bool mask) {
 
 void arch_lapic_eoi() {
 	lapic_write(LapicRegs::EOI, 0x00);
+}
+
+void arch_ioapic_disable_all() {
+	for (auto& ioa : ioapics) {
+		ioapic_entry_t e;
+		for (u32 i = 0; i < 24; i++) {
+			e.qword = ioa.read(ioapic_register_t(i));
+			e.mask = true;
+			ioa.write(ioapic_register_t(i), e.qword);
+		}
+	}
 }

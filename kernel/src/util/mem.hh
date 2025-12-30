@@ -2,6 +2,8 @@
 
 #include <types.hh>
 
-void memset(void* a, const char c, u64 count);
 void memcpy(void* dst, void* src, u64 s);
-bool memcmp(void* a, void* b, u64 count); // returns zero if equal
+void memset(void* a, u8 c, u64 count);
+
+bool memcmp(void* a, void* b, u64 count); // returns false if equal
+bool memchk(void* a, u8 c, u64 count);

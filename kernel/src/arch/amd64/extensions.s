@@ -36,4 +36,9 @@ sse_init:
     pop %rcx
 
 .sse_init.end:
+	// mov $0x277, %ecx
+	// mov $0, %eax
+	// mov $0, %edx
+	// wrmsr
+
     ret

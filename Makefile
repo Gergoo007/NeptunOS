@@ -3,7 +3,7 @@ RAMSIZE ?= 256M
 ifeq ($(OS),Windows_NT)
 QEMU_ACCEL ?= whpx,kernel-irqchip=off
 else
-QEMU_ACCEL ?= kvm
+QEMU_ACCEL ?= tcg
 endif
 
 QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q35 $(QEMU_FLAGS) \
@@ -19,6 +19,9 @@ QEMU_FLAGS_X86_64_UEFI := -drive if=pflash,format=raw,unit=0,file="emu/OVMF/OVMF
 
 run: prepare_img
 	qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -accel $(QEMU_ACCEL)
+
+cmd:
+	@echo qemu-system-x86_64 $(QEMU_FLAGS_X86_64) -accel $(QEMU_ACCEL)
 
 uefi: prepare_img
 	qemu-system-x86_64 $(QEMU_FLAGS_X86_64_UEFI) -accel $(QEMU_ACCEL)

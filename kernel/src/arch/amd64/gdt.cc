@@ -1,11 +1,14 @@
 #include <arch/amd64/gdt.hh>
 #include <mm/vmm.hh>
+#include <util/async.hh>
+#include <arch/amd64/cpuid.hh>
 
-gdt_entry_t* gdt;
+mutex m;
+extern mutex pmm_m;
 
 extern "C" void gdt_load(gdtr_t* g);
-void arch_gdt_init() {
-	gdt = (gdt_entry_t*)pmm_alloc();
+gdt_entry_t* arch_gdt_init() {
+	gdt_entry_t* gdt = (gdt_entry_t*)pmm_alloc();
 	memset(gdt, 0, 0x1000);
 
 	// Kernel kód (0x08)
@@ -51,9 +54,11 @@ void arch_gdt_init() {
 		(u64) gdt,
 	};
 	gdt_load(&g);
+
+	return gdt;
 }
 
-void arch_gdt_add_tss(tss_t* t) {
+void arch_gdt_add_tss(gdt_entry_t* gdt, tss_t* t) {
 	gdt[5].base1 = (u64)t;
 	gdt[5].base2 = (u64)t >> 16;
 	gdt[5].base3 = (u64)t >> 24;

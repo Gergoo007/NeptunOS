@@ -25,4 +25,5 @@ pstruct tss_t {
 	} io_bm;
 };
 
-void arch_tss_init();
+struct gdt_entry_t;
+void arch_tss_init(gdt_entry_t* gdt);

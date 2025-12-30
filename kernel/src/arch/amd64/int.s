@@ -32,6 +32,8 @@ DECLRISR %f+1,\t
 
 GLOBISR 0, 100
 
+.global sse_state
+
 .section .bss
 .align 16
 sse_state:
@@ -101,6 +103,7 @@ pushall:
 	pop %rcx
 	pop %rbx
 	pop %rax
+	
 	fxrstor sse_state
 
 	# hibakód + vektor

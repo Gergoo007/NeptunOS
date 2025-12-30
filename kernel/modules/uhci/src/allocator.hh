@@ -12,7 +12,7 @@ void uhci_free(void* p);
 template <typename T>
 u32 ulookup(T* ptr) {
 	u64 asd = paging_lookup((u64)ptr);
-	if constexpr (debug) {
+	if constexpr (DBG) {
 		if (asd >> 32)
 			fatal("UHCI: out of 32 bit addresses! %p, %p", asd, ptr);
 		assert(!(asd & 15));

@@ -1,5 +1,5 @@
 #include <arch/amd64/pit.hh>
-#include <arch/amd64/amd64.hh>
+#include <arch/arch.hh>
 #include <arch/amd64/io.hh>
 
 void arch_pit_init() {

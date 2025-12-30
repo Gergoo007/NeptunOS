@@ -43,3 +43,15 @@ void operator delete[](void* ptr, size_t size) noexcept {
 void operator delete[](void* ptr) noexcept {
 	kfree(ptr);
 }
+
+void* operator new(size_t size, std::align_val_t alignment) {
+	return kmalloc_aligned(size, (u32)alignment);
+}
+
+extern "C" void __stack_chk_fail() {
+	fatal("Stack check fail!");
+}
+
+extern "C" void __stack_chk_guard() {
+	fatal("Stack check guard!");
+}
