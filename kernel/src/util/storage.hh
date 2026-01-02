@@ -11,7 +11,7 @@
 static constexpr u64 growfun(u64 cap) {
 	if (cap == 0)
 		return 8;
-	return cap * 2;
+	return cap + 10;
 }
 
 template <typename T>
@@ -125,7 +125,7 @@ struct vector {
 			return;
 		}
 
-		if (!vmm_try_realloc(data, cap * sizeof(T))) {
+		if (!vmm_try_realloc(data, cap * sizeof(T), __FILE__, __LINE__)) {
 			T* newdata = (T*)kmalloc(cap * sizeof(T));
 			for (u32 i = 0; i < size; i++)
 				new (&newdata[i]) T(move<T>(data[i]));
@@ -188,7 +188,7 @@ struct vector {
 		if (size >= capacity)
 			reserve(growfun(capacity));
 		if ((size || capacity) && !data)
-			fatal("Invalid vector state: data is null but size is %lld (cap %p)", size, &capacity);
+			fatal("Invalid vector state: data is null but size is %lld (cap %lld)", size, capacity);
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
 
@@ -302,7 +302,7 @@ struct llist {
 		link_t* prev;
 		bool last = false;
 
-		link_t(link_t* prev, link_t* next, const T& data): next(next), prev(prev), data(data) { report("constructed link @ %p", this); }
+		link_t(link_t* prev, link_t* next, const T& data): next(next), prev(prev), data(data) {  }
 		~link_t() { prev = next = nullptr; }
 	};
 
@@ -337,8 +337,12 @@ struct llist {
 	};
 
 	link_t* first = nullptr;
+	u64 size = 0;
+	mutex m;
 
 	T& push_back(const T& elem) {
+		lockguard yes(m);
+		size++;
 		if (first) {
 			link_t* newl = new link_t(first->prev, first, elem);
 			first->prev->next = newl;
@@ -360,6 +364,8 @@ struct llist {
 	}
 
 	T& push_front(const T& elem) {
+		lockguard yes(m);
+		size++;
 		if (first) {
 			link_t* newfirst = new link_t(first->prev, first, elem);
 			first->prev->next = newfirst;
@@ -377,6 +383,10 @@ struct llist {
 	}
 
 	void remove(link_t& l) {
+		lockguard yes(m);
+		if (!size) fatal("Tried to delete elem from empty list (size 0)");
+		if (!first) fatal("Tried to delete elem from empty list (first null)");
+		size--;
 		if (l.prev)
 			l.prev->next = l.next;
 		if (l.next)
@@ -384,6 +394,9 @@ struct llist {
 
 		if (first == &l)
 			first = l.next;
+
+		if (l.last)
+			l.prev->last = true;
 
 		l.next = nullptr;
 		l.prev = nullptr;
@@ -449,39 +462,9 @@ struct llist {
 		// Különben visszajut a loop a firstre
 		first->prev->next = nullptr;
 		while (l) {
-			auto* next = l->next;
+			link_t* next = l->next;
 			delete l;
 			l = next;
 		}
 	}
 };
-
-// static u64 hash(const string& s) {
-// 	return 0;
-// }
-
-// template <typename K, typename V>
-// struct hashmap {
-// 	u64 size;
-// 	struct entry {
-// 		const K key;
-// 		V value;
-
-// 		entry(const entry& e): key(e.key), value(e.value) {  }
-// 		entry(const K& k, const V& v): key(k), value(v) {  }
-// 	};
-// 	vector<dlinkedlist<entry>> values;
-
-// 	hashmap(): size(HASHMAP_DEFAULT_SIZE), values(size) {  };
-// 	hashmap(u64 s): size(s), values(size) {  }
-
-// 	V& operator[](const K& key) {
-// 		// K& key = const_cast<K&>(key0);
-// 		u64 idx = hash(key) % size;
-// 		for (auto& e : values[idx]) {
-// 			if (e.key == key) return e.value;
-// 		}
-// 		// Value was not found, needs to be appended
-// 		return values[idx].push_back(entry(key, V())).value;
-// 	}
-// };

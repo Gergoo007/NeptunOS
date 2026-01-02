@@ -1,6 +1,7 @@
 #pragma once
 
 #include <types.hh>
+#include <util/async.hh>
 #include <arch/amd64/amd64.hh>
 
 #define DECL_ISR(n) extern "C" interrupt void exc##n(cpu_state_amd64_t* i)
@@ -54,5 +55,7 @@ DECL_ISR(69);
 DECL_ISR(70);
 DECL_ISR(71);
 DECL_ISR(72);
+
+extern atomic<u64> tmr_counter;
 
 void arch_idt_init();

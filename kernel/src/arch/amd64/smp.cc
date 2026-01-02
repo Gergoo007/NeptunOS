@@ -14,6 +14,8 @@ static volatile limine_mp_request smp_req = {
 	.flags = 0,
 };
 
+atomic<int> cpusup = 0;
+
 extern "C"
 void ap_init(limine_mp_info* info) {
 	arch_init(false);

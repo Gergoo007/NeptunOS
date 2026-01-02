@@ -44,6 +44,7 @@ void operator delete[](void* ptr) noexcept {
 	kfree(ptr);
 }
 
+namespace std { enum class align_val_t : unsigned long {}; }
 void* operator new(size_t size, std::align_val_t alignment) {
 	return kmalloc_aligned(size, (u32)alignment);
 }

@@ -11,7 +11,7 @@
 #define kfree(ptr) vmm_free(ptr, __FILE__, __PRETTY_FUNCTION__)
 
 // 16 terabyte-al a HHDM kezdete után
-constexpr u64 vmm_heap_base = 0xffff900000000000;
+constexpr u64 VMM_HEAP_BASE = 0xffff900000000000;
 
 extern u64 vmm_usedmem;
 extern u64 vmm_freemem;

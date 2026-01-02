@@ -9,6 +9,7 @@
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/amd64.hh>
 #include <arch/amd64/cpuid.hh>
+#include <arch/amd64/idt.hh>
 #include <util/storage.hh>
 #include <devmgr/module.hh>
 #include <util/stacktrace.hh>
@@ -22,8 +23,6 @@
 extern "C" noret void khang();
 
 // TODO: int.s -> sse_state nem thread safe
-
-mutex m3;
 
 extern "C" void kmain() {
 	// Korai inicializáció
@@ -66,8 +65,8 @@ extern "C" void kmain() {
 
 	printk("Mem usage:\n");
 	printk(
-		"VMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
-		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2mibs(vmm_freemem + vmm_usedmem)
+		"VMM: %lld KiB free; %lld KiB used; %lld MiB total; num of allocs: %d\n",
+		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2mibs(vmm_freemem + vmm_usedmem), vmm_count_allocs()
 	);
 	printk(
 		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
@@ -79,16 +78,28 @@ extern "C" void kmain() {
 	);
 
 	sched_add_thread([] {
-		while (1) {
-			arch_sleep(100);
-			report("helo from thread!");
-		}
+		report("helo from thread!");
 	});
 
-	while (1) {
-		arch_sleep(100);
-		report("helo from main %d", tmr_counter);
-	}
+	sched_add_thread([] {
+		report("helo from thread! 2");
+	});
+
+	sched_add_thread([] {
+		report("helo from thread! 3");
+		sched_add_thread([] {
+			report("helo from thread! 5");
+		});
+	});
+
+	sched_add_thread([] {
+		report("helo from thread!4");
+	});
+
+	// while (1) {
+	// 	arch_sleep(100);
+	// 	report("helo from main %lld", (u64)tmr_counter);
+	// }
 
 	// vmm_check_all();
 

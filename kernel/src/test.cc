@@ -131,20 +131,29 @@ void test_libk() {
 		assert(dll[3] == 30);
 		assert(dll[4] == 40);
 
-		dll.remove(2);
-
-		assert(dll[0] == 88);
-		assert(dll[1] == 10);
-		assert(dll[2] == 30);
-		assert(dll[3] == 40);
+		dll.remove(0);
+		dll.remove(3);
+		dll.remove(1);
+		
+		assert(dll[0] == 10);
+		assert(dll[1] == 30);
+		assert(dll.size == 2);
 	}
 
 	{
 		auto _ = Test("async");
-		mutex m;
-		m.lock();
-
-		m.unlock();
+		atomic<int> atom = 10;
+		assert(atom == 10);
+		assert(atom++ == 10);
+		assert(++atom == 12);
+		assert(atom-- == 12);
+		assert(--atom == 10);
+		assert(atom + 10 == 20);
+		assert(atom - 10 == 0);
+		atom += 10;
+		assert(atom == 20);
+		atom -= 10;
+		assert(atom == 10);
 	}
 
 	{

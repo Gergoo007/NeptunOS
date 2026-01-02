@@ -2,6 +2,7 @@
 #include <util/ksyms.hh>
 #include <util/string.hh>
 #include <util/mem.hh>
+#include <arch/amd64/paging.hh>
 #include <types.hh>
 
 extern "C" void kmain();
@@ -50,11 +51,15 @@ void demangle(const char* input, char* demangled) {
 	// }
 }
 
-void stacktrace() {
+void stacktrace(u64 rsp, void (*_printk)(const char* fmt, ...)) {
 	stackframe_t* s;
-	asm volatile ("movq %%rbp, %0" : "=r"(s));
 
-	printk("Stacktrace:\n");
+	if (rsp == -1ULL)
+		asm volatile ("movq %%rbp, %0" : "=r"(s));
+	else
+		s = (stackframe_t*)rsp;
+
+	_printk("Stacktrace:\n");
 	// char demangled[128];
 
 	while (s->rip != (u64)kmain && s->rip) {
@@ -66,8 +71,12 @@ void stacktrace() {
 		}
 
 		// demangle(kstrtab + closest.st_name, demangled);
-		printk("[..%08X] %s +%llx\n", (u32)s->rip, kstrtab + closest.st_name, s->rip - closest.st_value);
+		_printk("[..%08X] %s +%llx\n", (u32)s->rip, kstrtab + closest.st_name, s->rip - closest.st_value);
 
 		s = s->rbp;
+		if (paging_lookup((u64)s) == -1ULL) {
+			_printk("Invalid frame address %p, exiting...\n", s);
+			break;
+		}
 	}
 }

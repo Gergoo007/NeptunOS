@@ -1,42 +1,45 @@
 #include <arch/amd64/idt.hh>
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/apic.hh>
+#include <arch/amd64/cpuid.hh>
 #include <mm/vmm.hh>
 #include <gfx/console.hh>
 #include <scheduler/scheduler.hh>
+#include <util/stacktrace.hh>
 
 #define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
-volatile u64 tmr_counter = 0;
+atomic<u64> tmr_counter = 0;
 
 extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 	switch (frame->exc) {
 		case 0xe: {
 			if ((frame->cr2 & 0xffff900000000000) == 0xffff900000000000) {
 				// if (pmm_bm->m.lockvar) {
-				// 	sprintk("Deadlock: PMM bitmap is already locked!");
 				// 	fatal("Deadlock: PMM bitmap is already locked!");
 				// }
 				// this s2M flag cost me a piece of my soul
 				map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc()), KDATA | s2M);
+				arch_sti();
 				return;
 			}
 		}
 		default: {
 			arch_ioapic_disable_all();
-			error("EXCEPTION %02x [%04llx] @ %02x:%p", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip);
+			error("EXCEPTION %02x [%04llx] @ %02x:%p @ CPU %d THR %d", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip, cpuid_xapic_id(), sched_cpus[cpuid_xapic_id()]->data.id);
 			print_reg(frame, rax, rbx);
 			print_reg(frame, rcx, rdx);
 			print_reg(frame, rdi, rsi);
 			print_reg(frame, rdx, cr2);
 			print_reg(frame, rip, rfl);
 			print_reg(frame, rsp, rbp);
-			con_push_color(0xff710627);
+			con_push_color(con_colors[3]);
+			stacktrace(frame->rsp);
+			con_push_color(con_colors[4]);
 			printk("Halting...\n");
 			asm volatile ("movq %0, %%rsp" :: "r"(frame->rsp));
 			asm volatile ("movq %0, %%rbp" :: "r"(frame->rbp));
-			asm volatile ("cli");
-			asm volatile ("hlt");
+			pause();
 
 			break;
 		}
@@ -45,7 +48,12 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 			tmr_counter++;
 			arch_lapic_eoi();
 			if (tmr_counter % 100 == 0)
-				sched_tick(frame);
+				sched_tick(frame, false);
+			break;
+		}
+
+		case 0x41: {
+			sched_tick(frame, true);
 			break;
 		}
 	}
@@ -87,6 +95,7 @@ void arch_idt_init() {
 	idt_add_entry(0x10, (u64)exc16, 0b1111);
 
 	idt_add_entry(0x40, (u64)exc64, 0b1111);
+	idt_add_entry(0x41, (u64)exc65, 0b1111);
 
 	idtr_t i { 0x0fff, idt };
 	asm volatile ("lidt %0" :: "m"(i));

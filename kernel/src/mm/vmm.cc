@@ -4,6 +4,8 @@
 
 #define VMM_DEBUG 1
 
+constexpr u64 VMM_MIN_ALLOC = 16;
+
 struct link_t {
 	link_t* next;
 	link_t* prev;
@@ -166,7 +168,7 @@ static link_t& allocate_into_free(link_t* current, u64 size, u32 additional) {
 
 void* vmm_alloc_nomutex(u64 size, const char* file, u32 line) {
 	if (!size) return nullptr;
-	size = align(size, 16);
+	size = align(size, VMM_MIN_ALLOC);
 
 	// Setup redzones before and after the allocation
 	#ifdef VMM_DEBUG
@@ -174,7 +176,7 @@ void* vmm_alloc_nomutex(u64 size, const char* file, u32 line) {
 	#endif
 
 	link_t* current = vmm_first;
-	u64 address = vmm_heap_base;
+	u64 address = VMM_HEAP_BASE;
 	while (!current->free || current->length <= size) {
 		address += current->length;
 		current = current->next;
@@ -210,24 +212,26 @@ void* vmm_alloc_nomutex(u64 size, const char* file, u32 line) {
 
 void* vmm_alloc(u64 size, const char* file, u32 line) {
 	lockguard g(vmm_m);
-	return vmm_alloc_nomutex(size, file, line);
+	auto p = vmm_alloc_nomutex(size, file, line);
+	// if ((u64)p == 0xffff9000003e8aa0) pause();
+	return p;
 }
 
 void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 	lockguard g(vmm_m);
-	size = align(size, 16);
+	size = align(size, VMM_MIN_ALLOC);
 
 	#ifdef VMM_DEBUG
 	size += VMM_REDZONE_SIZE * 2;
 	#endif
 
-	align = align(align, 16);
+	align = align(align, VMM_MIN_ALLOC);
 
 	if (size > vmm_freemem)
 		fatal("VMM: out of memory!");
 
 	link_t* l = vmm_first;
-	u64 address = vmm_heap_base;
+	u64 address = VMM_HEAP_BASE;
 	while (l) {
 		u64 alignfix = 0;
 		// minimum ekkorának kell lennie a free blokknak az igazítás miatt
@@ -290,9 +294,9 @@ bool vmm_try_realloc(void* ptr, u64 newsize, const char* file, u32 line) {
 	assert(((u64)ptr & 15) == 0);
 
 	link_t* i = vmm_first;
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 	u64 oldsize = 0;
-	newsize = align(newsize, 16);
+	newsize = align(newsize, VMM_MIN_ALLOC);
 
 	#ifdef VMM_DEBUG
 	ptr = (void*) ((u64)ptr - VMM_REDZONE_SIZE);
@@ -305,7 +309,10 @@ bool vmm_try_realloc(void* ptr, u64 newsize, const char* file, u32 line) {
 			if (newsize <= oldsize)
 				goto allocd;
 
-			if (i->next) {
+			if (i->next && i->next->free) {
+				// TODO: Ha kisebb lesz a maradék (i->next) mint MIN_ALLOC + REDZONE_SIZE, akkor
+				// használhatatlan lesz amúgy is, szóval jobban járunk ha beleolvasztjuk a jelenlegibe
+
 				if (i->next->length == newsize - i->length) {
 					i->next->length -= newsize - i->length;
 					i->length += newsize - i->length;
@@ -345,13 +352,15 @@ allocd:
 	#ifdef VMM_DEBUG
 	i->file = file;
 	i->line = line;
+
+	memset((void*)((u64)ptr + i->length - VMM_REDZONE_SIZE), VMM_REDZONE_MAGIC, VMM_REDZONE_SIZE);
 	#endif
 	return true;
 }
 
 u64 vmm_get_size(void* p) {
 	link_t* i = vmm_first;
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 
 	#ifdef VMM_DEBUG
 	p = (void*)((u64)p - VMM_REDZONE_SIZE);
@@ -389,20 +398,24 @@ u64 vmm_dump() {
 	lockguard g(vmm_m);
 	printk("===============================\n");
 	link_t* i = vmm_first;
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 	while (i) {
+		#ifdef VMM_DEBUG
+		printk("[%p] %s: %08llx byte [%s:%d]\n", (void*)addr, i->free ? "FREE" : "USED", i->length, i->file, i->line);
+		#else
 		printk("[%p] %s: %08llx byte\n", (void*)addr, i->free ? "FREE" : "USED", i->length);
+		#endif
 		addr += i->length;
 		i = i->next;
 	}
 	printk("===============================\n");
-	return addr - vmm_heap_base;
+	return addr - VMM_HEAP_BASE;
 }
 
 void vmm_info(void* p) {
 	lockguard g(vmm_m);
 	link_t* i = vmm_first;
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 
 	while (i) {
 		if (addr == (u64)p) {
@@ -424,7 +437,7 @@ void vmm_free_nomutex(void* p, const char* file, const char* function) {
 
 	vmm_check(p);
 
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 	u64 linksize = -1;
 	link_t* i = vmm_first;
 
@@ -472,7 +485,7 @@ void vmm_print_files(void* around) {
 	lockguard g(vmm_m);
 	#ifdef VMM_DEBUG
 		link_t* l = vmm_first;
-		u64 addr = vmm_heap_base;
+		u64 addr = VMM_HEAP_BASE;
 		while (l) {
 			if (addr == (u64)around)
 				break;
@@ -494,7 +507,7 @@ void vmm_check(void* p, bool checkbefore, bool checkafter) {
 	#ifdef VMM_DEBUG
 	p = (void*)((u64)p - VMM_REDZONE_SIZE);
 
-	u64 addr = vmm_heap_base;
+	u64 addr = VMM_HEAP_BASE;
 	u64 linksize = -1;
 	link_t* i = vmm_first,* j = vmm_first;
 
@@ -519,7 +532,11 @@ void vmm_check(void* p, bool checkbefore, bool checkafter) {
 		fatal("Tried to vmm_check a free sector?? %p", p);
 	}
 
-	assert(i->length > VMM_REDZONE_SIZE * 2);
+	if (i->length < VMM_MIN_ALLOC + VMM_REDZONE_SIZE * 2) {
+		con_clear();
+		vmm_dump();
+		fatal("%p is only 0x%llx bytes?? [%s:%d]", p, i->length, i->file, i->line);
+	}
 
 	if (memchk(p, VMM_REDZONE_MAGIC, VMM_REDZONE_SIZE)) {
 		sprintk("Redzone corruption before allocation (%p)!\n\rAllocated @ %s:%d\n\r", (void*)((u64)p+VMM_REDZONE_SIZE), i->file, i->line);
@@ -531,6 +548,7 @@ void vmm_check(void* p, bool checkbefore, bool checkafter) {
 		bool secondredzone = memchk((void*)((u64)p2 + j->length - VMM_REDZONE_SIZE), VMM_REDZONE_MAGIC, VMM_REDZONE_SIZE);
 		if (firstredzone) error("Neighbor's first redzone is corrupted as well!");
 		if (secondredzone) error("Neighbor's second redzone is corrupted as well!");
+		if (!(firstredzone || secondredzone)) error("Neighbor's redzones are intact.");
 		error("=================================");
 		if (checkbefore) vmm_check((void*)((u64)p2 + VMM_REDZONE_SIZE), true, false);
 		pause();
@@ -547,6 +565,7 @@ void vmm_check(void* p, bool checkbefore, bool checkafter) {
 		bool secondredzone = memchk((void*)((u64)p2 + j->length - VMM_REDZONE_SIZE), VMM_REDZONE_MAGIC, VMM_REDZONE_SIZE);
 		if (firstredzone) error("Neighbor's first redzone is corrupted as well!");
 		if (secondredzone) error("Neighbor's second redzone is corrupted as well!");
+		if (!(firstredzone || secondredzone)) error("Neighbor's redzones are intact.");
 		error("=================================");
 		if (checkafter) vmm_check((void*)((u64)p2 + VMM_REDZONE_SIZE), false, true);
 		pause();
@@ -556,7 +575,7 @@ void vmm_check(void* p, bool checkbefore, bool checkafter) {
 
 void vmm_check_all() {
 	link_t* l = vmm_first;
-	u64 a = vmm_heap_base;
+	u64 a = VMM_HEAP_BASE;
 	while (l) {
 		if (!l->free) {
 			vmm_check((void*)(a + VMM_REDZONE_SIZE));

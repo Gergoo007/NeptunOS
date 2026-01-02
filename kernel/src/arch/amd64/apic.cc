@@ -37,7 +37,6 @@ void arch_parse_madt(madt_t* m) {
 				// Ezekkel nem kell foglalkozni
 				if (entry.MADT_LAPIC.apic_id == 0)
 					break;
-				report("lapic id %d acpi id %d online %d cap %d", entry.MADT_LAPIC.apic_id, entry.MADT_LAPIC.acpi_id, entry.MADT_LAPIC.enabled, entry.MADT_LAPIC.capable);
 				cpus.emplace(lapic_t {
 					.apic_id = entry.MADT_LAPIC.apic_id,
 					.acpi_id = entry.MADT_LAPIC.acpi_id,

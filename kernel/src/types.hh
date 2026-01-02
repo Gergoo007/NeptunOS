@@ -31,8 +31,6 @@ typedef u64 uintptr_t;
 
 typedef __SIZE_TYPE__ size_t;
 
-// #define atomic _Atomic
-
 #define UINT64_C(v) v##ULL
 
 #define va_start(v, l)	__builtin_va_start(v,l)
@@ -147,5 +145,5 @@ static inline int oct2bin(u8* str, int size) {
     return n;
 }
 
-extern volatile u64 tmr_counter;
 void sched_setrunning(bool otoole);
+void con_clear();

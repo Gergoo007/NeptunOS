@@ -1,93 +1,126 @@
+#include <util/stacktrace.hh>
 #include <scheduler/scheduler.hh>
 #include <config.hh>
 #include <arch/amd64/cpuid.hh>
 #include <gfx/console.hh>
 
+using task_elem = llist<task>::link_t;
+
+mutex sched_m;
 llist<task> sched_tasks;
-// Current task id; gets incremented on task creation
-u32 sched_current_id = 0;
-task* kerneltask;
 bool sched_running = false;
+task_elem* sched_cpus[16];
 
-// Which process is each hardware thread running currently?
-// idx is xAPIC ID, value is the task itself
-static llist<task>::link_t* cpus[16];
+static u32 pid = 0;
 
-void tesztfunc() {
-	report("helo world from 1st context switch");
-	pause();
+extern "C" u8 sse_state[512];
+
+struct schedguard {
+	schedguard() { sched_setrunning(false); }
+	~schedguard() { sched_setrunning(true); }
+};
+
+void sched_dump() {
+	report("Procs:");
+
+	task_elem* l = sched_tasks.first,* cl;
+	u32 i = 0;
+	u32 current = sched_cpus[cpuid_xapic_id()]->data.id;
+	do {
+		report(
+			"Task #%d: PID %d %s; parent %d; [%d %d]%s",
+			i++, l->data.id, l->data.type == TaskType::PROCESS ? "process" : "thread",
+			l->data.parent, l->prev->data.id, l->next->data.id, l->data.id == current ? " (CURRENT)" : ""
+		);
+		if (l->data.id == current) cl = l;
+		l = l->next;
+	} while (l != sched_tasks.first);
+	(void)cl;
 }
 
-extern "C" char sse_state[512];
-
 void sched_start() {
-	// Preparation: adding the kernel as process #0
-	kerneltask = &sched_tasks.push_back(task {
+	sched_m.lock();
+	schedguard g;
+	sched_tasks.push_front(task {
 		.state = {
 			.cs = 0x08,
 			.ss = 0x10,
 		},
 		.ssestate = (u8*)kmalloc(512),
-		.id = 0,
+		.id = pid++,
 		.parent = 0,
 		.type = TaskType::PROCESS
 	});
 
-	cpus[cpuid_xapic_id()] = sched_tasks.first;
+	sched_cpus[cpuid_xapic_id()] = sched_tasks.first;
+	sched_m.unlock();
 
-	report("halo halo ktask %p", kerneltask);
+	// Manuális interrupt hogy meg legyen a kontextus
+	asm volatile ("int $0x41");
 	sched_running = true;
 }
 
-void sched_add_thread(void (*entry)(void)) {
+void sched_exit_thread() {
+	sched_m.lock();
+	sched_setrunning(false);
+
+	sched_cpus[cpuid_xapic_id()]->data.scheduled_for_deletion = true;
+
+	sched_m.unlock();
+	sched_setrunning(true);
+
+	pause();
+}
+
+void sched_add_thread(void (*entry)()) {
+	sched_m.lock();
+	schedguard g;
 	task newt {
 		.state = {
 			.cs = 0x08,
 			.ss = 0x10,
 		},
 		.ssestate = (u8*)kmalloc(512),
-		.id = 1,
+		.id = pid++,
 		.parent = 0,
 		.type = TaskType::THREAD
 	};
 	newt.state.rip = (u64)entry;
-	newt.state.rsp = (u64)kmalloc(0x10000) + 0x10000;
+	newt.state.rsp = (u64)kmalloc(0x10000) + 0x8000;
 	newt.state.rbp = newt.state.rsp;
-	newt.state.rfl = 0x200;
+	newt.state.rfl = 0x202;
 
-	report("ssestate for %d is %p", newt.id, newt.ssestate);
+	// Thread exit return cím pusholása
+	newt.state.rsp -= 8;
+	*(u64*)newt.state.rsp = (u64)sched_exit_thread;
 
 	sched_tasks.push_back(newt);
+	sched_m.unlock();
 }
 
-void sched_setrunning(bool otoole) {
-	sched_running = otoole;
-}
+void sched_setrunning(bool otoole) { sched_running = otoole; }
 
-// Process state (cpu_state_t* in %rdi) needs to be saved into the interrupted tasks' task_t::state,
-// and then the next task's state needs to be loaded in order to start execution
+void sched_tick(cpu_state_t* state, bool force) {
+	if (!sched_running && !force) return;
+	sched_m.lock();
 
-// =========!!!WARNING!!!=========
-// EVERY KERNEL STATE CHANGE MADE BY THIS FUNCTION MUST BE ACCOUNTED FOR,
-// AS WHEN THIS INTERRUPTS ANOTHER FUNCTION THAT MODIFIES THE SAME STATE,
-// THE KERNEL STATE BECOMES CORRUPTED
-// =========!!!WARNING!!!=========
-void sched_tick(cpu_state_t* state) {
-	if (!sched_running) return;
+	task_elem* ctask = sched_cpus[cpuid_xapic_id()];
 
-	auto*& ctask = cpus[cpuid_xapic_id()];
-
-	// A state másolása a jelenlegi thread kontextusába
-	// ctask->data.state = *state;
-	memcpy(&ctask->data.state, state, sizeof(cpu_state_t));
-
-	// TODO: ez miért korruptál?
-	memcpy(ctask->data.ssestate, sse_state, 512); // FFFF9000003E8300
-	vmm_check(ctask->data.ssestate);
-
-	ctask = ctask->next;
+	if (ctask->data.scheduled_for_deletion) {
+		// Ez a task éppen most járt le, tehát
+		// itt van egy esély a biztonságos kivételre a sched_tasks-ból
+		task_elem* next = ctask->next;
+		sched_tasks.remove(*ctask);
+		sched_cpus[cpuid_xapic_id()] = next;
+	} else {
+		// Nincs megjelölve törlésre
+		memcpy(&ctask->data.state, state, sizeof(cpu_state_t));
+		memcpy(ctask->data.ssestate, sse_state, 512);
+		sched_cpus[cpuid_xapic_id()] = ctask->next;
+	}
 
 	// A következő task kontextusának betöltése
-	memcpy(sse_state, ctask->data.ssestate, 512);
-	arch_cpu_state_load(&ctask->data.state);
+	memcpy(sse_state, sched_cpus[cpuid_xapic_id()]->data.ssestate, 512);
+	sched_m.unlock();
+	arch_cpu_state_load(&sched_cpus[cpuid_xapic_id()]->data.state);
 }

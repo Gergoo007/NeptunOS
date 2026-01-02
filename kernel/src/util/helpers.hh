@@ -15,6 +15,11 @@ template <typename T>
 struct remove_reference<T&&>{ using type = T; };
 
 template <typename T>
+struct remove_ptr			{ using type = T; };
+template <typename T>
+struct remove_ptr<T*>		{ using type = T; };
+
+template <typename T>
 [[nodiscard]] constexpr
 typename remove_reference<T>::type&& move(typename remove_reference<T>::type& input) noexcept {
 	return static_cast<typename remove_reference<T>::type&&>(input);
