@@ -53,7 +53,7 @@ DECLRISR 64, 72
 .extern onInterrupt
 
 pushall:
-	fxsave sse_state
+	fxsave64 sse_state
 
 	push %rax
 	push %rbx
@@ -104,7 +104,7 @@ pushall:
 	pop %rbx
 	pop %rax
 	
-	fxrstor sse_state
+	fxrstor64 sse_state
 
 	# hibakód + vektor
 	add $0x10, %rsp

@@ -42,20 +42,21 @@ const char* usb_get_string(device_t& usbdev, u8 idx) {
 	request->bmRequestType = 0x80;
 	request->bRequest = UsbRequests::GET_DESCRIPTOR;
 	request->wIndex = usbdev.USB.langid;
-	request->wValueH = 3;
 	request->wValueL = idx;
+	request->wValueH = 3;
 	// Először csak a bLength kell
 	request->wLength = 2;
 
-	usb_descriptor_string* string = (usb_descriptor_string*)kmalloc4g(sizeof(usb_descriptor_string));
+	usb_descriptor_string* string = (usb_descriptor_string*)kmalloc4g(256);
 	request->wIndex = usbdev.USB.langid;
 	request->wValueL = idx;
 	request->bmRequestType = 0x80;
 	// Először csak a bLength kell
 	request->wLength = 2;
 	hciint->usb_send(usbdev, 0, request, string);
+
 	request->wLength = string->hdr.bLength;
-	string = (usb_descriptor_string*)krealloc4g(string, string->hdr.bLength);
+	// string = (usb_descriptor_string*)krealloc4g(string, string->hdr.bLength);
 	hciint->usb_send(usbdev, 0, request, string);
 
 	u32 len = (string->hdr.bLength - 2) / 2;
@@ -181,9 +182,9 @@ void usb_init(device_t& usbdev) {
 	usbdev.USB.serial = usb_get_string(usbdev, devdesc->iSerialNumber);
 
 	if (devdesc->iProduct || devdesc->iManufacturer)
-		debug("USB device read: %s %s %s", usbdev.USB.manufacturerName, usbdev.USB.productName, usbdev.USB.serial);
+		report("USB %d device %04x:%04x read: %s %s %s", usbdev.USB.speed, usbdev.USB.vendor, usbdev.USB.product, usbdev.USB.manufacturerName, usbdev.USB.productName, usbdev.USB.serial);
 	else
-		debug("USB device without strings: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
+		report("USB device without strings: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
 
 	// Select config
 	request->bmRequestType = 0x80;
@@ -207,31 +208,13 @@ void usb_init(device_t& usbdev) {
 		hciint->usb_send(usbdev, 0, request, config);
 		
 		// i16 len = config->wTotalLength;
-		const char* s = usb_get_string(usbdev, config->iConfiguration);
+		const char* s = "";
+		if (devdesc->idVendor == 0x0a5c && devdesc->idProduct == 0x217f) {
+			// TODO: Ezen a szaron nem lehet ezt a string descriptort lekérni
+		} else {
+			s = usb_get_string(usbdev, config->iConfiguration);
+		}
 		debug("config \"%s\": %d mA; %d interfaces; ", s, config->bMaxPower * 2, config->bNumInterfaces);
-
-		// len -= config->hdr.bLength;
-		// auto* p = (usb_descriptor_header*)((u64)config + config->hdr.bLength);
-		// u32 intf = 0, endp = 0;
-		// while (len > 0) {
-		// 	if (p->bDescriptorType == UsbDescriptors::INTERFACE) {
-		// 		usb_descriptor_interface* in = (usb_descriptor_interface*)p;
-		// 		debug("Interface %d: %d %d %d [%d]", in->bInterfaceNumber, in->bInterfaceClass, in->bInterfaceSubClass, in->bInterfaceProtocol, in->iInterface);
-		// 	} else if (p->bDescriptorType == UsbDescriptors::ENDPOINT) {
-		// 		usb_descriptor_endpoint* en = (usb_descriptor_endpoint*)p;
-		// 		debug("Endpoint %d: type %d mps %04x; %s", en->endp_num, en->attr_transfer_type, en->mps, en->endp_dir ? "IN" : "OUT");
-		// 	} else if (p->bDescriptorType == UsbDescriptors::HID) {
-		// 		debug("HID descriptor");
-		// 	} else {
-		// 		warn("Unknown descriptor of type: %02x", p->bDescriptorType);
-		// 	}
-
-		// 	assert(p->bLength);
-		// 	len -= p->bLength;
-		// 	p = (usb_descriptor_header*)((u64)p + p->bLength);
-		// }
-
-		// assert(len == 0);
 
 		preferredConfig = config->bConfigurationValue;
 	}

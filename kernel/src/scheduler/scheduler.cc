@@ -11,14 +11,7 @@ llist<task> sched_tasks;
 bool sched_running = false;
 task_elem* sched_cpus[16];
 
-static u32 pid = 0;
-
-extern "C" u8 sse_state[512];
-
-struct schedguard {
-	schedguard() { sched_setrunning(false); }
-	~schedguard() { sched_setrunning(true); }
-};
+u32 sched_current_pid = 0;
 
 void sched_dump() {
 	report("Procs:");
@@ -47,7 +40,7 @@ void sched_start() {
 			.ss = 0x10,
 		},
 		.ssestate = (u8*)kmalloc(512),
-		.id = pid++,
+		.id = sched_current_pid++,
 		.parent = 0,
 		.type = TaskType::PROCESS
 	});
@@ -70,32 +63,6 @@ void sched_exit_thread() {
 	sched_setrunning(true);
 
 	pause();
-}
-
-void sched_add_thread(void (*entry)()) {
-	sched_m.lock();
-	schedguard g;
-	task newt {
-		.state = {
-			.cs = 0x08,
-			.ss = 0x10,
-		},
-		.ssestate = (u8*)kmalloc(512),
-		.id = pid++,
-		.parent = 0,
-		.type = TaskType::THREAD
-	};
-	newt.state.rip = (u64)entry;
-	newt.state.rsp = (u64)kmalloc(0x10000) + 0x8000;
-	newt.state.rbp = newt.state.rsp;
-	newt.state.rfl = 0x202;
-
-	// Thread exit return cím pusholása
-	newt.state.rsp -= 8;
-	*(u64*)newt.state.rsp = (u64)sched_exit_thread;
-
-	sched_tasks.push_back(newt);
-	sched_m.unlock();
 }
 
 void sched_setrunning(bool otoole) { sched_running = otoole; }

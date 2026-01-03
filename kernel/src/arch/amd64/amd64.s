@@ -49,7 +49,7 @@ arch_cpu_state_load:
 	pop %rbx
 	pop %rax
 
-	fxrstor sse_state
+	fxrstor64 sse_state
 
 	# hibakód + vektor
 	add $0x10, %rsp

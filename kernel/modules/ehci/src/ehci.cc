@@ -97,9 +97,9 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 
 	EhciPid datapid = (request->bmRequestType & 0x80) ? EhciPid::IN : EhciPid::OUT;
 	EhciPid statuspid = datapid == EhciPid::OUT ? EhciPid::IN : EhciPid::OUT;
-	u16 size = request->wLength;
-	if (size == 0)
-		statuspid = EhciPid::IN;
+	u16 size = max(request->wLength, usbdev.USB.mps);
+	if (request->wLength == 0) size = 0;
+	if (size == 0) statuspid = EhciPid::IN;
 
 	setup_td->buffers[0] = elookup(request);
 	setup_td->buffers[1] = setup_td->buffers[0] + 0x1000;
@@ -217,7 +217,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	while (status_td->token.sts.raw == 0x80) {
 		if (arch_elapsed(500)) {
 			error("Transaction didn't occur, timeout!");
-			error("Num data stages: %d (%d / %d)", num_data_stages, request->wLength, usbdev.USB.mps);
+			error("Num data stages: %d (%d / %d) size %d mps aligned %d", num_data_stages, request->wLength, usbdev.USB.mps, size, align(size, usbdev.USB.mps));
 			error(
 				"Statuses (setup, data #0, sts): %02x %02x %02x",
 				setup_td->token.sts.raw,

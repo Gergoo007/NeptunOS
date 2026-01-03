@@ -46,6 +46,8 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 
 		case 0x40: {
 			tmr_counter++;
+			if (tmr_counter % VMM_REDZONE_CHECK_PERIOD == 0)
+				vmm_check_all();
 			arch_lapic_eoi();
 			if (tmr_counter % 100 == 0)
 				sched_tick(frame, false);

@@ -87,7 +87,7 @@ constexpr T min(const T& asd1, const U& asd2, const Args&... args) { return min(
 template <typename T>
 constexpr T max(const T& asd1) { return asd1; }
 template <typename T, typename U>
-constexpr T max(const T& asd1, const U& asd2) { return asd1 < asd2 ? asd1 : asd2; }
+constexpr T max(const T& asd1, const U& asd2) { return asd1 > asd2 ? asd1 : asd2; }
 template <typename T, typename U, typename... Args>
 constexpr T max(const T& asd1, const U& asd2, const Args&... args) { return max(max(asd1, asd2), args...); }
 

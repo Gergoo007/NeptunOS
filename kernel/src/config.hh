@@ -8,6 +8,7 @@ constexpr bool DBG = true;
 
 constexpr unsigned long VMM_REDZONE_SIZE = 64;
 constexpr unsigned char VMM_REDZONE_MAGIC = 0xbc;
+constexpr unsigned long long VMM_REDZONE_CHECK_PERIOD = 30; // ms
 
 constexpr bool STACKTRACE_ON_FATAL = true;
 constexpr bool IOAPIC_FIX = true;

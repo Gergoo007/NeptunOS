@@ -24,6 +24,8 @@ extern "C" noret void khang();
 
 // TODO: int.s -> sse_state nem thread safe
 
+namespace std { template <typename _Signature> class function {}; }
+
 extern "C" void kmain() {
 	// Korai inicializáció
 	arch_init(true);
@@ -77,11 +79,15 @@ extern "C" void kmain() {
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
 
-	sched_add_thread([] {
+	int asd = 0;
+
+	sched_add_thread([&asd] {
+		asd++;
 		report("helo from thread!");
 	});
 
-	sched_add_thread([] {
+	sched_add_thread([&asd] {
+		asd++;
 		report("helo from thread! 2");
 	});
 
@@ -95,6 +101,9 @@ extern "C" void kmain() {
 	sched_add_thread([] {
 		report("helo from thread!4");
 	});
+
+	while (asd == 0);
+	report("asd %d", asd);
 
 	// while (1) {
 	// 	arch_sleep(100);
