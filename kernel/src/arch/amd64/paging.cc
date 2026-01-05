@@ -143,9 +143,8 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 }
 
 void check_page(u64 addr, u64 cache) {
-	if (paging_lookup(addr) == (u64)-1) {
+	if (paging_lookup(addr) == (u64)-1)
 		map_page(addr, PHYSICAL(addr), 0b11, cache);
-	}
 }
 
 void check_pages(u64 addr, u64 bytes) {

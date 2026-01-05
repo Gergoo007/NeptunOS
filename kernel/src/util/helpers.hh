@@ -19,6 +19,11 @@ struct remove_ptr			{ using type = T; };
 template <typename T>
 struct remove_ptr<T*>		{ using type = T; };
 
+template <typename T, typename U>
+struct is_same				{ static constexpr bool value = false; };
+template <typename T>
+struct is_same<T, T>		{ static constexpr bool value = true; };
+
 template <typename T>
 [[nodiscard]] constexpr
 typename remove_reference<T>::type&& move(typename remove_reference<T>::type& input) noexcept {

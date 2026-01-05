@@ -22,6 +22,9 @@ static constexpr const char* debug_files[] = {
 	// "ehci.cc",
 	// "usb.cc",
 	// "hub.cc"
+
+	"acpi.cc",
+	"aml.cc"
 };
 
 // Lowest log level that will get printed; 0 is debug, 5 is fatal

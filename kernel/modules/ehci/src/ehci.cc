@@ -318,18 +318,10 @@ extern "C" void mod_main(device_t& dev) {
 	context->addresses.init(kmalloc(16), 128);
 	context->addresses.set(0, true);
 
-	u64 addr = pci_read(dev, PciRegs::BAR0), orig = addr;
-	assert((addr & 1) == 0);
-	addr &= ~0b1111;
+	auto bar = pci_prepare_bar(dev, 0);
+	assert(!bar.io);
 
-	pci_write(dev, PciRegs::BAR0, 0xffffffff);
-	u64 size = (~(pci_read(dev, PciRegs::BAR0) & ~0xf)) + 1;
-	pci_write(dev, PciRegs::BAR0, orig);
-
-	for (u32 i = 0; i < align(size, 0x1000); i += 0x1000)
-		map_page(VIRTUAL(addr) + i, addr + i, 0b11, MCACHE::UC);
-
-	context->mmio = VIRTUAL(addr);
+	context->mmio = (u64)VIRTUAL(bar.addr);
 	context->caplength = *(volatile u8*)context->mmio;
 	if (context->caplength != 0x20)
 		warn("Gyanus CAPLENGTH: %02x", context->caplength);
@@ -337,10 +329,7 @@ extern "C" void mod_main(device_t& dev) {
 	context->hc = &dev;
 	dev.PCI.extra = context;
 
-	u32 pcicmd = pci_read(dev, PciRegs::CMD);
-	pcicmd |= 0b100; // bus master
-	pcicmd |= 0b010; // mem access
-	pci_write(dev, PciRegs::CMD, pcicmd);
+	pci_enable_bus_mastering(dev);
 
 	auto hcsp = EhciRegs::HCSPARAMS.read().HCSPARAMS;
 	auto eecp = EhciRegs::HCCPARAMS.read().HCCPARAMS.extended_caps_ptr;

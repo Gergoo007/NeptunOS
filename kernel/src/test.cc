@@ -82,12 +82,22 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("libk->String");
+		auto _ = Test("string");
 
 		const char constexpr* TESZTSTR = "hello world";
+		const char constexpr* TESZTSTR2 = "hello worldturiip ip";
 		string teszt = TESZTSTR;
 		assert(!strcmp(teszt.data, TESZTSTR));
 		assert(teszt.size == strlen(TESZTSTR));
+
+		teszt += 't';
+		teszt += 'u';
+		teszt += 'r';
+		teszt += 'i';
+
+		teszt += "ip ip";
+
+		assert(!strcmp(teszt.data, TESZTSTR2));
 	}
 
 	{
@@ -159,9 +169,10 @@ void test_libk() {
 	{
 		auto _ = Test("hashmap");
 
-		// hashmap<string, int> hm;
-		// hm["helo"] = 10;
-		// assert(hm["helo"] == 10);
+		hashmap<string, int> hm;
+		assert(hm["helo"] == 0);
+		hm["helo"] = 10;
+		assert(hm["helo"] == 10);
 	}
 }
 

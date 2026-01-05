@@ -8,6 +8,8 @@ u32 num_ksyms;
 char* kstrtab;
 char* kshstrtab;
 
+bool ksyms_been_read = false;
+
 __attribute__((section(".limine_requests"), used))
 static volatile limine_executable_file_request file_req {
 	.id = LIMINE_EXECUTABLE_FILE_REQUEST,
@@ -34,6 +36,8 @@ void ksyms_read() {
 			num_ksyms = shs[i].sh_size / sizeof(Elf64_Sym);
 		}
 	}
+
+	ksyms_been_read = true;
 
 	// for (u32 i = 0; i < num_ksyms; i++)
 	// 	printk("turi ip %s", strtab + ksyms[i].st_name);

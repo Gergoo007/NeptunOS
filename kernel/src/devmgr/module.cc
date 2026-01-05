@@ -114,8 +114,10 @@ u64 modules_link(void* a, u64 size) {
 }
 
 void modules_load(module_t& m) {
-	if (!bm_init)
+	if (!bm_init) {
 		bm.init(kmalloc(8), 64);
+		bm_init = true;
+	}
 
 	// Ehhez a címhez képest lesznek a section-ök elhelyezve
 	u64 modid = bm.find_and_set();

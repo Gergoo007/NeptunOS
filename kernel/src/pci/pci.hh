@@ -99,6 +99,9 @@ punion pci_hdr_t {
 struct pci_register_t {
 	u32 offset;
 	u32 bits;
+
+	constexpr pci_register_t(u8 barnum): offset(0x10 + barnum * 4), bits(32) {  };
+	constexpr pci_register_t(u32 o, u32 b): offset(o), bits(b) {  };
 };
 
 struct PciRegs {
@@ -126,9 +129,16 @@ struct PciRegs {
 	static constexpr pci_register_t MAXLATEN 	= { 0x3f,	8	};
 };
 
+struct pci_bar {
+	u64 addr;
+	bool io;
+};
+
 extern mcfg_t* mcfg;
 
 void pci_init();
 struct device_t;
 u32 pci_read(device_t& dev, pci_register_t reg);
 void pci_write(device_t& dev, pci_register_t reg, u32 data);
+void pci_enable_bus_mastering(device_t& dev);
+pci_bar pci_prepare_bar(device_t& dev, u8 barnum);

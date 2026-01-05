@@ -26,6 +26,8 @@ extern "C" noret void khang();
 
 namespace std { template <typename _Signature> class function {}; }
 
+#include <util/helpers.hh>
+
 extern "C" void kmain() {
 	// Korai inicializáció
 	arch_init(true);
@@ -78,41 +80,6 @@ extern "C" void kmain() {
 		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
-
-	int asd = 0;
-
-	sched_add_thread([&asd] {
-		asd++;
-		report("helo from thread!");
-	});
-
-	sched_add_thread([&asd] {
-		asd++;
-		report("helo from thread! 2");
-	});
-
-	sched_add_thread([] {
-		report("helo from thread! 3");
-		sched_add_thread([] {
-			report("helo from thread! 5");
-		});
-	});
-
-	sched_add_thread([] {
-		report("helo from thread!4");
-	});
-
-	while (asd == 0);
-	report("asd %d", asd);
-
-	// while (1) {
-	// 	arch_sleep(100);
-	// 	report("helo from main %lld", (u64)tmr_counter);
-	// }
-
-	// vmm_check_all();
-
-	printk("End of kmain()\n");
 
 	khang();
 }

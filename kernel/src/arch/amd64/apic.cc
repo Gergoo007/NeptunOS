@@ -13,9 +13,29 @@ u64 lapic_base = 0xfee00000;
 vector<lapic_t> cpus;
 
 // Mind a 16 IRQ-hoz tartozhat egy
-static array<16, u32> redirection_table = {
-	0, 1,  2,  3,  4,  5,  6,  7,
-	8, 9, 10, 11, 12, 13, 14, 15
+struct ioapic_redir {
+	u32 gsi;
+	bool activelow;
+	bool lvltrig;
+};
+
+static array<16, ioapic_redir> redirection_table = {
+	{ 0,  false, false },
+	{ 1,  false, false },
+	{ 2,  false, false },
+	{ 3,  false, false },
+	{ 4,  false, false },
+	{ 5,  false, false },
+	{ 6,  false, false },
+	{ 7,  false, false },
+	{ 8,  false, false },
+	{ 9,  true,  true }, // SCI
+	{ 10, false, false },
+	{ 11, false, false },
+	{ 12, false, false },
+	{ 13, false, false },
+	{ 14, false, false },
+	{ 15, false, false }
 };
 
 u32 lapic_read(const lapic_register_t& reg) {
@@ -53,8 +73,10 @@ void arch_parse_madt(madt_t* m) {
 				break;
 			}
 			case MadtTypes::MADT_OVERRIDE: {
-				redirection_table[entry.MADT_OVERRIDE.irq] =
-					entry.MADT_OVERRIDE.gsi;
+				redirection_table[entry.MADT_OVERRIDE.irq].gsi = entry.MADT_OVERRIDE.gsi;
+				redirection_table[entry.MADT_OVERRIDE.irq].activelow = entry.MADT_OVERRIDE.flags.active_low;
+				redirection_table[entry.MADT_OVERRIDE.irq].lvltrig = entry.MADT_OVERRIDE.flags.lvl_triggered;
+				report("%d -> %d %d %d", entry.MADT_OVERRIDE.irq, entry.MADT_OVERRIDE.gsi, entry.MADT_OVERRIDE.flags.active_low, entry.MADT_OVERRIDE.flags.lvl_triggered);
 				break;
 			}
 			case MadtTypes::MADT_IOAPIC_NMI: {
@@ -119,7 +141,7 @@ void arch_parse_madt(madt_t* m) {
 		}
 	}
 
-	arch_ioapic_initialize_irq(2, 0x40, IoapicDelivmode::FIXED, 1, bspid);
+	arch_ioapic_initialize_irq(2, 0x40, IoapicDelivmode::FIXED, bspid);
 	arch_ioapic_mask_gsi(2, 0);
 
 	report("x2apic id: %d", cpuid_x2apic_id());
@@ -144,29 +166,12 @@ void arch_parse_madt(madt_t* m) {
 static ioapic_t& bestmatch(u32 gsi) {
 	assert(ioapics.size);
 
-	ioapic_t& a = ioapics[0];
-	u32 smallestdiff = gsi - ioapics[0].gsi_base;
-	for (const auto& i : ioapics) {
-		if (a.gsi_base < gsi && gsi - i.gsi_base) {
-			a = i;
-			smallestdiff = gsi - i.gsi_base;
-		}
-	}
-
-	if (smallestdiff > 24) {
-		error("Failed to find GSI's IOAPIC! Closest match's GSI base: %d; searchee: %d", a.gsi_base, gsi);
-	}
-	
-	return a;
+	for (auto& i : ioapics)
+		if (gsi >= i.gsi_base && gsi - i.gsi_base < 24) return i;
+	fatal("No matching IOAPIC found for GSI #%d!", gsi);
 }
 
-void arch_ioapic_assign_vector_gsi(u8 irq, u8 vec) {
-	u32 gsi = redirection_table[irq];
-	u64 entry = vec;
-	bestmatch(gsi).write(ioapic_register_t(gsi), entry);
-}
-
-void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, bool activelow, u8 dest) {
+void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, u8 dest, bool activelow, bool lvl_trig) {
 	ioapic_entry_t e {
 			vector,
 			delivmode,
@@ -174,15 +179,15 @@ void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, b
 			0,
 			activelow,
 			0,
-			0,
+			lvl_trig,
 			1,
 			dest
 	};
 	bestmatch(gsi).write(ioapic_register_t(gsi), e.qword);
 }
 
-void arch_ioapic_initialize_irq(u8 irq, u8 vector, IoapicDelivmode delivmode, bool activelow, u8 dest) {
-	arch_ioapic_initialize_gsi(redirection_table[irq], vector, delivmode, activelow, dest);
+void arch_ioapic_initialize_irq(u8 irq, u8 vector, IoapicDelivmode delivmode, u8 dest) {
+	arch_ioapic_initialize_gsi(redirection_table[irq].gsi, vector, delivmode, dest, redirection_table[irq].activelow, redirection_table[irq].lvltrig);
 }
 
 void arch_ioapic_mask_gsi(u32 gsi, bool mask) {
@@ -194,7 +199,7 @@ void arch_ioapic_mask_gsi(u32 gsi, bool mask) {
 }
 
 void arch_ioapic_mask_irq(u8 irq, bool mask) {
-	arch_ioapic_mask_gsi(redirection_table[irq], mask);
+	arch_ioapic_mask_gsi(redirection_table[irq].gsi, mask);
 }
 
 void arch_lapic_eoi() {

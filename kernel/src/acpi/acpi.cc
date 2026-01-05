@@ -1,10 +1,13 @@
 #include <acpi/acpi.hh>
+#include <acpi/aml.hh>
 #include <arch/limine.hh>
 #include <util/storage.hh>
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/apic.hh>
 #include <pci/pci.hh>
+
+#include <arch/amd64/io.hh>
 
 __attribute__((section(".limine_requests"), used))
 static volatile struct limine_rsdp_request rsdp_req = {
@@ -108,15 +111,42 @@ void acpi_init() {
 
 	for (sdt_t* i : tables) {
 		switch (i->sign) {
-			case AcpiSignatures::MCFG: {
+			case AcpiSignatures::MCFG:
 				mcfg = (mcfg_t*)i;
 				break;
-			}
-
-			case AcpiSignatures::APIC: {
+			case AcpiSignatures::APIC:
 				arch_parse_madt((madt_t*)i);
 				break;
-			}
+		}
+	}
+
+	for (sdt_t* i : tables) {
+		switch (i->sign) {
+			case AcpiSignatures::FADT:
+				auto* fadt = (fadt_t*)i;
+				sdt_t* dsdt;
+				// 4 GiB felett van az FACS? Ha igen, akkor az X_* mezőket kell hazsnálni
+				if ((u64)PHYSICAL(fadt) >> 32) {
+					dsdt = (sdt_t*)fadt->x_dsdt;
+				} else {
+					dsdt = (sdt_t*)(u64)fadt->dsdt;
+				}
+				error("dsdt @ %p; enabling acpi", dsdt);
+				// arch_ioapic_initialize_irq(fadt->sci_int, 0x42, IoapicDelivmode::FIXED, 0);
+				// arch_ioapic_mask_irq(fadt->sci_int, 0);
+				// error("%d %d %d", fadt->acpi_enable, fadt->acpi_disable, inb(fadt->smi_cmd_port));
+				// error("turi %d", inw(fadt->pm1a_ctl_blk) & 1);
+				// outb(fadt->smi_cmd_port, fadt->acpi_enable);
+				// error("%d %d %d", fadt->acpi_enable, fadt->acpi_disable, inb(fadt->smi_cmd_port));
+				
+				// error("turi %d", inw(fadt->pm1a_ctl_blk) & 1);
+
+				sprintk("\n\r");
+				dsdt = VIRTUAL(dsdt);
+				check_page((u64)dsdt, MCACHE::WB);
+				check_pages((u64)dsdt + 0x1000, dsdt->length);
+				acpi_parse_aml(dsdt);
+				break;
 		}
 	}
 }

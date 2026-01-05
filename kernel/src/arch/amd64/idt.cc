@@ -26,7 +26,7 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 		}
 		default: {
 			arch_ioapic_disable_all();
-			error("EXCEPTION %02x [%04llx] @ %02x:%p @ CPU %d THR %d", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip, cpuid_xapic_id(), sched_cpus[cpuid_xapic_id()]->data.id);
+			error("EXCEPTION %02x [%04llx] @ %02x:%p @ CPU %d THR %d", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip, cpuid_xapic_id(), sched_cpus[cpuid_xapic_id()] ? sched_cpus[cpuid_xapic_id()]->data.id : -1);
 			print_reg(frame, rax, rbx);
 			print_reg(frame, rcx, rdx);
 			print_reg(frame, rdi, rsi);
@@ -56,6 +56,12 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 
 		case 0x41: {
 			sched_tick(frame, true);
+			break;
+		}
+
+		case 0x42: {
+			error("SMI event!");
+			arch_lapic_eoi();
 			break;
 		}
 	}
@@ -98,6 +104,7 @@ void arch_idt_init() {
 
 	idt_add_entry(0x40, (u64)exc64, 0b1111);
 	idt_add_entry(0x41, (u64)exc65, 0b1111);
+	idt_add_entry(0x42, (u64)exc66, 0b1111);
 
 	idtr_t i { 0x0fff, idt };
 	asm volatile ("lidt %0" :: "m"(i));

@@ -8,10 +8,12 @@ struct AcpiSignatures {
 	static constexpr u32 MCFG = 'GFCM';
 	static constexpr u32 APIC = 'CIPA';
 	static constexpr u32 FADT = 'PCAF';
+	static constexpr u32 DSDT = 'TDSD';
 #else
 	static constexpr u32 MCFG = 'MCFG';
 	static constexpr u32 APIC = 'APIC';
 	static constexpr u32 FADT = 'FACP';
+	static constexpr u32 DSDT = 'DSDT';
 #endif
 };
 

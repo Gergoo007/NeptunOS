@@ -32,6 +32,7 @@ void sched_dump() {
 }
 
 void sched_start() {
+	return;
 	sched_m.lock();
 	schedguard g;
 	sched_tasks.push_front(task {

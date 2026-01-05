@@ -149,3 +149,42 @@ void pci_init() {
 		}
 	}
 }
+
+void pci_enable_bus_mastering(device_t& dev) {
+	u32 pcicmd = pci_read(dev, PciRegs::CMD);
+	pcicmd |= 0b100; // bus master
+	pcicmd |= 0b010; // mem access
+	pcicmd |= 0b001; // io access
+	pci_write(dev, PciRegs::CMD, pcicmd);
+}
+
+pci_bar pci_prepare_bar(device_t& dev, u8 barnum) {
+	auto barreg = pci_register_t(barnum);
+	u64 addr = pci_read(dev, barreg), orig = addr;
+	pci_bar ret;
+	ret.io = addr & 1;
+	u8 type = (addr >> 1) & 0b11;
+	bool prefetchable = addr & (1 << 3);
+	addr &= ~0b1111;
+	if (ret.io) {
+		ret.addr = addr;
+	} else {
+		pci_write(dev, barreg, 0xffffffff);
+		u64 size = (~(pci_read(dev, barreg) & ~0xf)) + 1;
+		pci_write(dev, barreg, orig);
+
+		if (type == 2) {
+			if (barnum == 5) fatal("BAR5 is 64 bit? Device %04x:%04x", dev.PCI.vendor, dev.PCI.product);
+			u64 addr2 = pci_read(dev, pci_register_t(barnum + 1));
+			addr2 &= ~0b1111ULL;
+			addr |= (addr2 << 32);
+		}
+
+		for (u32 i = 0; i < align(size, 0x1000); i += 0x1000)
+			map_page(VIRTUAL(addr) + i, addr + i, 0b11, prefetchable ? MCACHE::WT : MCACHE::UC);
+
+		ret.addr = VIRTUAL(addr);
+	}
+
+	return ret;
+}

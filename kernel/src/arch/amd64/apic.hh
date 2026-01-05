@@ -193,8 +193,8 @@ struct LapicRegs {
 extern vector<lapic_t> cpus;
 
 void arch_parse_madt(madt_t* m);
-void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, bool activelow, u8 dest);
-void arch_ioapic_initialize_irq(u8 irq, u8 vector, IoapicDelivmode delivmode, bool activelow, u8 dest);
+void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, u8 dest, bool activelow, bool lvl_trig = false);
+void arch_ioapic_initialize_irq(u8 irq, u8 vector, IoapicDelivmode delivmode, u8 dest);
 void arch_ioapic_mask_gsi(u32 gsi, bool mask);
 void arch_ioapic_mask_irq(u8 irq, bool mask);
 void arch_ioapic_disable_all();

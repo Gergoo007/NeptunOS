@@ -78,7 +78,6 @@ struct vector {
 
 	vector(const vector& o) {
 		reserve(o.capacity);
-
 		size = o.size;
 
 		for (u64 i = 0; i < o.size; i++)
@@ -122,6 +121,7 @@ struct vector {
 
 		if (!data && cap) {
 			data = (T*)kmalloc(cap * sizeof(T));
+			capacity = cap;
 			return;
 		}
 
@@ -170,11 +170,18 @@ struct vector {
 		return true;
 	}
 
-	// T& push_back(T item) {
-	// 	if (size >= capacity)
-	// 		reserve(growfun(capacity));
-	// 	return *(new (&data[size++]) T(item));
-	// }
+	vector& operator+=(T c) {
+		reserve(size + 1);
+		data[size++] = c;
+		return *this;
+	}
+
+	T& push_back(const T& item) {
+		if (size >= capacity)
+			reserve(growfun(capacity));
+		// return *(new (&data[size++]) T(item));
+		return *(new (&data[size++]) T(item));
+	}
 
 	T& push_back(T&& item) {
 		if (size >= capacity)
@@ -192,15 +199,48 @@ struct vector {
 		return *(new (&data[size++]) T(forward<Args>(args)...));
 	}
 
+	void resize(u64 to) {
+		reserve(to);
+		if (to < size) {
+			while (size != to) {
+				data[--size].~T();
+			}
+		} else if (to > size) {
+			while (size != to) {
+				new (&data[size++]) T();
+			}
+		}
+	}
+
+	T& pop() {
+		if (!size) fatal("Tried to pop an empty stack!");
+		return data[--size];
+	}
+
 	iter begin() const { return iter(data); }
 	iter end() const { return iter(data + size); }
 };
 
 // a size-ba NINCS bele számítva a null terminator
 struct string : vector<char> {
+	// Ez mi a faszért kell?
+	using vector<char>::operator+=;
+
+	string() = default;
+	
 	string(const char* str): vector<char>(strlen(str)+1) {
 		size = strlen(str);
 		memcpy((void*)data, (void*)str, size+1);
+		data[size] = 0;
+	}
+
+	string& operator+=(const char* s) {
+		u64 len = strlen(s);
+		reserve(size + len);
+		memcpy((void*)&data[size], (void*)s, len);
+		size += len;
+		data[size] = 0;
+		return *this;
 	}
 
 	char* c_str() { return (char*)data; }
@@ -460,11 +500,89 @@ struct llist {
 	~llist() {
 		link_t* l = first;
 		// Különben visszajut a loop a firstre
-		first->prev->next = nullptr;
+		if (first)
+			first->prev->next = nullptr;
 		while (l) {
 			link_t* next = l->next;
 			delete l;
 			l = next;
+		}
+	}
+};
+
+constexpr u128 pow(u128 a, u128 b) {
+	u128 num = 1;
+	while (b--)
+		num *= a;
+	return num;
+}
+
+constexpr u64 hash(u64 key, u64 size) { return key % size; }
+constexpr u32 valueperchar = 53;
+constexpr u64 hash(const char* val, u64 size) {
+	u64 sum = *(val++);
+	u64 i = 1;
+	while (*val) {
+		sum += pow(valueperchar, i++) * (*val);
+		val++;
+	}
+	return sum % size;
+}
+constexpr u64 hash(const string& val, u64 size) {
+	u64 sum = 0;
+	for (u64 i = 0; i < val.size; i++)
+		sum += pow(valueperchar, i) * val[i];
+	return sum % size;
+}
+
+template <typename K, typename V>
+struct hashmap {
+	struct pair_t { K key; V value; };
+
+	vector<llist<pair_t>> entries;
+	static constexpr u32 defsize = 1024;
+	u32 size;
+
+	hashmap(): entries(defsize), size(defsize) { entries.resize(size); }
+	hashmap(u64 s): entries(s), size(s) { entries.resize(size); }
+
+	// Amikor a kulcs move-olható
+	V& operator[](K&& key) {
+		auto& bucket = entries[hash(key, size)];
+		if (!bucket.size) {
+			// Még nincs ilyen elem, be kell szúrni egy alapértelmezett
+			// értéket majd visszaadani egy utalást rá
+			return bucket.push_front(pair_t {
+				move<K>(key),
+				V()
+			}).value;
+		} else {
+			// Már van ilyen elem, csak meg kell találni a bucketban
+			for (auto& e : bucket) {
+				if (e.key == key)
+					return e.value;
+			}
+			fatal("Nincs ilyen elem!");
+		}
+	}
+
+	// Amikor a kulcs nem move-olható
+	V& operator[](const K& key) {
+		auto& bucket = entries[hash(key, size)];
+		if (!bucket.size) {
+			// Még nincs ilyen elem, be kell szúrni egy alapértelmezett
+			// értéket majd visszaadani egy utalást rá
+			return bucket.push_front(pair_t {
+				key,
+				V()
+			}).value;
+		} else {
+			// Már van ilyen elem, csak meg kell találni a bucketban
+			for (auto& e : bucket) {
+				if (e.key == key)
+					return e.value;
+			}
+			fatal("Nincs ilyen elem!");
 		}
 	}
 };
