@@ -61,7 +61,7 @@ typedef __SIZE_TYPE__ size_t;
 #define noret __attribute__((noreturn))
 #define packed __attribute__((packed))
 #define interrupt __attribute__((interrupt))
-#define aligned(x) __attribute__((aligned(x)))
+#define aligned(x, a) ((((u64)(x)) % ((u64)(a))) == 0)
 
 #define pstruct struct packed
 #define punion union packed
@@ -82,6 +82,10 @@ template <typename T, typename U>
 constexpr T min(const T& asd1, const U& asd2) { return asd1 < asd2 ? asd1 : asd2; }
 template <typename T, typename U, typename... Args>
 constexpr T min(const T& asd1, const U& asd2, const Args&... args) { return min(min(asd1, asd2), args...); }
+
+static_assert(min(10, 20, 30) == 10);
+static_assert(min(30, 20, 10) == 10);
+static_assert(min(30, 10, 20) == 10);
 
 // #define max(a, b) ((a) > (b) ? (a) : (b))
 template <typename T>
@@ -147,3 +151,11 @@ static inline int oct2bin(u8* str, int size) {
 
 void sched_setrunning(bool otoole);
 void con_clear();
+
+// Count leading zeroes
+#define clz(x) __builtin_clz(x)
+// Count trailing zeroes
+#define ctz(x) __builtin_ctz(x)
+// Population count
+#define popcount(x) __builtin_popcount(x)
+#define parity(x) __builtin_parity(x)

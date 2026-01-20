@@ -3,6 +3,7 @@
 #include <util/storage.hh>
 #include <util/smartptrs.hh>
 #include <util/async.hh>
+#include <util/variant.hh>
 #include <mm/pmm4g.hh>
 #include <arch/amd64/paging.hh>
 
@@ -28,7 +29,7 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("libk->Vector");
+		auto _ = Test("vector");
 
 		vector<u32> vec;
 		vec.emplace(20);
@@ -101,7 +102,13 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("libk->Variant");
+		auto _ = Test("variant");
+		variant<u32, char*, string> asd;
+		asd.emplace<string>("turi");
+		assert(asd.get<string>() == string("turi"));
+		asd.destroy();
+		asd.emplace<u32>(10);
+		assert(asd.get<u32>() == 10);
 	}
 
 	{

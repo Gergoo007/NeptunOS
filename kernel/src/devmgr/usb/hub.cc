@@ -17,7 +17,7 @@ UsbSpeed usb_hub_send_reset(device_t& hub, u8 port) {
 	setfeat->wValue = 4; // PORT_RESET
 	setfeat->wLength = 0;
 
-	auto hciint = ((usb_hci_interface_t*)(hub.USB.hci->PCI.extra));
+	auto hciint = ((usb_hci_interface_t*)(hub.kinds.get<device_t_USB>().hci->extra));
 	hciint->usb_send(hub, 0, setfeat, nullptr);
 
 	arch_sleep(50, true);
@@ -54,9 +54,9 @@ UsbSpeed usb_hub_send_reset(device_t& hub, u8 port) {
 }
 
 void usb_hub_init(device_t &usbdev) {
-	debug("Initializing USB Hub with progif %02x...", usbdev.USB.progif);
+	debug("Initializing USB Hub with progif %02x...", usbdev.kinds.get<device_t_USB>().progif);
 
-	auto hciint = ((usb_hci_interface_t*)(usbdev.USB.hci->PCI.extra));
+	auto hciint = ((usb_hci_interface_t*)(usbdev.kinds.get<device_t_USB>().hci->extra));
 	usb_request* r = (usb_request*)kmalloc4g(sizeof(usb_request));
 	r->bmRequestType = 0b10100000;
 	r->bRequest = UsbRequests::GET_DESCRIPTOR;

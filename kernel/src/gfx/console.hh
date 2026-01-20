@@ -40,6 +40,7 @@ extern u8 con_glyphw, con_glyphh;
 extern u32 con_cx, con_cy;
 extern u32 con_num_glyphs;
 extern u32 con_color_fg, con_color_bg;
+extern u8 con_inited;
 
 void con_init(void* psf);
 void con_cputc(const char c);

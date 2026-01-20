@@ -21,8 +21,8 @@ constexpr unsigned int SCHED_MAX_PROCESSES = 1024;
 static constexpr const char* debug_files[] = {
 	// "ehci.cc",
 	// "usb.cc",
-	// "hub.cc"
-
+	// "hub.cc",
+	
 	"acpi.cc",
 	"aml.cc"
 };

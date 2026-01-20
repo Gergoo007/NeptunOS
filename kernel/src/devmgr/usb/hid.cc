@@ -2,7 +2,7 @@
 #include <mm/pmm4g.hh>
 
 void usb_hid_init(device_t& usbdev) {
-	if (usbdev.USB.subclass == 0x01)
+	if (usbdev.kinds.get<device_t_USB>().subclass == 0x01)
 		warn("This USB HID supports the Boot protocol!");
 
 	usb_request* r = (usb_request*)kmalloc4g(sizeof(usb_request));

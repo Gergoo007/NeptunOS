@@ -22,11 +22,10 @@
 
 extern "C" noret void khang();
 
-// TODO: int.s -> sse_state nem thread safe
-
-namespace std { template <typename _Signature> class function {}; }
-
-#include <util/helpers.hh>
+// TODO: !!FONTOS!! A KERNEL LEGYEN 2 GIB-EN BELÜL, EZÁLTAL LEHESSEN HASZNÁLNI AZ -mcmodel=kernel-T, MERT MOST TELE VAN MINDEN MOVABS-AL
+// TODO: ahci vezérlő && port reset
+// TODO: device_t::subsys redundáns mivel a variant::active ugyanezt mutatja (már kurvára nincs kedvem revampolni, pedig ide az kell)
+// TODO: msd_read optimalizáció
 
 extern "C" void kmain() {
 	// Korai inicializáció
@@ -80,6 +79,12 @@ extern "C" void kmain() {
 		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
+
+	// auto a = mib2bytes(32);
+	// void* p = kmalloc(mib2bytes(32));
+	// arch_start_timer();
+	// memset(p, 0x12, a);
+	// report("memset perf: %lld ms for 32 mibs", arch_ms_passed());
 
 	khang();
 }

@@ -4,35 +4,6 @@
 
 page_table_t* pml4 = nullptr;
 
-u64 paging_lookup(u64 virt) {
-	if (!pml4) {
-		asm volatile ("movq %%cr3, %0" : "=a"(pml4));
-		pml4 = VIRTUAL(pml4);
-	}
-
-	if (!(pml4->entries[ADDR_PML4I(virt)].flags & 1))
-		return -1;
-	page_table_t* pdp = (page_table_t*)VIRTUAL(pml4->entries[ADDR_PML4I(virt)].addr & ~0x0fff);
-	if (!(pdp->entries[ADDR_PDPI(virt)].flags & 1))
-		return -1;
-	page_table_t* pd = (page_table_t*)VIRTUAL(pdp->entries[ADDR_PDPI(virt)].addr & ~0x0fff);
-	if (!(pd->entries[ADDR_PDI(virt)].flags & 1))
-		return -1;
-
-	if (pdp->entries[ADDR_PDPI(virt)].flags & HUGE) {
-		return (u64)pd + (virt & ((1 << 30)-1));
-	} else {
-		page_table_t* pt = (page_table_t*)VIRTUAL(pd->entries[ADDR_PDI(virt)].addr & ~0x0fff);
-		if (pd->entries[ADDR_PDI(virt)].flags & HUGE) {
-			return PHYSICAL((u64)pt + (virt & 0x1fffff));
-		} else {
-			if (!(pt->entries[ADDR_PTI(virt)].flags & 1))
-				return -1;
-			return (pt->entries[ADDR_PTI(virt)].addr & ~0x0fff) + (virt & 0x0fff);
-		}
-	}
-}
-
 void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 	if (!pml4) {
 		asm volatile ("movq %%cr3, %0" : "=a"(pml4));

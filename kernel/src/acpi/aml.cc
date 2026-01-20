@@ -96,6 +96,8 @@ string scopetext(AmlOpCode*& code) {
 }
 
 void acpi_parse_aml(sdt_t* table) {
+	return;
+
 	AmlOpCode* op = (AmlOpCode*)(table + 1);
 	AmlOpCode* end = (AmlOpCode*)table + table->length;
 	vector<string> scope;
@@ -109,6 +111,16 @@ void acpi_parse_aml(sdt_t* table) {
 				report("s is %s", s.c_str());
 				break;
 			}
+			case AmlOpCode::ExtOpPrefix:
+				op++;
+				switch (*op) {
+					case AmlOpCode::OpRegionOp: {
+						
+						break;
+					}
+					default:
+						fatal("Unknown AML EXT opcode: %02x %02x <%02x> %02x %02x", *(op - 2), *(op - 1), *op, *(op + 1), *(op + 2));
+				}
 			default:
 				fatal("Unknown AML opcode: %02x %02x <%02x> %02x %02x", *(op - 2), *(op - 1), *op, *(op + 1), *(op + 2));
 		}

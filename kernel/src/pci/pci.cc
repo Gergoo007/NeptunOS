@@ -89,8 +89,8 @@ void pci_write(u8 bus, u8 slot, u8 func, pci_register_t reg, u32 data) {
 	pci_write32(bus, slot, func, realoffset, new_value);
 }
 
-u32 pci_read(device_t& dev, pci_register_t reg) { return pci_read(dev.PCI.bus, dev.PCI.dev, dev.PCI.fun, reg); }
-void pci_write(device_t& dev, pci_register_t reg, u32 data) { pci_write(dev.PCI.bus, dev.PCI.dev, dev.PCI.fun, reg, data); }
+u32 pci_read(device_t& dev, pci_register_t reg) { return pci_read(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg); }
+void pci_write(device_t& dev, pci_register_t reg, u32 data) { pci_write(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg, data); }
 
 void check_bus(u8 bus) {
 	for (u32 j = 0; j < 32; j++) {
@@ -101,18 +101,18 @@ void check_bus(u8 bus) {
 			u32 hdrt = pci_read(bus, j, i, PciRegs::HDRTYPE);
 		
 			devmgr_add_device(device_t {
+				.extra = nullptr,
 				.subsys = DevmgrSubsys::PCI,
-				.PCI {
+				.kinds = devunion_t(true, device_t_PCI {
 					.vendor = (u16)pci_read(bus, j, i, PciRegs::VENDOR),
 					.product = (u16)pci_read(bus, j, i, PciRegs::PRODUCT),
-					.extra = nullptr,
 					.class_ = (u8)pci_read(bus, j, i, PciRegs::CLASS),
 					.subclass = (u8)pci_read(bus, j, i, PciRegs::SUBCLASS),
 					.progif = (u8)pci_read(bus, j, i, PciRegs::PROGIF),
 					.bus = bus,
 					.dev = (u8)j,
 					.fun = i,
-				}
+				})
 			});
 
 			if ((hdrt & 3) == 1) {
@@ -174,7 +174,7 @@ pci_bar pci_prepare_bar(device_t& dev, u8 barnum) {
 		pci_write(dev, barreg, orig);
 
 		if (type == 2) {
-			if (barnum == 5) fatal("BAR5 is 64 bit? Device %04x:%04x", dev.PCI.vendor, dev.PCI.product);
+			if (barnum == 5) fatal("BAR5 is 64 bit? Device %04x:%04x", dev.kinds.get<device_t_PCI>().vendor, dev.kinds.get<device_t_PCI>().product);
 			u64 addr2 = pci_read(dev, pci_register_t(barnum + 1));
 			addr2 &= ~0b1111ULL;
 			addr |= (addr2 << 32);

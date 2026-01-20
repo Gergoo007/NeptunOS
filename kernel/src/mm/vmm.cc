@@ -1,6 +1,7 @@
 #include <mm/vmm.hh>
 #include <cppcompat.hh>
 #include <util/async.hh>
+#include <gfx/console.hh>
 
 #define VMM_DEBUG 1
 
@@ -140,6 +141,7 @@ void vmm_merge(link_t* l) {
 
 // Kisajátít egy free blokkot, és létrehoz egy újat ha maradt még az eredetiből
 static link_t& allocate_into_free(link_t* current, u64 size, u32 additional) {
+	assert(current->free);
 	current->free = false;
 	u64 rem = current->length - size - additional;
 	
@@ -222,52 +224,81 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 	size = align(size, VMM_MIN_ALLOC);
 
 	#ifdef VMM_DEBUG
+	constexpr u64 rzcorr = VMM_REDZONE_SIZE;
 	size += VMM_REDZONE_SIZE * 2;
+	#else
+	constexpr u64 rzcorr = 0;
 	#endif
 
-	align = align(align, VMM_MIN_ALLOC);
-
-	if (size > vmm_freemem)
-		fatal("VMM: out of memory!");
-
-	link_t* l = vmm_first;
 	u64 address = VMM_HEAP_BASE;
+	link_t* l = vmm_first;
 	while (l) {
-		u64 alignfix = 0;
-		// minimum ekkorának kell lennie a free blokknak az igazítás miatt
-		if (address & (align-1))
-			alignfix = align - (address & (align-1));
+		if (!l->free) goto cont;
+		if (l->length < size) goto cont;
 
-		u64 minsize = size + alignfix;
-		if (l->free && l->length >= minsize) {
-			// Itt (lehet hogy) kell egy free blokk, aztán
-			// kell egy used, aztán (lehet hogy) kell még egy free
-			if (l->length > minsize && alignfix) {
-				// Kell egy free blokk először
-				link_t* freelink = create_link();
-				if (l->prev)
-					l->prev->next = freelink;
-				freelink->prev = l->prev;
-				l->prev = freelink;
-				freelink->next = l;
+		if (aligned(address + rzcorr, align)) {
+			allocate_into_free(l, size, 0);
+			l->file = file;
+			l->line = line;
 
-				freelink->free = true;
-				freelink->length = alignfix;
-			}
-			address += alignfix;
+			break;
+		} else if (l->length > size) {
+			u64 alignfix = align(address + rzcorr, align) - (address + rzcorr);
+			assert(alignfix);
 
-			// Innentől mehet a normális alloc procedúra
-			// az alignfix-et is le kell vonni, külön a size-tól
-			auto link = allocate_into_free(l, size, alignfix);
-			(void)link;
+			if (l->length < size + alignfix) goto cont;
+
+			// A VMM lánclistának nagyjából így kell átváltoznia:
+			// ... l ...  ->  ... alignfixl l remainingl ...
+
+			link_t* alignfixl = create_link();
+			alignfixl->free = true;
+			alignfixl->length = alignfix;
+			l->length -= alignfix;
+			assert(aligned(alignfixl->length, 16));
+
 			#ifdef VMM_DEBUG
-			link.file = file;
-			link.line = line;
+			alignfixl->file = __FILE__;
+			alignfixl->line = __LINE__;
 			#endif
+
+			if (l->prev)
+				l->prev->next = alignfixl;
+			alignfixl->prev = l->prev;
+			alignfixl->next = l;
+			l->prev = alignfixl;
+
+			i64 remaining = l->length - size;
+			assert(remaining > 0);
+			l->length -= remaining;
+			l->free = false;
+			#ifdef VMM_DEBUG
+			l->file = file;
+			l->line = line;
+			#endif
+			if (remaining) {
+				// remainingl beillesztése, mivel ide kell
+				link_t* remainingl = create_link();
+				#ifdef VMM_DEBUG
+				remainingl->file = __FILE__;
+				remainingl->line = __LINE__;
+				#endif
+				remainingl->free = true;
+				remainingl->length = remaining;
+				assert(aligned(remainingl->length, 16));
+
+				if (l->next)
+					l->next->prev = remainingl;
+				remainingl->next = l->next;
+				l->next = remainingl;
+				remainingl->prev = l;
+			}
+
+			address += alignfix;
 
 			break;
 		}
-
+cont:
 		address += l->length;
 		l = l->next;
 	}
@@ -401,7 +432,7 @@ u64 vmm_dump() {
 	u64 addr = VMM_HEAP_BASE;
 	while (i) {
 		#ifdef VMM_DEBUG
-		printk("[%p] %s: %08llx byte [%s:%d]\n", (void*)addr, i->free ? "FREE" : "USED", i->length, i->file, i->line);
+		printk("[%p] %s: %08llx byte [%s:%d]\n", (void*)(addr + VMM_REDZONE_SIZE), i->free ? "FREE" : "USED", i->length, i->file, i->line);
 		#else
 		printk("[%p] %s: %08llx byte\n", (void*)addr, i->free ? "FREE" : "USED", i->length);
 		#endif

@@ -81,7 +81,7 @@ static u32 elookup(T* turi) {
 // Minden kernel interfész procedúrának BE KELL EZT ÁLLÍTANIA!
 ehci_internal* context;
 static void ehci_update_context(device_t& hc) {
-	context = (ehci_internal*)hc.PCI.extra;
+	context = (ehci_internal*)hc.extra;
 }
 
 static void insert_qh(ehci_qh* qh) {
@@ -91,13 +91,13 @@ static void insert_qh(ehci_qh* qh) {
 }
 
 void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
-	ehci_update_context(*usbdev.USB.hci);
+	ehci_update_context(*usbdev.kinds.get<device_t_USB>().hci);
 	volatile ehci_qtd* setup_td = ehci_alloc_qtd();
 	volatile ehci_qtd* status_td = ehci_alloc_qtd();
 
 	EhciPid datapid = (request->bmRequestType & 0x80) ? EhciPid::IN : EhciPid::OUT;
 	EhciPid statuspid = datapid == EhciPid::OUT ? EhciPid::IN : EhciPid::OUT;
-	u16 size = max(request->wLength, usbdev.USB.mps);
+	u16 size = max(request->wLength, usbdev.kinds.get<device_t_USB>().mps);
 	if (request->wLength == 0) size = 0;
 	if (size == 0) statuspid = EhciPid::IN;
 
@@ -115,7 +115,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	setup_td->token.pid = EhciPid::SETUP;
 	setup_td->token.sts.raw = 0x80;
 
-	u32 num_data_stages = align(size, usbdev.USB.mps) / usbdev.USB.mps;
+	u32 num_data_stages = align(size, usbdev.kinds.get<device_t_USB>().mps) / usbdev.kinds.get<device_t_USB>().mps;
 	if (!num_data_stages)
 		setup_td->next_qtd.ptr = elookup(status_td);
 	ehci_qtd* prev = nullptr;
@@ -138,7 +138,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 		td->buffers[4] = td->buffers[3] + 0x1000;
 		td->next_qtd.ptr = elookup(status_td);
 		td->alt_next_qtd.ptr = elookup(status_td);
-		td->token.bytes = min(size, usbdev.USB.mps);
+		td->token.bytes = min(size, usbdev.kinds.get<device_t_USB>().mps);
 		td->token.current_page = 0;
 		td->token.data = i % 2;
 		td->token.err_counter = 3;
@@ -147,7 +147,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 		td->token.sts.raw = 0x80;
 
 		prev = td;
-		size -= usbdev.USB.mps;
+		size -= usbdev.kinds.get<device_t_USB>().mps;
 	}
 
 	status_td->alt_next_qtd.ptr = 1;
@@ -169,35 +169,35 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	qh->endpoint_caps.split_completion_mask = 0;
 
 	
-	if (usbdev.USB.hci != usbdev.parent && usbdev.USB.speed != UsbSpeed::HS) {
-		assert(usbdev.USB.speed != UsbSpeed::SS);
+	if (usbdev.kinds.get<device_t_USB>().hci != usbdev.parent && usbdev.kinds.get<device_t_USB>().speed != UsbSpeed::HS) {
+		assert(usbdev.kinds.get<device_t_USB>().speed != UsbSpeed::SS);
 
 		// This LS/FS device is on a USB hub, usbdev.parent
 		// First, find the hub closest to the device that is high speed
 		auto* dev = usbdev.parent;
-		u8 port = usbdev.USB.portnum;
+		u8 port = usbdev.loc;
 
 		// Start with the hub closest to the device and move upstream
 		// Stop when I find an HS hub
-		while (dev->parent->subsys == DevmgrSubsys::USB && dev->USB.speed != UsbSpeed::HS) {
-			port = dev->USB.portnum;
+		while (dev->parent->subsys == DevmgrSubsys::USB && dev->kinds.get<device_t_USB>().speed != UsbSpeed::HS) {
+			port = dev->loc;
 			dev = dev->parent;
 		}
 		
-		qh->endpoint_caps.hub_addr = dev->USB.addr;
+		qh->endpoint_caps.hub_addr = dev->kinds.get<device_t_USB>().addr;
 		qh->endpoint_caps.port_num = port;
 
 		EhciEndpointSpeed speed;
-		if (usbdev.USB.speed == UsbSpeed::FS)
+		if (usbdev.kinds.get<device_t_USB>().speed == UsbSpeed::FS)
 			speed = EhciEndpointSpeed::FS;
-		else if (usbdev.USB.speed == UsbSpeed::LS)
+		else if (usbdev.kinds.get<device_t_USB>().speed == UsbSpeed::LS)
 			speed = EhciEndpointSpeed::LS;
 		else
-			fatal("EHCI split transaction almost attempted with invalid speed: %d", usbdev.USB.speed);
+			fatal("EHCI split transaction almost attempted with invalid speed: %d", usbdev.kinds.get<device_t_USB>().speed);
 
 		qh->endpoint_characteristics.endpoint_speed = speed;
 	} else {
-		assert(usbdev.USB.speed == UsbSpeed::HS);
+		assert(usbdev.kinds.get<device_t_USB>().speed == UsbSpeed::HS);
 		qh->endpoint_caps.hub_addr = 0;
 		qh->endpoint_caps.port_num = 0;
 		qh->endpoint_characteristics.endpoint_speed = EhciEndpointSpeed::HS;
@@ -205,10 +205,10 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 
 	qh->endpoint_characteristics.ctl_endpoint = 0;
 	qh->endpoint_characteristics.endpoint = endp;
-	qh->endpoint_characteristics.addr = usbdev.USB.addr;
+	qh->endpoint_characteristics.addr = usbdev.kinds.get<device_t_USB>().addr;
 	qh->endpoint_characteristics.data_toggle_ctl = 1;
 	qh->endpoint_characteristics.inactive_on_success = 0;
-	qh->endpoint_characteristics.mps = usbdev.USB.mps;
+	qh->endpoint_characteristics.mps = usbdev.kinds.get<device_t_USB>().mps;
 	qh->endpoint_characteristics.nak_reload_counter = 4;
 
 	insert_qh(qh);
@@ -217,7 +217,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	while (status_td->token.sts.raw == 0x80) {
 		if (arch_elapsed(500)) {
 			error("Transaction didn't occur, timeout!");
-			error("Num data stages: %d (%d / %d) size %d mps aligned %d", num_data_stages, request->wLength, usbdev.USB.mps, size, align(size, usbdev.USB.mps));
+			error("Num data stages: %d (%d / %d) size %d mps aligned %d", num_data_stages, request->wLength, usbdev.kinds.get<device_t_USB>().mps, size, align(size, usbdev.kinds.get<device_t_USB>().mps));
 			error(
 				"Statuses (setup, data #0, sts): %02x %02x %02x",
 				setup_td->token.sts.raw,
@@ -288,8 +288,8 @@ static void init_port(u8 portnum) {
 }
 
 void ehci_send_reset(device_t& usbdev) {
-	ehci_update_context(*usbdev.USB.hci);
-	ehci_send_reset0(usbdev.USB.portnum);
+	ehci_update_context(*usbdev.kinds.get<device_t_USB>().hci);
+	ehci_send_reset0(usbdev.loc);
 }
 
 u8 ehci_make_address(device_t& hc) {
@@ -310,7 +310,7 @@ extern "C" void mod_main(device_t& dev) {
 		bm_init = true;
 	}
 
-	if (dev.PCI.extra)
+	if (dev.extra)
 		fatal("Attempt to re-initialize USB controller");
 
 	context = new ehci_internal;
@@ -327,7 +327,7 @@ extern "C" void mod_main(device_t& dev) {
 		warn("Gyanus CAPLENGTH: %02x", context->caplength);
 
 	context->hc = &dev;
-	dev.PCI.extra = context;
+	dev.extra = context;
 
 	pci_enable_bus_mastering(dev);
 

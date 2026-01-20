@@ -24,6 +24,31 @@ struct is_same				{ static constexpr bool value = false; };
 template <typename T>
 struct is_same<T, T>		{ static constexpr bool value = true; };
 
+template <typename T, typename... Ts>
+struct index_of;
+
+template <typename T, typename First, typename... Rest>
+struct index_of<T, First, Rest...> {
+	static constexpr u64 value =
+		is_same<T, First>::value ? 0 : (1 + index_of<T, Rest...>::value);
+};
+
+template <typename T>
+struct index_of<T> {
+	static constexpr u64 value = 0;
+	static_assert(sizeof(T) != 0, "Type not found in index_of Ts...");
+};
+
+template <typename... Ts>
+struct max_sizeof {
+	static constexpr u64 value = max(sizeof(Ts)...);
+};
+
+template <typename... Ts>
+struct max_alignof {
+	static constexpr u64 value = max(alignof(Ts)...);
+};
+
 template <typename T>
 [[nodiscard]] constexpr
 typename remove_reference<T>::type&& move(typename remove_reference<T>::type& input) noexcept {

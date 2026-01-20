@@ -246,6 +246,19 @@ struct string : vector<char> {
 	char* c_str() { return (char*)data; }
 };
 
+struct stringv {
+	using iter = _generic_iter<const char>;
+
+	const char* s = nullptr;
+	stringv() = delete("14");
+	stringv(const char* d): s(d) {  }
+
+	const char& operator[](u64 idx) { return s[idx]; }
+
+	iter begin() { return iter(s); }
+	iter end() { u64 len = strlen(s); return iter(s + len); }
+};
+
 template <u32 S, typename T>
 struct array {
 	using iter = _generic_iter<T>;

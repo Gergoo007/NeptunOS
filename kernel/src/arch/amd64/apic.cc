@@ -8,7 +8,7 @@
 extern "C" { void x86_64_ap_trampoline(); void x86_64_ap_trampoline_end(); }
 
 vector<ioapic_t> ioapics;
-u64 lapic_base = 0xfee00000;
+u64 lapic_base = 0xfee00000ull;
 
 vector<lapic_t> cpus;
 
@@ -76,7 +76,6 @@ void arch_parse_madt(madt_t* m) {
 				redirection_table[entry.MADT_OVERRIDE.irq].gsi = entry.MADT_OVERRIDE.gsi;
 				redirection_table[entry.MADT_OVERRIDE.irq].activelow = entry.MADT_OVERRIDE.flags.active_low;
 				redirection_table[entry.MADT_OVERRIDE.irq].lvltrig = entry.MADT_OVERRIDE.flags.lvl_triggered;
-				report("%d -> %d %d %d", entry.MADT_OVERRIDE.irq, entry.MADT_OVERRIDE.gsi, entry.MADT_OVERRIDE.flags.active_low, entry.MADT_OVERRIDE.flags.lvl_triggered);
 				break;
 			}
 			case MadtTypes::MADT_IOAPIC_NMI: {
@@ -88,7 +87,7 @@ void arch_parse_madt(madt_t* m) {
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_ADDR: {
-				lapic_base = entry.MADT_LAPIC_ADDR.lapic;
+				lapic_base = VIRTUAL(entry.MADT_LAPIC_ADDR.lapic);
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_X2APIC: {

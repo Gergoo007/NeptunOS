@@ -76,10 +76,13 @@ void setrunning(volatile hba_regs* r, u32 i, bool run) {
 	}
 }
 
-void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
+void ahci_read(device_t& dev, u64 offset, u64 bytes, void* into) {
+	assert(align(bytes, pmm_pagesize) / pmm_pagesize < PRDTL);
 	assert(dev.subsys == DevmgrSubsys::MSD);
-	assert(((u64)into & 511) == 0);
-	assert(sectors < PRDTL);
+	assert(((u64)into & 1) == 0);
+
+	u64 lba = offset / 512;
+	u64 lbaoffset = offset % 512;
 
 	auto* r = ((ahci_internal*)dev.parent->extra)->r;
 	u32 i = dev.loc;
@@ -107,25 +110,50 @@ void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
 	cmdfis->lba4 = (lba >> 32) & 0xff;
 	cmdfis->lba5 = (lba >> 48) & 0xff;
 
-	cmdfis->count = sectors;
-	hdrs[slot].prdtlen = sectors;
+	cmdfis->count = align(bytes, 512) / 512;
+	if (lbaoffset) cmdfis->count++;
+	report("count %d", cmdfis->count);
 
 	u32 j = 0;
-	while (sectors) {
+	hdrs[slot].prdtlen = 0;
+
+	void* startbouncer;
+	void* endbouncer;
+
+	if (lbaoffset) {
+		startbouncer = kmalloc(512);
+
+		assert((lbaoffset & 1) == 0);
+		tbl->entries[j].data_base = paging_lookup(startbouncer);
+		tbl->entries[j].bytes = 511;
+		tbl->entries[j].ioc = false;
+		j++;
+		hdrs[slot].prdtlen++;
+		into = (void*)((u64)into + lbaoffset);
+	}
+
+	u32 alignfix = align((u64)into, pmm_pagesize) - (u64)into;
+	if (bytes & 1) bytes++;
+	while (bytes) {
 		// meg kell bizonyosodni róla, hogy ha a heapbe megy az adat, akkor mappelve van
 		readl((volatile u32*)into);
 		assert(paging_lookup(into) != -1ull);
 
-		tbl->entries[j].data_base = (u64)paging_lookup(into);
-		tbl->entries[j].bytes = 511;
-		tbl->entries[j].ioc = false;
+		u64 readlen;
+		if (j == 0)
+			readlen = min(bytes, alignfix);
+		else
+			readlen = min(bytes, pmm_pagesize);
 
-		into = (void*)((u64)into + 512);
-		sectors--;
+		tbl->entries[j].data_base = (u64)paging_lookup(into);
+		tbl->entries[j].bytes = readlen - 1;
+		tbl->entries[j].ioc = readlen == bytes;
+
+		into = (void*)((u64)into + readlen);
+		bytes -= readlen;
+		hdrs[slot].prdtlen++;
 		j++;
 	}
-
-	tbl->entries[j-1].ioc = true;
 
 	// Meg kell várni amíg a port nem buzi
 	ahci_px_tfd tf = r->ports[i].taskfile;

@@ -1,23 +1,22 @@
 #include <util/mem.hh>
 
+// TODO: vektor memset/memcpy
+
 void memset(void* a, u8 c, u64 count) {
-	for (u64 i = 0; i < count; i++)
-		((u8*)a)[i] = c;
+	u8* d = (u8*)a;
 
-	// u8* d = (u8*)a;
+	u8 toalign = count & 7;
+	while (toalign) {
+		*(u8*)(d++) = c;
+		toalign--;
+	}
+	count &= ~(7ULL);
 
-	// u8 toalign = count & 7;
-	// while (toalign) {
-	// 	*(u8*)(d++) = c;
-	// 	toalign--;
-	// }
-	// count &= ~(7ULL);
+	if (!count) return;
 
-	// if (!count) return;
-
-	// u64 n = count >> 3;
-	// u64 c64 = (u64)c | ((u64)c << 8) | ((u64)c << 16) | ((u64)c << 24) | ((u64)c << 32) | ((u64)c << 40) | ((u64)c << 48);
-	// asm volatile ("rep stosq" : "=D"(d), "=c"(n) : "0"(d), "1"(n), "a"(c64) : "memory");
+	u64 n = count >> 3;
+	u64 c64 = (u64)c | ((u64)c << 8) | ((u64)c << 16) | ((u64)c << 24) | ((u64)c << 32) | ((u64)c << 40) | ((u64)c << 48) | ((u64)c << 56);
+	asm volatile ("rep stosq" : "=D"(d), "=c"(n) : "0"(d), "1"(n), "a"(c64) : "memory");
 }
 
 void memcpy(void* dest, void* src, u64 count) {

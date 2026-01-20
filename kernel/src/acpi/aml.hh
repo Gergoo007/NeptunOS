@@ -24,6 +24,7 @@ enum struct AmlOpCode : u8 {
 	DigitCharEnd = 0x39,
 	NameCharStart = 0x30,
 	NameCharEnd = 0x5a,
+
 	ExtOpPrefix = 0x5B,
 	MutexOp = 0x01,
 	EventOp = 0x02,
@@ -54,6 +55,7 @@ enum struct AmlOpCode : u8 {
 	IndexFieldOp = 0x86,
 	BankFieldOp = 0x87,
 	DataRegionOp = 0x88,
+
 	RootChar = 0x5C,
 	ParentPrefixChar = 0x5E,
 	NameChar = 0x5F,

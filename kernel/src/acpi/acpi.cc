@@ -131,7 +131,7 @@ void acpi_init() {
 				} else {
 					dsdt = (sdt_t*)(u64)fadt->dsdt;
 				}
-				error("dsdt @ %p; enabling acpi", dsdt);
+				// error("dsdt @ %p; enabling acpi", dsdt);
 				// arch_ioapic_initialize_irq(fadt->sci_int, 0x42, IoapicDelivmode::FIXED, 0);
 				// arch_ioapic_mask_irq(fadt->sci_int, 0);
 				// error("%d %d %d", fadt->acpi_enable, fadt->acpi_disable, inb(fadt->smi_cmd_port));
