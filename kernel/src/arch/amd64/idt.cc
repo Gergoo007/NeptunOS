@@ -24,6 +24,7 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 				return;
 			}
 		}
+		// fall through
 		default: {
 			arch_ioapic_disable_all();
 			error("EXCEPTION %02x [%04llx] @ %02x:%p @ CPU %d THR %d", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip, cpuid_xapic_id(), sched_cpus[cpuid_xapic_id()] ? sched_cpus[cpuid_xapic_id()]->data.id : -1);

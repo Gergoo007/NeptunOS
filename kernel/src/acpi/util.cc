@@ -71,7 +71,7 @@
 // 				// warn("Package: numelems: %d, bytes: %d", numelems, (u32)numbytes);
 
 // 				for (u32 i = 0; i < numelems; i++)
-// 					pkg.emplace(scope, code);
+// 					pkg.emplace_back(scope, code);
 // 				break;
 // 			}
 // 			case OPCODES::BufferOp: {
@@ -172,15 +172,15 @@
 // 	void MultiName::init(OPCODES*& code) {
 // 		if (*code == OPCODES::DualNamePrefix) {
 // 			code++;
-// 			names.emplace(code);
-// 			names.emplace(code);
+// 			names.emplace_back(code);
+// 			names.emplace_back(code);
 // 		} else if (*code == OPCODES::MultiNamePrefix) {
 // 			code++;
 // 			u8 num = *(u8*)code;
 // 			for (u32 j = 0; j < num; j++)
-// 				names.emplace(code);
+// 				names.emplace_back(code);
 // 		} else {
-// 			names.emplace(code);
+// 			names.emplace_back(code);
 // 		}
 // 	}
 
@@ -225,7 +225,7 @@
 
 // 			MultiName mn;
 // 			for (auto& t : bak)
-// 				mn.names.emplace(t.name);
+// 				mn.names.emplace_back(t.name);
 // 			return ns[ObjectKey(mn)];
 // 		} else {
 // 			// printk("option 3");

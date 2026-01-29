@@ -245,7 +245,7 @@
 // 		void insert(ScopeStack& scope, OPCODES*& code) {
 // 			ObjectKey key(scope, code);
 // 			ObjectValue val(scope, code);
-// 			emplace(key, val);
+// 			emplace_back(key, val);
 // 		}
 
 // 		ObjectValue* operator[](const ObjectKey& key) {

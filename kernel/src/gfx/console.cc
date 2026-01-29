@@ -142,14 +142,18 @@ void cputc(const char c) {
 		u16 row = 0;
 		if (con_glyphw > 8) {
 			row = *(u16*)start;
-			row = ((row & 0xff) << 8) | ((row & 0xff00) >> 8);
+			// row = ((row & 0xff) << 8) | ((row & 0xff00) >> 8);
+			row = __builtin_bswap16(row);
 			start += 2;
 		} else {
 			row = *(u8*)start++;
 		}
 
-		for (u32 x = 0; x < con_glyphw; x++)
-			fb_pixel(con_cx + x, con_cy + y, row & (1 << ((con_glyphw > 8 ? 16 : 8) - x)) ? con_color_fg : con_color_bg, current_fb);
+		u16 mask = 1 << (con_glyphw > 8 ? 16 : 8);
+		for (u32 x = 0; x < con_glyphw; x++) {
+			fb_pixel(con_cx + x, con_cy + y, (row & mask) ? con_color_fg : con_color_bg, current_fb);
+			mask >>= 1;
+		}
 	}
 
 	con_cx += con_glyphw + con_padx;

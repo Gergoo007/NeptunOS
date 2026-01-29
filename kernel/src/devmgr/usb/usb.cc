@@ -7,7 +7,7 @@
 #include <mm/pmm4g.hh>
 
 const char* usb_get_string(device_t& usbdev, u8 idx) {
-	if (!idx) return "\0";
+	if (!idx) return "";
 	auto* hciint = (usb_hci_interface_t*)usbdev.kinds.get<device_t_USB>().hci->extra;
 
 	usb_request* request = (usb_request*)kmalloc4g(sizeof(usb_request));
@@ -96,9 +96,9 @@ device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed) {
 			.product = 0,
 			// USB Hub?
 			.hci = (parent.subsys == DevmgrSubsys::USB) ? parent.kinds.get<device_t_USB>().hci : &parent,
-			.manufacturerName = nullptr,
-			.productName = nullptr,
-			.serial = nullptr,
+			.manufacturerName = string(),
+			.productName = string(),
+			.serial = string(),
 			.mps = mps,
 			.langid = (u16)-1,
 			.addr = 0,
@@ -183,14 +183,14 @@ void usb_init(device_t& usbdev) {
 	debug("Sending GET_DESCRIPTOR DEVICE request #2...");
 	hciint->usb_send(usbdev, 0, request, devdesc);
 
-	usbdev.kinds.get<device_t_USB>().manufacturerName = usb_get_string(usbdev, devdesc->iManufacturer);
-	usbdev.kinds.get<device_t_USB>().productName = usb_get_string(usbdev, devdesc->iProduct);
-	usbdev.kinds.get<device_t_USB>().serial = usb_get_string(usbdev, devdesc->iSerialNumber);
+	usbdev.kinds.get<device_t_USB>().manufacturerName = string(usb_get_string(usbdev, devdesc->iManufacturer));
+	usbdev.kinds.get<device_t_USB>().productName = string(usb_get_string(usbdev, devdesc->iProduct));
+	usbdev.kinds.get<device_t_USB>().serial = string(usb_get_string(usbdev, devdesc->iSerialNumber));
 
 	if (devdesc->iProduct || devdesc->iManufacturer)
-		report("USB %d device %04x:%04x read: %s %s %s", usbdev.kinds.get<device_t_USB>().speed, usbdev.kinds.get<device_t_USB>().vendor, usbdev.kinds.get<device_t_USB>().product, usbdev.kinds.get<device_t_USB>().manufacturerName, usbdev.kinds.get<device_t_USB>().productName, usbdev.kinds.get<device_t_USB>().serial);
+		debug("USB %d device %04x:%04x read: %s %s %s", (u32)usbdev.kinds.get<device_t_USB>().speed, usbdev.kinds.get<device_t_USB>().vendor, usbdev.kinds.get<device_t_USB>().product, usbdev.kinds.get<device_t_USB>().manufacturerName.c_str(), usbdev.kinds.get<device_t_USB>().productName.c_str(), usbdev.kinds.get<device_t_USB>().serial.c_str());
 	else
-		report("USB device without strings: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
+		debug("USB device without strings: %04x:%04x", devdesc->idVendor, devdesc->idProduct);
 
 	// Select config
 	request->bmRequestType = 0x80;

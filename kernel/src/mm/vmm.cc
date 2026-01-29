@@ -177,26 +177,21 @@ void* vmm_alloc_nomutex(u64 size, const char* file, u32 line) {
 	size += VMM_REDZONE_SIZE * 2;
 	#endif
 
-	link_t* current = vmm_first;
+	link_t* l = vmm_first;
 	u64 address = VMM_HEAP_BASE;
-	while (!current->free || current->length <= size) {
-		address += current->length;
-		current = current->next;
-		if (!current) {
-			vmm_dump();
-			fatal(
-				"Elfogyott a memoria!\npmm used vs free %llu MiB %llu MiB\nvmm used vs free %llu MiB %llu MiB",
-				bytes2mibs(pmm_usedmem), bytes2mibs(pmm_freemem),
-				bytes2mibs(vmm_usedmem), bytes2mibs(vmm_freemem)
-			);
-		}
+	while (l) {
+		if (l->free && l->length >= size)
+			break;
+
+		address += l->length;
+		l = l->next;
 	}
 
 	// current átállítása a used linkké, majd egy új free link beillesztése utána
-	allocate_into_free(current, size, 0);
+	allocate_into_free(l, size, 0);
 	#ifdef VMM_DEBUG
-	current->file = file;
-	current->line = line;
+	l->file = file;
+	l->line = line;
 	#endif
 
 	vmm_usedmem += size;
@@ -236,7 +231,7 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 		if (!l->free) goto cont;
 		if (l->length < size) goto cont;
 
-		if (aligned(address + rzcorr, align)) {
+		if (isaligned(address + rzcorr, align)) {
 			allocate_into_free(l, size, 0);
 			l->file = file;
 			l->line = line;
@@ -255,7 +250,7 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 			alignfixl->free = true;
 			alignfixl->length = alignfix;
 			l->length -= alignfix;
-			assert(aligned(alignfixl->length, 16));
+			assert(isaligned(alignfixl->length, 16));
 
 			#ifdef VMM_DEBUG
 			alignfixl->file = __FILE__;
@@ -269,7 +264,7 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 			l->prev = alignfixl;
 
 			i64 remaining = l->length - size;
-			assert(remaining > 0);
+			assert(remaining >= 0ll);
 			l->length -= remaining;
 			l->free = false;
 			#ifdef VMM_DEBUG
@@ -285,7 +280,7 @@ void* vmm_alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
 				#endif
 				remainingl->free = true;
 				remainingl->length = remaining;
-				assert(aligned(remainingl->length, 16));
+				assert(isaligned(remainingl->length, 16));
 
 				if (l->next)
 					l->next->prev = remainingl;

@@ -57,7 +57,7 @@ void arch_parse_madt(madt_t* m) {
 				// Ezekkel nem kell foglalkozni
 				if (entry.MADT_LAPIC.apic_id == 0)
 					break;
-				cpus.emplace(lapic_t {
+				cpus.emplace_back(lapic_t {
 					.apic_id = entry.MADT_LAPIC.apic_id,
 					.acpi_id = entry.MADT_LAPIC.acpi_id,
 					.up = false,
@@ -66,7 +66,7 @@ void arch_parse_madt(madt_t* m) {
 			}
 			case MadtTypes::MADT_IOAPIC: {
 				map_page(VIRTUAL((u64)entry.MADT_IOAPIC.addr), (u64)entry.MADT_IOAPIC.addr, MFLAGS::KDATA, MCACHE::UC);
-				ioapics.emplace(ioapic_t {
+				ioapics.emplace_back(ioapic_t {
 					.addr = (volatile u32*)VIRTUAL((u64)entry.MADT_IOAPIC.addr),
 					.gsi_base = entry.MADT_IOAPIC.gsi_base
 				});
@@ -115,10 +115,10 @@ void arch_parse_madt(madt_t* m) {
 			// Normális mennyiség
 			if (maxent == 23) {
 				warn("ACPI szerint nincs IOAPIC, amugy meg van");
-				ioapics.emplace(asd);
+				ioapics.emplace_back(asd);
 			} else if (maxent) {
 				warn("Abnormalis IOAPIC GSI mennyiseg: %d", maxent);
-				ioapics.emplace(asd);
+				ioapics.emplace_back(asd);
 			} else {
 				// Nincs IOAPIC
 				fatal("Nincs IOAPIC!");

@@ -68,6 +68,7 @@ int printf(const char* format, ...);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
+__attribute__((format(printf, 2, 3)))
 int sprintf(char* buffer, const char* format, ...);
 
 

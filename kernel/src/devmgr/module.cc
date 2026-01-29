@@ -96,10 +96,12 @@ u64 modules_link(void* a, u64 size) {
 			// L: This means the place (section offset or address) of the procedure linkage table entry for a symbol. A procedure linkage table entry redirects a function call to the proper destination. The link editor builds the initial procedure linkage table, and the dynamic linker modifies the entries during execution.
 			// P: This means the place (section offset or address) of the storage unit being relocated (computed using r_offset).
 			// S: This means the value of the symbol whose index resides in the relocation entry.
+			// u32* dwptr = (u32*)(mem + rela[j].r_offset);
+			u64* qwptr = (u64*)(mem + rela[j].r_offset);
 			switch (ELF64_R_TYPE(rela[j].r_info)) {
 				// QWORD, S + A
 				case R_X86_64_64: {
-					*(u64*)(mem + rela[j].r_offset) = address + rela[j].r_addend;
+					*qwptr = address + rela[j].r_addend;
 					break;
 				}
 				default: {
@@ -167,15 +169,17 @@ void modules_load(module_t& m) {
 }
 
 void modules_launch(module_t& m, device_t& devptr) {
-	if (!m.loaded)
-		modules_load(m);
-
-	// TODO: bss lenullázása
-
-	void (*entry)(device_t&) = (void (*)(device_t&))m.entry;
+	if (!m.loaded) modules_load(m);
 
 	// Futtatás a mod_main() által
-	entry(devptr);
+	((void (*)(device_t&))m.entry)(devptr);
+}
+
+bool modules_launch_fs(module_t& m, filesystem& p) {
+	if (!m.loaded) modules_load(m);
+
+	// Futtatás a mod_main() által
+	return ((bool (*)(filesystem&))m.entry)(p);
 }
 
 void modules_register(void* a, u64 size, const char* modfilename) {
@@ -201,7 +205,7 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 		if (md->triggertype == ModuleTriggerTypes::ANY)
 			modules_launch(mod, *(device_t*)1); // Ezért megköveznek gec
 
-		modules.emplace(mod);
+		modules.emplace_back(mod);
 	}
 }
 

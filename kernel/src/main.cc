@@ -14,13 +14,17 @@
 #include <devmgr/module.hh>
 #include <util/stacktrace.hh>
 #include <util/ksyms.hh>
-#include <test.hh>
 #include <cppcompat.hh>
 #include <devmgr/devmgr.hh>
 #include <devmgr/usb/usb.hh>
 #include <scheduler/scheduler.hh>
+#include <fs/fs.hh>
 
-extern "C" noret void khang();
+extern "C" attr_noret void khang();
+void test();
+
+// For GDB debugging
+bool watch = false;
 
 // TODO: !!FONTOS!! A KERNEL LEGYEN 2 GIB-EN BELÜL, EZÁLTAL LEHESSEN HASZNÁLNI AZ -mcmodel=kernel-T, MERT MOST TELE VAN MINDEN MOVABS-AL
 // TODO: ahci vezérlő && port reset
@@ -80,16 +84,20 @@ extern "C" void kmain() {
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
 
-	// auto a = mib2bytes(32);
-	// void* p = kmalloc(mib2bytes(32));
-	// arch_start_timer();
-	// memset(p, 0x12, a);
-	// report("memset perf: %lld ms for 32 mibs", arch_ms_passed());
+	fs_mount(nullptr, "/", FilesystemType::VFS);
+
+	fs_create("/mnt/", true);
+	fs_create("/mnt/hello", false);
+	constexpr char msg[] = "Hello, world!\n";
+	fs_write("/mnt/hello", 10, sizeof(msg), (char*)msg);
+	char buf[sizeof(msg)];
+	fs_read("/mnt/hello", 10, sizeof(msg), buf);
+	report("read back %s", buf);
 
 	khang();
 }
 
-noret void khang() {
+attr_noret void khang() {
 	while (1) {
 		arch_halt();
 	}

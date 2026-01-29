@@ -58,13 +58,13 @@ typedef __SIZE_TYPE__ size_t;
 
 #define align(x, n) ((typeof(x))((((u64)(x)) % (n)) ? (((u64)(x) + (n)) - (((u64)(x))) % (n)) : (x)))
 
-#define noret __attribute__((noreturn))
-#define packed __attribute__((packed))
-#define interrupt __attribute__((interrupt))
-#define aligned(x, a) ((((u64)(x)) % ((u64)(a))) == 0)
+#define attr_noret __attribute__((noreturn))
+#define attr_packed __attribute__((packed))
+#define attr_interrupt __attribute__((interrupt))
+#define isaligned(x, a) ((((u64)(x)) % ((u64)(a))) == 0)
 
-#define pstruct struct packed
-#define punion union packed
+#define pstruct struct attr_packed
+#define punion union attr_packed
 
 extern u8 _binary_src_font_psf_start;
 extern u8 _binary_src_font_psf_end;

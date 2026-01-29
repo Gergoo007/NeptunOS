@@ -54,28 +54,11 @@ static void check(void* a) {
 		map_page(VIRTUAL((u64)a), PHYSICAL((u64)a), (u32)MFLAGS::KDATA);
 }
 
-static void checkTable(sdt_t* a) {
+static void check_table(sdt_t* a) {
 	check(a);
 	for (u64 i = 0; i < align(a->length, 0x1000); i += 0x1000) {
 		check((u8*)a + i);
 	}
-}
-
-static void process_fadt(fadt_t* fadt) {
-	fadt = VIRTUAL(fadt);
-	checkTable((sdt_t*)fadt);
-
-	sdt_t* dsdt = VIRTUAL((sdt_t*)fadt->x_dsdt);
-	check(dsdt);
-	if (dsdt->sign != 'TDSD')
-		dsdt = (sdt_t*)(u64)fadt->dsdt;
-	dsdt = VIRTUAL(dsdt);
-	checkTable(dsdt);
-
-	if (!validate(dsdt))
-		error("Hibas DSDT!");
-
-	// process_aml((OPCODES*)practice + sizeof(sdt_t), sizeof(practice));
 }
 
 void acpi_init() {
@@ -106,7 +89,7 @@ void acpi_init() {
 		else
 			addr = VIRTUAL((sdt_t*)(u64)VIRTUAL(((u64*)&rsdt->arraystart)[i]));
 		check(addr);
-		tables.emplace(addr);
+		tables.emplace_back(addr);
 	}
 
 	for (sdt_t* i : tables) {
@@ -143,8 +126,7 @@ void acpi_init() {
 
 				sprintk("\n\r");
 				dsdt = VIRTUAL(dsdt);
-				check_page((u64)dsdt, MCACHE::WB);
-				check_pages((u64)dsdt + 0x1000, dsdt->length);
+				check_table(dsdt);
 				acpi_parse_aml(dsdt);
 				break;
 		}

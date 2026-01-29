@@ -44,7 +44,7 @@ void arch_read_boot_info() {
 	else
 		sprintk("Van %d framebuffer\n\r", (u32)r->framebuffer_count);
 
-	for (u32 i = 0; i < min(r->framebuffer_count, 2); i++) {
+	for (u32 i = 0; i < min(r->framebuffer_count, 2u); i++) {
 		fbs[i].fb_addr = (u32*)r->framebuffers[i]->address;
 		fbs[i].fb_bpp = r->framebuffers[i]->bpp;
 		fbs[i].fb_width = r->framebuffers[i]->width;

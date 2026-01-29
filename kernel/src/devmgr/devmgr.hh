@@ -17,7 +17,7 @@ struct device_t;
 extern vector<unique_ptr<device_t>> devices;
 struct usb_hci_interface_t;
 
-enum struct UsbSpeed { LS, FS, HS, SS };
+enum struct UsbSpeed : u32 { LS, FS, HS, SS };
 
 struct device_t_PCI {
 	u16 vendor;
@@ -36,9 +36,9 @@ struct device_t_USB {
 	// This is always the host controller; if the device is on a hub then
 	// the parent device points to that, otherwise (parent = hci)
 	device_t* hci;
-	const char* manufacturerName = nullptr;
-	const char* productName = nullptr;
-	const char* serial = nullptr;
+	string manufacturerName;
+	string productName;
+	string serial;
 	u16 mps;
 	u16 langid; // -1 if no STRING descriptors
 	u8 addr;
@@ -55,9 +55,9 @@ struct device_t_USB {
 
 // Mass Storage Device
 struct device_t_MSD {
-	const char* manufacturerName = nullptr;
-	const char* productName = nullptr;
-	const char* serial = nullptr;
+	string manufacturerName;
+	string productName;
+	string serial;
 	u64 size; // in bytes
 	vector<partition> parts;
 };
@@ -75,3 +75,4 @@ struct device_t {
 };
 
 device_t& devmgr_add_device(device_t&& d);
+void devmgr_add_fs(filesystem& p);

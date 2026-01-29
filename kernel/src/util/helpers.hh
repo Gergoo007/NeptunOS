@@ -24,19 +24,40 @@ struct is_same				{ static constexpr bool value = false; };
 template <typename T>
 struct is_same<T, T>		{ static constexpr bool value = true; };
 
+// template <typename T, typename... Ts>
+// struct index_of;
+
+// template <typename T, typename First, typename... Rest>
+// struct index_of<T, First, Rest...> {
+// 	static constexpr u64 value =
+// 		is_same<T, First>::value ? 0 : (1 + index_of<T, Rest...>::value);
+// };
+
+// template <typename T>
+// struct index_of<T> {
+// 	static constexpr u64 value = 0;
+// 	static_assert(sizeof(T) != 0, "Type not found in index_of Ts...");
+// };
+
 template <typename T, typename... Ts>
-struct index_of;
+struct index_of0;
 
 template <typename T, typename First, typename... Rest>
-struct index_of<T, First, Rest...> {
+struct index_of0<T, First, Rest...> {
 	static constexpr u64 value =
-		is_same<T, First>::value ? 0 : (1 + index_of<T, Rest...>::value);
+		is_same<T, First>::value ? 0 : (1 + index_of0<T, Rest...>::value);
 };
 
 template <typename T>
-struct index_of<T> {
+struct index_of0<T> {
 	static constexpr u64 value = 0;
 	static_assert(sizeof(T) != 0, "Type not found in index_of Ts...");
+};
+
+template <typename T, typename... Ts>
+struct index_of {
+	static constexpr u64 value =
+		index_of0<T, Ts...>::value == sizeof...(Ts) ? -1 : index_of0<T, Ts...>::value;
 };
 
 template <typename... Ts>
@@ -116,3 +137,6 @@ namespace std {
 		return __il.end();
 	}
 }
+
+template <u64 N, typename T>
+constexpr auto countof(const T (&arr)[N]) noexcept { return N; }

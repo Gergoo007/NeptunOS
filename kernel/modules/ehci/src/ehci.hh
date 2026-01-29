@@ -122,7 +122,7 @@ punion USBLEGSUP {
 	};
 	u32 raw;
 
-	constexpr USBLEGSUP(u32 raw): raw(raw) {  }
+	constexpr USBLEGSUP(u32 _raw): raw(_raw) {  }
 };
 
 pstruct USBLEGCTLSTS {

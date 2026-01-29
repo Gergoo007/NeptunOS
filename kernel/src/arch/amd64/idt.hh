@@ -4,7 +4,7 @@
 #include <util/async.hh>
 #include <arch/amd64/amd64.hh>
 
-#define DECL_ISR(n) extern "C" interrupt void exc##n(cpu_state_amd64_t* i)
+#define DECL_ISR(n) extern "C" attr_interrupt void exc##n(cpu_state_amd64_t* i)
 
 pstruct idt_entry_t {
 	u16 base0;

@@ -18,25 +18,6 @@ volatile constexpr module_metadata_t _modinfo {
 };
 
 static bool hchalted() { return EhciRegs::USBSTS.read().USBSTS.hchalted; }
-static bool isrunning() { return EhciRegs::USBCMD.read().USBCMD.running; }
-static void setrunning(bool running) {
-	auto cmd = EhciRegs::USBCMD.read().USBCMD;
-	cmd.running = running;
-	EhciRegs::USBCMD.write(cmd);
-	arch_start_timer();
-	while (EhciRegs::USBSTS.read().USBSTS.hchalted == running)
-		if (arch_elapsed(100))
-			fatal("Controller refusing to start running!");
-}
-static void hcreset() {
-	// HCReset
-	EhciRegs::USBCMD.write(0b10);
-	arch_start_timer();
-	while (EhciRegs::USBCMD.read().USBCMD.hcreset) {
-		if (arch_elapsed(100))
-			fatal("HC not coming out of HCReset!");
-	}
-}
 
 static u64 pool;
 static bitmap_t bm;
@@ -59,15 +40,6 @@ static ehci_qh* ehci_alloc_qh() {
 	if constexpr (DBG)
 		assert((PHYSICAL(addr) >> 32) == 0);
 	return (ehci_qh*)addr;
-}
-
-[[nodiscard]]
-static void* ehci_alloc_page() {
-	u64 addr = (u64)pmm_alloc();
-	memset((void*)addr, 0, pmm_pagesize);
-	if constexpr (DBG)
-		assert((PHYSICAL(addr) >> 32) == 0);
-	return (void*)addr;
 }
 
 template <typename T>
@@ -100,6 +72,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	u16 size = max(request->wLength, usbdev.kinds.get<device_t_USB>().mps);
 	if (request->wLength == 0) size = 0;
 	if (size == 0) statuspid = EhciPid::IN;
+	u16 origsize = size;
 
 	setup_td->buffers[0] = elookup(request);
 	setup_td->buffers[1] = setup_td->buffers[0] + 0x1000;
@@ -217,7 +190,7 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	while (status_td->token.sts.raw == 0x80) {
 		if (arch_elapsed(500)) {
 			error("Transaction didn't occur, timeout!");
-			error("Num data stages: %d (%d / %d) size %d mps aligned %d", num_data_stages, request->wLength, usbdev.kinds.get<device_t_USB>().mps, size, align(size, usbdev.kinds.get<device_t_USB>().mps));
+			error("Num data stages: %d (%d / %d) size %d mps aligned %d", num_data_stages, request->wLength, usbdev.kinds.get<device_t_USB>().mps, origsize, align(origsize, usbdev.kinds.get<device_t_USB>().mps));
 			error(
 				"Statuses (setup, data #0, sts): %02x %02x %02x",
 				setup_td->token.sts.raw,

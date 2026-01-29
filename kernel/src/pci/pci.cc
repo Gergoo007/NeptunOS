@@ -103,6 +103,7 @@ void check_bus(u8 bus) {
 			devmgr_add_device(device_t {
 				.extra = nullptr,
 				.subsys = DevmgrSubsys::PCI,
+				.loc = 0,
 				.kinds = devunion_t(true, device_t_PCI {
 					.vendor = (u16)pci_read(bus, j, i, PciRegs::VENDOR),
 					.product = (u16)pci_read(bus, j, i, PciRegs::PRODUCT),

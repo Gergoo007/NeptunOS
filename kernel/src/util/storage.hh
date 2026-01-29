@@ -16,8 +16,9 @@ static constexpr u64 growfun(u64 cap) {
 
 template <typename T>
 struct _generic_iter {
-	T* data;
+	T* data = nullptr;
 	_generic_iter(T* _data): data(_data) {  }
+	_generic_iter(_generic_iter& o): data(o.data) {  }
 	
 	_generic_iter& operator++()		{ data++; return *this; }
 	_generic_iter  operator++(int)	{ auto old = *this; data++; return old; }
@@ -72,7 +73,7 @@ struct vector {
 		if (capacity) {
 			data = (T*)kmalloc(capacity * sizeof(T));
 			for (const auto& e : items)
-				emplace(e);
+				emplace_back(e);
 		}
 	}
 
@@ -107,6 +108,21 @@ struct vector {
 		return *this;
 	}
 
+	vector& operator=(vector&& o) {
+		for (const auto& e : *this)
+			e.~T();
+
+		size = o.size;
+		capacity = o.capacity;
+		data = o.data;
+
+		o.data = nullptr;
+		o.size = 0;
+		o.capacity = 0;
+
+		return *this;
+	}
+
 	~vector() {
 		for (const auto& e : *this)
 			e.~T();
@@ -137,7 +153,7 @@ struct vector {
 		capacity = cap;
 	}
 
-	T& operator[](const u64 idx) {
+	T& operator[](const u64 idx) const {
 		if constexpr (DBG) {
 			if (idx > size)
 				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
@@ -147,15 +163,15 @@ struct vector {
 		return data[idx];
 	}
 
-	const T& operator[](const u64 idx) const {
-		if constexpr (DBG) {
-			if (idx > size)
-				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
-			if (!data)
-				fatal("vector data null (uninitialized)!");
-		}
-		return data[idx];
-	}
+	// const T& operator[](const u64 idx) const {
+	// 	if constexpr (DBG) {
+	// 		if (idx > size)
+	// 			fatal("vector access out of bounds! idx %lld size %lld", idx, size);
+	// 		if (!data)
+	// 			fatal("vector data null (uninitialized)!");
+	// 	}
+	// 	return data[idx];
+	// }
 
 	T& last() {
 		return data[size - 1];
@@ -191,7 +207,7 @@ struct vector {
 	}
 
 	template <typename... Args>
-	T& emplace(Args&&... args) {
+	T& emplace_back(Args&&... args) {
 		if (size >= capacity)
 			reserve(growfun(capacity));
 		if ((size || capacity) && !data)
@@ -227,23 +243,61 @@ struct string : vector<char> {
 	using vector<char>::operator+=;
 
 	string() = default;
-	
+
+	void resize(u64 _size) { vector::resize(_size); vector::reserve(_size + 1); data[size] = 0; }
+
 	string(const char* str): vector<char>(strlen(str)+1) {
-		size = strlen(str);
+		size = capacity - 1;
 		memcpy((void*)data, (void*)str, size+1);
 		data[size] = 0;
 	}
 
+	// Substring
+	string(const char* str, u64 len): vector<char>(len + 1) {
+		size = capacity - 1;
+		memcpy((void*)data, (void*)str, size);
+		data[size] = 0;
+	}
+
+	string(std::initializer_list<char> items) {
+		capacity = align(items.size(), 8);
+
+		if (capacity) {
+			data = (char*)kmalloc(capacity * sizeof(char));
+			for (const auto& e : items)
+				emplace_back(e);
+		}
+
+		data[size] = 0;
+	}
+
+	string(const string& o) {
+		if (o.size) {
+			size = o.size;
+			capacity = o.size;
+			data = (char*)kmalloc(capacity);
+
+			memcpy(data, o.data, size + 1);
+		}
+	}
+
 	string& operator+=(const char* s) {
 		u64 len = strlen(s);
-		reserve(size + len);
+		reserve(size + len + 1);
 		memcpy((void*)&data[size], (void*)s, len);
 		size += len;
 		data[size] = 0;
 		return *this;
 	}
 
-	char* c_str() { return (char*)data; }
+	string& operator+=(char c) {
+		reserve(size + 1);
+		data[size++] = c;
+		data[size] = 0;
+		return *this;
+	}
+
+	char* c_str() const { if (!data) return (char*)""; else return (char*)data; }
 };
 
 struct stringv {
@@ -255,14 +309,17 @@ struct stringv {
 
 	const char& operator[](u64 idx) { return s[idx]; }
 
+	bool operator==(const char* o) { return !strcmp(s, o); }
+	bool operator!=(const char* o) { return strcmp(s, o); }
+
 	iter begin() { return iter(s); }
 	iter end() { u64 len = strlen(s); return iter(s + len); }
 };
 
-template <u32 S, typename T>
+template <u64 S, typename T>
 struct array {
 	using iter = _generic_iter<T>;
-	static constexpr u32 size = S;
+	static constexpr u64 size = S;
 
 	T data[S] = {};
 
@@ -271,7 +328,7 @@ struct array {
 	array(std::initializer_list<T> items) {
 		assert(items.__size_ <= size);
 
-		u32 idx = 0;
+		u64 idx = 0;
 		for (const auto& e : items)
 			data[idx++] = e;
 	}
@@ -337,25 +394,33 @@ struct array {
 
 template <typename T>
 struct optional {
-	optional(T init) {  }
+	__attribute__((aligned(alignof(T))))
+	u8 storage[sizeof(T)];
+	bool present = false;
+
+	optional(T&& init): present(true) { new (&storage) T(forward<T>(init)); }
+	optional(const T& init): present(true) { new (&storage) T(init); }
+	optional(): present(false) {  }
 
 	template <typename... Args>
-	optional(Args&&... args) {}
+	optional(Args&&... args): present(true) { new (&storage) T(forward<Args>(args)...); }
 
-	template <typename... Args>
-	T& emplace() {}
+	T& emplace_back(T&& init) {
+		new (&storage) T(forward<T>(init));
+		present = true;
+		return *(T*)storage;
+	}
 };
-
 
 template <typename T>
 struct llist {
 	struct link_t {
-		T data;
-		link_t* next;
 		link_t* prev;
+		link_t* next;
+		T data;
 		bool last = false;
 
-		link_t(link_t* prev, link_t* next, const T& data): next(next), prev(prev), data(data) {  }
+		link_t(link_t* _prev, link_t* _next, const T& _data): prev(_prev), next(_next), data(_data) {  }
 		~link_t() { prev = next = nullptr; }
 	};
 
@@ -421,6 +486,7 @@ struct llist {
 		size++;
 		if (first) {
 			link_t* newfirst = new link_t(first->prev, first, elem);
+			warn("%p", first->prev);
 			first->prev->next = newfirst;
 			first->prev = newfirst;
 			first = newfirst;
@@ -440,32 +506,31 @@ struct llist {
 		if (!size) fatal("Tried to delete elem from empty list (size 0)");
 		if (!first) fatal("Tried to delete elem from empty list (first null)");
 		size--;
-		if (l.prev)
+
+		// Ez az egy elem volt egyedül?
+		if (!size) {
+			first = nullptr;
+		} else {
 			l.prev->next = l.next;
-		if (l.next)
 			l.next->prev = l.prev;
 
-		if (first == &l)
-			first = l.next;
-
-		if (l.last)
-			l.prev->last = true;
-
-		l.next = nullptr;
-		l.prev = nullptr;
+			if (&l == first)
+				first = l.next;
+		}
 
 		delete &l;
 	}
 
 	void remove(u64 idx) {
+		if (idx > size)
+			fatal("dlinkedlist: index out of bounds! %lld > %lld", idx, size);
+
 		u64 idx2 = idx;
 		link_t* l = first;
 		while (l && idx2) {
 			l = l->next;
 			idx2--;
 		}
-		if (idx2)
-			fatal("dlinkedlist: index out of bounds! %d", idx);
 		remove(*l);
 	}
 
@@ -479,7 +544,7 @@ struct llist {
 			idx2--;
 		}
 		if (idx2)
-			fatal("dlinkedlist: index out of bounds! %d", idx);
+			fatal("dlinkedlist: index out of bounds! %lld", idx);
 		return l->data;
 	}
 
@@ -491,7 +556,7 @@ struct llist {
 			idx2--;
 		}
 		if (idx2)
-			fatal("dlinkedlist: index out of bounds! %d", idx);
+			fatal("dlinkedlist: index out of bounds! %lld", idx);
 		return l->data;
 	}
 
@@ -503,7 +568,7 @@ struct llist {
 			idx2--;
 		}
 		if (idx2)
-			fatal("dlinkedlist: index out of bounds! %d", idx);
+			fatal("dlinkedlist: index out of bounds! %lld", idx);
 		return *l;
 	}
 
@@ -552,6 +617,55 @@ template <typename K, typename V>
 struct hashmap {
 	struct pair_t { K key; V value; };
 
+	struct iter {
+		using veciter = vector<llist<pair_t>>::iter;
+		using lliter = llist<pair_t>::iter;
+
+		veciter vcur, vend;
+		lliter lcur;
+
+		void find_next_valid() {
+			while (vcur != vend && lcur == vcur->end()) {
+				++vcur;
+				if (vcur != vend)
+					lcur = vcur->begin();
+			}
+		}
+
+		iter(veciter _vstart, veciter _vend):
+		vcur(_vstart), vend(_vend), lcur(vcur->begin()) {
+			if (vcur != vend)
+				lcur = vcur->begin();
+			find_next_valid();
+		}
+
+		iter& operator++() {
+			lcur++;
+			find_next_valid();
+			return *this;
+		}
+
+		iter operator++(int) {
+			iter i = *this;
+			lcur++;
+			find_next_valid();
+			return i;
+		}
+
+		bool operator==(iter& o) {
+			if (vcur == o.vcur && o.vcur == o.vend) return true;
+			return vcur == o.vcur && lcur == o.lcur;
+		}
+
+		bool operator!=(iter& o) { return !(*this == o); }
+
+		pair_t& operator*() { return *lcur; }
+		pair_t* operator->() { return &(*lcur); }
+	};
+
+	iter begin() { return iter(entries.begin(), entries.end()); }
+	iter end() { return iter(entries.end(), entries.end()); }
+
 	vector<llist<pair_t>> entries;
 	static constexpr u32 defsize = 1024;
 	u32 size;
@@ -598,4 +712,67 @@ struct hashmap {
 			fatal("Nincs ilyen elem!");
 		}
 	}
+
+	bool has(const K& key) {
+		auto& bucket = entries[hash(key, size)];
+		for (const auto& e : bucket)
+			if (e.key == key)
+				return true;
+		return false;
+	}
+
+	void remove(const K& key) {
+		auto& bucket = entries[hash(key, size)];
+		if (!bucket.size) fatal("Tried to delete non-existent element!");
+
+		typename llist<pair_t>::link_t* l = &bucket.get_link(0);
+		auto* first = l;
+		do {
+			if (l->data.key == key) {
+				bucket.remove(*l);
+				return;
+			}
+			l = l->next;
+		} while (first != l);
+		fatal("Element not found!");
+	}
+};
+
+template <typename T>
+struct span {
+	T* first = nullptr;
+	u64 size = 0;
+	using iter = _generic_iter<T>;
+
+	constexpr span() {}
+	constexpr span(T* start, u64 sz): first(start), size(sz) {}
+	constexpr span(std::initializer_list<T> items) = delete("Use vector/array for initializer lists!");
+
+	template <u64 N>
+	constexpr span(T (arr)[N]): first(arr), size(N) {  }
+
+	template <u64 N>
+	constexpr span(const array<N, T>& arr): first((T*)arr.data), size(N) {  }
+
+	constexpr span(const vector<T>& vec): first((T*)vec.data), size(vec.size) {  }
+
+	constexpr span(const span& o): first(o.first), size(o.size) {}
+
+	constexpr T& operator[](u64 idx) const {
+		if constexpr (DBG)
+			assert(idx < size);
+		return first[idx];
+	}
+
+	iter begin() { return iter(first); }
+	iter end() { return iter(first + size); }
+};
+
+template <typename T, typename U>
+struct pair {
+	T first;
+	U second;
+
+	pair(): first(), second() {  }
+	pair(T f, U s): first(f), second(s) {  }
 };

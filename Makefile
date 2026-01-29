@@ -3,7 +3,7 @@ RAMSIZE ?= 256M
 ifeq ($(OS),Windows_NT)
 QEMU_ACCEL ?= whpx,kernel-irqchip=off
 else
-QEMU_ACCEL ?= tcg
+QEMU_ACCEL ?= kvm
 endif
 
 QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q35 $(QEMU_FLAGS) \

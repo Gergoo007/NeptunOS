@@ -1,5 +1,3 @@
-#include <test.hh>
-
 #include <util/storage.hh>
 #include <util/smartptrs.hh>
 #include <util/async.hh>
@@ -7,21 +5,8 @@
 #include <mm/pmm4g.hh>
 #include <arch/amd64/paging.hh>
 
-struct Test {
-	const char* name;
-
-	Test(const char* name): name(name) {
-		// printk("%s tests commencing...\n", name);
-	}
-
-	~Test() {
-		// printk("%s test have finished\n", name);
-	}
-};
-
 void test_libk() {
 	{
-		auto _ = Test("vmm");
 		void* p = kmalloc(128);
 		memset(p, 0xff, 128);
 		vmm_check(p);
@@ -29,12 +14,10 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("vector");
-
 		vector<u32> vec;
-		vec.emplace(20);
-		vec.emplace(30);
-		vec.emplace(40);
+		vec.emplace_back(20);
+		vec.emplace_back(30);
+		vec.emplace_back(40);
 
 		vector<u32> vec4 { 20, 30, 40 };
 		assert(vec4.size == 3);
@@ -83,8 +66,6 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("string");
-
 		const char constexpr* TESZTSTR = "hello world";
 		const char constexpr* TESZTSTR2 = "hello worldturiip ip";
 		string teszt = TESZTSTR;
@@ -99,29 +80,25 @@ void test_libk() {
 		teszt += "ip ip";
 
 		assert(!strcmp(teszt.data, TESZTSTR2));
+		assert(string(TESZTSTR2, 11) == string(TESZTSTR));
 	}
 
 	{
-		auto _ = Test("variant");
 		variant<u32, char*, string> asd;
-		asd.emplace<string>("turi");
+		asd.emplace_back<string>("turi");
 		assert(asd.get<string>() == string("turi"));
 		asd.destroy();
-		asd.emplace<u32>(10);
+		asd.emplace_back<u32>(10);
 		assert(asd.get<u32>() == 10);
 	}
 
 	{
-		auto _ = Test("unique_ptr");
-
 		unique_ptr<u32> p(10);
 		assert(p.ptr);
 		assert(*p == 10);
 	}
 
 	{
-		auto _ = Test("pmm4g");
-		
 		void* p = kmalloc4g(10);
 		assert((paging_lookup((u64)p) >> 32) == 0);
 		kfree4g(p);
@@ -133,8 +110,6 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("llist");
-
 		llist<int> dll;
 		dll.push_back(10);
 		dll.push_back(50);
@@ -158,7 +133,6 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("async");
 		atomic<int> atom = 10;
 		assert(atom == 10);
 		assert(atom++ == 10);
@@ -174,12 +148,34 @@ void test_libk() {
 	}
 
 	{
-		auto _ = Test("hashmap");
-
 		hashmap<string, int> hm;
 		assert(hm["helo"] == 0);
 		hm["helo"] = 10;
 		assert(hm["helo"] == 10);
+		hm.remove("helo");
+		assert(hm["helo"] == 0);
+
+		assert(hm.has("helo"));
+		assert(!hm.has("helo2"));
+	}
+
+	{
+		static_assert(index_of<u32, u32, vector<u8>>::value == 0);
+		static_assert(index_of<u8, u32, vector<u8>>::value == -1);
+	}
+
+	{
+		// constexpr int arr1[] = { 1, 2, 3 };
+		// array<3, int> arr2 { 4, 5, 6, 7 };
+		// const vector<int> vec { 7, 8, 9, 10, 11 };
+
+		// constexpr auto s = span(arr1);
+		// assert(s.size == 3);
+		// assert(s[2] == 3);
+
+		// auto s2 = span(arr2);
+		// assert(s2.size == 4);
+		// assert(s2[2] == 6);
 	}
 }
 

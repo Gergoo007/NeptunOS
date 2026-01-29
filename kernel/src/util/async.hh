@@ -26,7 +26,7 @@ struct mutex {
 struct lockguard {
 	mutex& m;
 
-	lockguard(mutex& m): m(m) { m.lock(); }
+	lockguard(mutex& _m): m(_m) { m.lock(); }
 	lockguard(const lockguard&) = delete("ha");
 	lockguard(lockguard&&) = delete("asd");
 	lockguard& operator=(const lockguard&) = delete("88");
@@ -43,7 +43,7 @@ struct atomic {
 
 	constexpr bool is_lock_free() const { return __atomic_is_lock_free(sizeof(T), &data); }
 
-	void store(T v, int order = __ATOMIC_SEQ_CST) {
+	constexpr void store(T v, int order = __ATOMIC_SEQ_CST) {
 		if (__builtin_is_constant_evaluated())
 			data = v;
 		else
@@ -87,7 +87,7 @@ struct atomic {
 	}
 
 	// Post-inc
-	atomic operator++(int) {
+	constexpr atomic operator++(int) {
 		if (__builtin_is_constant_evaluated())
 			return data++;
 		else
@@ -95,14 +95,14 @@ struct atomic {
 	}
 
 	// Post-dec
-	atomic operator--(int) {
+	constexpr atomic operator--(int) {
 		if (__builtin_is_constant_evaluated())
 			return data--;
 		else
 			return atomic(__atomic_fetch_sub(&data, 1, __ATOMIC_SEQ_CST));
 	}
 
-	atomic& operator++() {
+	constexpr atomic& operator++() {
 		if (__builtin_is_constant_evaluated())
 			data++;
 		else
@@ -110,7 +110,7 @@ struct atomic {
 		return *this;
 	}
 
-	atomic& operator--() {
+	constexpr atomic& operator--() {
 		if (__builtin_is_constant_evaluated())
 			data--;
 		else

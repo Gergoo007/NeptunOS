@@ -2,13 +2,13 @@ MANAGE_ARCH_STUFF := 0
 ARCH ?= amd64
 include ../../$(ARCH).mk
 
-CXXFLAGS += -I../../src -DIS_MODULE
+CXXFLAGS += -I../../src -DIS_MODULE -mcmodel=large
 
 CCSRCS += $(subst src/,,$(shell find src -name '*.cc' -not -path '*bakexclude*'))
 
 CCOBJS += $(patsubst %.cc,out/%.cc.o,$(CCSRCS))
 CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
-EXTRADEPS := Makefile ../template/Makefile
+EXTRADEPS := Makefile ../template/Makefile ../../$(ARCH).mk
 
 MOD_NAME := $(notdir $(CURDIR))
 

@@ -38,7 +38,7 @@ pstruct ahci_internal {
 	volatile hba_regs* r;
 };
 
-u32 alloc_cmdslot(volatile hba_regs* r, u32 port) {
+static u32 alloc_cmdslot(volatile hba_regs* r, u32 port) {
 	auto& p = r->ports[port];
 	u32 slotbitmap = p.cmd_issue | p.sata_active;
 	for (u32 i = 0; i < 32; i++) {
@@ -56,9 +56,9 @@ u32 alloc_cmdslot(volatile hba_regs* r, u32 port) {
 				fatal("Timeout reached on expression '%s' (%s:%d)", #expr, __FILE__, __LINE__); \
 	} while (false);
 
-u32 readl(volatile u32* addr) { return *(volatile u32*)addr; }
+static u32 readl(volatile u32* addr) { return *(volatile u32*)addr; }
 
-void setrunning(volatile hba_regs* r, u32 i, bool run) {
+static void setrunning(volatile hba_regs* r, u32 i, bool run) {
 	volatile u32& cmd = *(u32*)&r->ports[i].cmd_sts;
 	volatile u32& tfd = *(u32*)&r->ports[i].taskfile;
 
@@ -76,56 +76,19 @@ void setrunning(volatile hba_regs* r, u32 i, bool run) {
 	}
 }
 
-void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
-	assert(dev.subsys == DevmgrSubsys::MSD);
-	assert(((u64)into & 511) == 0);
-	assert(sectors < PRDTL);
-
+template <typename Lambda>
+static void ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 	auto* r = ((ahci_internal*)dev.parent->extra)->r;
 	u32 i = dev.loc;
 
 	u32 slot = alloc_cmdslot(r, i);
 	r->ports[i].intr_sts = -1;
-	ahci_px_cmd c = r->ports[i].cmd_sts;
 
 	cmd_hdr* hdrs = VIRTUAL((cmd_hdr*)r->ports[i].cmd_list_base);
 	hdrs[slot].cmd_fis_len = sizeof(fis_reg_h2d) / 4;
 	hdrs[slot].write = 0;
-	cmd_table* tbl = VIRTUAL((cmd_table*)hdrs[slot].cmd_table_base);
 
-	fis_reg_h2d* cmdfis = (fis_reg_h2d*)tbl->cmd_fis;
-	cmdfis->type = FisTypes::REG_H2D;
-	cmdfis->cmd_ctl = 1;	// Command
-	cmdfis->cmd = AtaCmds::READ_DMA_EXT;
-
-	cmdfis->lba0 = (lba >> 0) & 0xff;
-	cmdfis->lba1 = (lba >> 8) & 0xff;
-	cmdfis->lba2 = (lba >> 16) & 0xff;
-	cmdfis->device = 1 << 6;	// LBA mode
-
-	cmdfis->lba3 = (lba >> 24) & 0xff;
-	cmdfis->lba4 = (lba >> 32) & 0xff;
-	cmdfis->lba5 = (lba >> 48) & 0xff;
-
-	cmdfis->count = sectors;
-	hdrs[slot].prdtlen = sectors;
-
-	u32 j = 0;
-	while (sectors) {
-		// meg kell bizonyosodni róla, hogy ha a heapbe megy az adat, akkor mappelve van
-		readl((volatile u32*)into);
-		assert(paging_lookup(into) != -1ull);
-
-		tbl->entries[j].data_base = (u64)paging_lookup(into);
-		tbl->entries[j].bytes = 511;
-		tbl->entries[j].ioc = false;
-
-		into = (void*)((u64)into + 512);
-		sectors--;
-		j++;
-	}
-
-	tbl->entries[j-1].ioc = true;
+	hdrs[slot].prdtlen = create_cmd(VIRTUAL((cmd_table*)hdrs[slot].cmd_table_base));
 
 	// Meg kell várni amíg a port nem buzi
 	ahci_px_tfd tf = r->ports[i].taskfile;
@@ -156,7 +119,106 @@ void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
 	}
 }
 
-device_t* init_port(device_t& hba, u32 i) {
+void ahci_identify(device_t& dev, void* identity) {
+	assert(dev.subsys == DevmgrSubsys::MSD);
+	assert(isaligned(identity, 512));
+
+	auto* r = ((ahci_internal*)dev.parent->extra)->r;
+	u32 i = dev.loc;
+	r->ports[i].intr_sts = -1;
+
+	ahci_send_cmd(dev, [identity](cmd_table* tbl) -> u32 {
+		fis_reg_h2d* cmdfis = (fis_reg_h2d*)tbl->cmd_fis;
+		cmdfis->type = FisTypes::REG_H2D;
+		cmdfis->cmd_ctl = 1;	// Command
+		cmdfis->cmd = AtaCmds::IDENTIFY_DEVICE;
+
+		cmdfis->lba0 = 0;
+		cmdfis->lba1 = 0;
+		cmdfis->lba2 = 0;
+		cmdfis->device = 0;
+
+		cmdfis->lba3 = 0;
+		cmdfis->lba4 = 0;
+		cmdfis->lba5 = 0;
+
+		cmdfis->count = 1;
+		u32 prdtl = 1;
+
+		// meg kell bizonyosodni róla, hogy ha a heapbe megy az adat, akkor mappelve van
+		readl((volatile u32*)identity);
+		assert(paging_lookup(identity) != -1ull);
+
+		tbl->entries[0].data_base = (u64)paging_lookup(identity);
+		tbl->entries[0].bytes = 511;
+		tbl->entries[0].ioc = true;
+
+		return prdtl;
+	});
+}
+
+void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
+	assert(dev.subsys == DevmgrSubsys::MSD);
+	assert(((u64)into & 511) == 0);
+	assert(sectors < PRDTL);
+
+	auto* r = ((ahci_internal*)dev.parent->extra)->r;
+	u32 i = dev.loc;
+	r->ports[i].intr_sts = -1;
+
+	ahci_send_cmd(dev, [lba, &into, &sectors](cmd_table* tbl) -> u32 {
+		fis_reg_h2d* cmdfis = (fis_reg_h2d*)tbl->cmd_fis;
+		cmdfis->type = FisTypes::REG_H2D;
+		cmdfis->cmd_ctl = 1;	// Command
+		cmdfis->cmd = AtaCmds::READ_DMA_EXT;
+
+		cmdfis->lba0 = (lba >> 0) & 0xff;
+		cmdfis->lba1 = (lba >> 8) & 0xff;
+		cmdfis->lba2 = (lba >> 16) & 0xff;
+		cmdfis->device = 1 << 6;	// LBA mode
+
+		cmdfis->lba3 = (lba >> 24) & 0xff;
+		cmdfis->lba4 = (lba >> 32) & 0xff;
+		cmdfis->lba5 = (lba >> 48) & 0xff;
+
+		cmdfis->count = sectors;
+		u32 prdtl = sectors;
+
+		u32 j = 0;
+		while (sectors) {
+			// meg kell bizonyosodni róla, hogy ha a heapbe megy az adat, akkor mappelve van
+			readl((volatile u32*)into);
+			assert(paging_lookup(into) != -1ull);
+
+			tbl->entries[j].data_base = (u64)paging_lookup(into);
+			tbl->entries[j].bytes = 511;
+			tbl->entries[j].ioc = false;
+
+			into = (void*)((u64)into + 512);
+			sectors--;
+			j++;
+		}
+
+		tbl->entries[j-1].ioc = true;
+
+		return prdtl;
+	});
+}
+
+// Milyen autista állat találta ki ezt a formátumot? És miért nem lehetett egy faszom null terminatort rakni?
+void ahci_sanitize(char* str, u32 len) {
+	for (u32 i = 0; i < len / 2; i += 2) {
+		char tmp = str[i];
+		str[i] = str[i + 1];
+		str[i + 1] = tmp;
+	}
+
+	u32 i = len;
+	while (str[--i] == ' ');
+	str[i + 1] = 0;
+}
+
+static device_t* init_port(device_t& hba, u32 i) {
 	auto* r = ((ahci_internal*)hba.extra)->r;
 	auto& p = r->ports[i];
 
@@ -209,8 +271,6 @@ device_t* init_port(device_t& hba, u32 i) {
 
 	p.intr_sts = -1;
 
-	error("TODO: ATA IDENTIFY");
-
 	// Új eszközként hozzáadás
 	device_t& drive = devmgr_add_device(device_t {
 		.parent = &hba,
@@ -221,6 +281,18 @@ device_t* init_port(device_t& hba, u32 i) {
 			
 		}),
 	});
+
+	ATA_IDENTITY* id = (ATA_IDENTITY*)kmalloc_aligned(512, 512);
+	ahci_identify(drive, id);
+	ahci_sanitize((char*)id->ModelNumber, 40);
+	ahci_sanitize((char*)id->SerialNumber, 20);
+
+	auto& d = drive.kinds.get<device_t_MSD>();
+	d.manufacturerName = string();
+	d.productName = string((char*)id->ModelNumber);
+	d.serial = string((char*)id->SerialNumber);
+	warn("turip %s %s %s", d.manufacturerName.c_str(), d.productName.c_str(), d.serial.c_str());
+	kfree(id);
 
 	return &drive;
 }
@@ -262,15 +334,7 @@ extern "C" void mod_main(device_t& _dev) {
 	ahci_cap caps = r->caps;
 	assert(caps.s64bit);
 
-	void* buf = kmalloc(512);
-
-	for (u32 i = 0; i < 32; i++) {
-		if (r->port_impl & (1 << i)) {
-			device_t* drive = init_port(_dev, i);
-			if (drive) {
-				// ahci_read(*drive, 0, 9, buf);
-				// error("buf: %s", (char*)buf);
-			}
-		}
-	}
+	for (u32 i = 0; i < 32; i++)
+		if (r->port_impl & (1 << i))
+			init_port(_dev, i);
 }

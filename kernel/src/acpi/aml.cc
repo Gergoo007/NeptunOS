@@ -26,7 +26,7 @@ u64 pkglength(AmlOpCode*& code) {
 struct simplename {
 	u32 name;
 	u8 nullterm = 0;
-	const char* const sname = (const char* const)&name;
+	const char* const sname = (const char*)&name;
 
 	void operator=(const simplename& o) { name = o.name; }
 
@@ -106,7 +106,7 @@ void acpi_parse_aml(sdt_t* table) {
 		switch (*op) {
 			case AmlOpCode::ScopeOp: {
 				op++;
-				u64 len = pkglength(op);
+				u64 len = pkglength(op); (void)len;
 				auto s = scopetext(op);
 				report("s is %s", s.c_str());
 				break;
