@@ -75,7 +75,7 @@ void fs_mount(partition* p, const char* mnt, FilesystemType fstype) {
 	}, path };
 	if (fstype == FilesystemType::CUSTOM) {
 		m.f.p = p;
-		devmgr_add_fs(m.f);
+		devmgr_try_mount(m.f);
 	} else {
 		extern void vfs_mount(filesystem &f);
 		vfs_mount(m.f);

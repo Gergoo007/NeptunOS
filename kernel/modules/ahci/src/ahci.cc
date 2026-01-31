@@ -77,7 +77,7 @@ static void setrunning(volatile hba_regs* r, u32 i, bool run) {
 }
 
 template <typename Lambda>
-static void ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
+static bool ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 	auto* r = ((ahci_internal*)dev.parent->extra)->r;
 	u32 i = dev.loc;
 
@@ -108,15 +108,23 @@ static void ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 
 	arch_start_timer();
 	while (port.cmd_issue & (1 << slot)) {
-		if (arch_elapsed(500))
-			fatal("AHCI cmd_issue bit not getting reset!");
+		if (arch_elapsed(500)) {
+			error("AHCI cmd_issue bit not getting reset!");
+			return false;
+		}
 
-		if (port.intr_sts & (1 << 30))
-			fatal("Task file error!");
+		if (port.intr_sts & (1 << 30)) {
+			error("Task file error!");
+			return false;
+		}
 
-		if (port.sata_err)
-			fatal("SATA error: %08x", port.sata_err);
+		if (port.sata_err) {
+			error("SATA error: %08x", port.sata_err);
+			return false;
+		}
 	}
+
+	return true;
 }
 
 void ahci_identify(device_t& dev, void* identity) {
@@ -166,7 +174,7 @@ void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
 	u32 i = dev.loc;
 	r->ports[i].intr_sts = -1;
 
-	ahci_send_cmd(dev, [lba, &into, &sectors](cmd_table* tbl) -> u32 {
+	bool success = ahci_send_cmd(dev, [lba, &into, &sectors](cmd_table* tbl) -> u32 {
 		fis_reg_h2d* cmdfis = (fis_reg_h2d*)tbl->cmd_fis;
 		cmdfis->type = FisTypes::REG_H2D;
 		cmdfis->cmd_ctl = 1;	// Command
@@ -203,6 +211,10 @@ void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
 
 		return prdtl;
 	});
+
+	if (!success) {
+		fatal("ahci_read unsuccessful! lba: %llx, sectors: %llx; output: %p", lba, sectors, into);
+	}
 }
 
 // Milyen autista állat találta ki ezt a formátumot? És miért nem lehetett egy faszom null terminatort rakni?

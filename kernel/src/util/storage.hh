@@ -271,7 +271,7 @@ struct string : vector<char> {
 		data[size] = 0;
 	}
 
-	string(const string& o) {
+	string(const string& o): vector<char>() {
 		if (o.size) {
 			size = o.size;
 			capacity = o.size;
@@ -279,6 +279,34 @@ struct string : vector<char> {
 
 			memcpy(data, o.data, size + 1);
 		}
+	}
+
+	string(string&& o): vector<char>(o) {  }
+
+	string& operator=(const string& o) {
+		if (data) kfree(data);
+
+		size = o.size;
+		capacity = o.size;
+		data = (char*)kmalloc(capacity);
+
+		if (data)
+			memcpy(data, o.data, size + 1);
+
+		return *this;
+	}
+
+	string& operator=(string&& o) {
+		if (data) kfree(data);
+		data = o.data;
+		size = o.size;
+		capacity = o.capacity;
+
+		o.data = nullptr;
+		o.size = 0;
+		o.capacity = 0;
+
+		return *this;
 	}
 
 	string& operator+=(const char* s) {
@@ -404,6 +432,13 @@ struct optional {
 
 	template <typename... Args>
 	optional(Args&&... args): present(true) { new (&storage) T(forward<Args>(args)...); }
+
+	T& expect(const char* error) {
+		if (!present)
+			fatal("Optional not present: %s", error);
+
+		return *(T*)storage;
+	}
 
 	T& emplace_back(T&& init) {
 		new (&storage) T(forward<T>(init));

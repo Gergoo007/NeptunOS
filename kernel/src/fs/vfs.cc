@@ -90,11 +90,10 @@ void vfs_create(const filesystem& p, const char* path, bool mkdir) {
 	const char* basename = path_basename((char*)path);
 
 	vfs_entry* mappa = vfs_lookup(p, string(path, (u64)basename - (u64)path).c_str());
-	mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename);
 	if (mkdir)
-		mappa->content.get<vfs_dir>()[basename].content.emplace_back<vfs_dir>();
+		mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename, vfs_entry_union(true, vfs_dir()));
 	else
-		mappa->content.get<vfs_dir>()[basename].content.emplace_back<vector<u8>>();
+		mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename, vfs_entry_union(true, vector<u8>()));
 }
 
 void vfs_mount(filesystem &f) {

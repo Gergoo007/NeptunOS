@@ -22,6 +22,8 @@ static constexpr const char* debug_files[] = {
 	// "ehci.cc",
 	// "usb.cc",
 	// "hub.cc",
+
+	"fat.cc",
 	
 	"acpi.cc",
 	"aml.cc"

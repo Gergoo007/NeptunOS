@@ -84,15 +84,19 @@ extern "C" void kmain() {
 		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
 	);
 
-	fs_mount(nullptr, "/", FilesystemType::VFS);
-
-	fs_create("/mnt/", true);
-	fs_create("/mnt/hello", false);
-	constexpr char msg[] = "Hello, world!\n";
-	fs_write("/mnt/hello", 10, sizeof(msg), (char*)msg);
-	char buf[sizeof(msg)];
-	fs_read("/mnt/hello", 10, sizeof(msg), buf);
-	report("read back %s", buf);
+	char buf[64];
+	u32 bytes = fs_read("/folder/nested", 0, 64, buf); buf[bytes] = 0;
+	report("Bytes read: %d; data: %s", bytes, buf);
+	bytes = fs_read("/hi", 0, 64, buf); buf[bytes] = 0;
+	report("Bytes read: %d; data: %s", bytes, buf);
+	u8* largefile = new u8[2048];
+	bytes = fs_read("/largefile", 0, 2048, largefile);
+	constexpr u32 offset = 2047;
+	report("read %d bytes; offset %x: %x", bytes, offset, largefile[offset]);
+	vector<fs_entry> dir = fs_readdir("/");
+	for (const auto& f : dir)
+		report("found file of type: %d; name: %s; size: %d", f.dir, f.name.c_str(), 0);
+	report("end");
 
 	khang();
 }

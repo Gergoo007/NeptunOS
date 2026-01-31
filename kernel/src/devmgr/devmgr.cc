@@ -54,9 +54,11 @@ device_t& devmgr_add_device(device_t&& _d) {
 	return d;
 }
 
-void devmgr_add_fs(filesystem& f) {
+void devmgr_try_mount(filesystem& f) {
 	for (auto& m : modules) {
-		if (m.metadata->triggertype == ModuleTriggerTypes::FILESYSTEM)
-			modules_launch_fs(m, f);
+		if (m.metadata->triggertype == ModuleTriggerTypes::FILESYSTEM) {
+			if (modules_launch_fs(m, f))
+				return;
+		}
 	}
 }

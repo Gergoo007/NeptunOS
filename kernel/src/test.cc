@@ -161,7 +161,7 @@ void test_libk() {
 
 	{
 		static_assert(index_of<u32, u32, vector<u8>>::value == 0);
-		static_assert(index_of<u8, u32, vector<u8>>::value == -1);
+		static_assert(index_of<u8, u32, vector<u8>>::value == -1ull);
 	}
 
 	{

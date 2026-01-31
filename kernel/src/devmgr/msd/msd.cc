@@ -54,13 +54,20 @@ void msd_scout(device_t& d) {
 		report("part guid: %s", guid2string(e.type).c_str());
 		guid2parttype(e.type);
 
-		msd.parts.emplace_back(partition {
+		partition* p = &msd.parts.emplace_back(partition {
 			.type = PartitionType::OTHER,
 			.offset = e.start * 512,
 			.size = ((e.end + 1) - e.start) * 512,
 			.name = e.name,
 			.parent = d,
 		});
+
+		// Mount megkísérlése
+		fs_mount(p, "/", FilesystemType::CUSTOM);
+		// auto files = fs_readdir("/");
+		// for (const auto& f : files) {
+		// 	report("found file of type %d: %s", f.dir, f.name.c_str());
+		// }
 	}
 
 ret:

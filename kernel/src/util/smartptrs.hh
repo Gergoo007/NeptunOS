@@ -31,6 +31,8 @@ struct unique_ptr {
 
 	T& operator*() { return *ptr; }
 	T* operator->() { return ptr; }
+	operator T() { return *ptr; }
+	operator T*() { return ptr; }
 
 	~unique_ptr() { delete ptr; }
 };

@@ -75,4 +75,4 @@ struct device_t {
 };
 
 device_t& devmgr_add_device(device_t&& d);
-void devmgr_add_fs(filesystem& p);
+void devmgr_try_mount(filesystem& f);
