@@ -9,6 +9,8 @@ modules:
 	@cp modules.tar ../../boot/
 
 clean:
+	@rm -rf template/out
+	@mkdir template/out
 	@for mod in $(MODULES); do \
 		$(MAKE) --no-print-directory -C $$mod clean || exit 1; \
 	done
