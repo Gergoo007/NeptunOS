@@ -19,6 +19,9 @@
 #include <devmgr/usb/usb.hh>
 #include <scheduler/scheduler.hh>
 #include <fs/fs.hh>
+#include <loader/loader.hh>
+#include <arch/amd64/syscalls/syscalls.hh>
+#include <arch/amd64/apic.hh>
 
 extern "C" attr_noret void khang();
 void test();
@@ -30,6 +33,9 @@ bool watch = false;
 // TODO: ahci vezérlő && port reset
 // TODO: device_t::subsys redundáns mivel a variant::active ugyanezt mutatja (már kurvára nincs kedvem revampolni, pedig ide az kell)
 // TODO: msd_read optimalizáció
+// TODO: WATERMARK LECSERÉLÉSE A map_page-NÉL
+
+// !! VMM CHECKING DOES NOT WORK ON BOCHS BECAUSE IT IS TOO SLOW (BOCHS) !!
 
 extern "C" void kmain() {
 	// Korai inicializáció
@@ -73,7 +79,7 @@ extern "C" void kmain() {
 	printk("Mem usage:\n");
 	printk(
 		"VMM: %lld KiB free; %lld KiB used; %lld MiB total; num of allocs: %d\n",
-		bytes2kibs(vmm_freemem), bytes2kibs(vmm_usedmem), bytes2mibs(vmm_freemem + vmm_usedmem), vmm_count_allocs()
+		bytes2kibs(g_vmm.freemem), bytes2kibs(g_vmm.usedmem), bytes2mibs(g_vmm.freemem + g_vmm.usedmem), g_vmm.count_allocs()
 	);
 	printk(
 		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
@@ -81,28 +87,24 @@ extern "C" void kmain() {
 	);
 	printk(
 		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
-		bytes2kibs(pmm4g_freemem), bytes2kibs(pmm4g_usedmem), bytes2mibs(pmm4g_freemem + pmm4g_usedmem)
+		bytes2kibs(g_pmm4g.freemem), bytes2kibs(g_pmm4g.usedmem), bytes2mibs(g_pmm4g.freemem + g_pmm4g.usedmem)
 	);
 
-	char buf[64];
-	u32 bytes = fs_read("/folder/nested", 0, 64, buf); buf[bytes] = 0;
-	report("Bytes read: %d; data: %s", bytes, buf);
-	bytes = fs_read("/hi", 0, 64, buf); buf[bytes] = 0;
-	report("Bytes read: %d; data: %s", bytes, buf);
-	u8* largefile = new u8[2048];
-	bytes = fs_read("/largefile", 0, 2048, largefile);
-	constexpr u32 offset = 2047;
-	report("read %d bytes; offset %x: %x", bytes, offset, largefile[offset]);
-	vector<fs_entry> dir = fs_readdir("/");
-	for (const auto& f : dir)
-		report("found file of type: %d; name: %s; size: %d", f.dir, f.name.c_str(), 0);
-	report("end");
+	init_syscalls();
+
+	// Dry read; ezzel lehet megszerezni a fájlméretet a legegyszerűbben
+	u64 size = fs_read("/bin/teszt", 0, -1u, nullptr);
+	report("filesize: %lld", size);
+
+	u8* data = (u8*)kmalloc(size);
+	fs_read("/bin/teszt", 0, size, data);
+	
+	program teszt(span(data, size));
+	report("after creation");
+	teszt.launch();
+	report("after launch");
 
 	khang();
 }
 
-attr_noret void khang() {
-	while (1) {
-		arch_halt();
-	}
-}
+attr_noret void khang() { while (1) arch_halt(); }

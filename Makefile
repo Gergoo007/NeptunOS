@@ -44,6 +44,7 @@ bochs2: prepare_img
 		> /dev/null & gdb kernel/out/kernel --eval-command="target remote :1234"
 
 prepare_img:
+	@$(MAKE) -C userland/teszt install
 	@$(MAKE) -C kernel
 	@cp kernel/out/kernel boot/kernel
 	@xorriso -as mkisofs -R -r -J -b limine-bios-cd.bin \

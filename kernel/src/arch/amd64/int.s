@@ -8,6 +8,7 @@ GLOBISR %f+1,\t
 .endm
 
 .macro DECLRISR_NOFLAG f, t
+.global exc\f
 exc\f:
 	pushfq
 	cli
@@ -19,6 +20,7 @@ DECLRISR_NOFLAG %f+1,\t
 .endm
 
 .macro DECLRISR f, t
+.global exc\f
 exc\f:
 	pushfq
 	cli
@@ -29,8 +31,6 @@ exc\f:
 DECLRISR %f+1,\t
 .endif
 .endm
-
-GLOBISR 0, 100
 
 .global sse_state
 
@@ -48,9 +48,12 @@ DECLRISR_NOFLAG 10, 14
 DECLRISR 15, 19
 
 # Megszakítások
-DECLRISR 64, 72
+DECLRISR 20, 63
+DECLRISR 64, 128
+DECLRISR 129, 192
+DECLRISR 193, 255
 
-.extern onInterrupt
+.extern handler
 
 pushall:
 	fxsave64 sse_state
@@ -74,19 +77,23 @@ pushall:
 	push %r13
 	push %r14
 	push %r15
+	mov %cr3, %rax
+	push %rax
 
 	mov $0x10, %ax
 	mov %ax, %ds
 	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
+	// mov %ax, %fs
+	// mov %ax, %gs
 	mov %ax, %ss
 
 	movq %rsp, %rdi
-	movabsq $onInterrupt, %rax
+	movq 136(%rsp), %rsi
+	movq handler(, %rsi, 8), %rax
 	cld
 	call *%rax
 
+	pop %r15 # cr3
 	pop %r15
 	pop %r14
 	pop %r13
@@ -103,12 +110,12 @@ pushall:
 	pop %rcx
 	pop %rbx
 	pop %rax
-	
+
 	fxrstor64 sse_state
 
 	# hibakód + vektor
-	add $0x10, %rsp
+	add $0x18, %rsp
 
-	popfq
+	// popfq
 
 	iretq

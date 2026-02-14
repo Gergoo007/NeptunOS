@@ -141,7 +141,7 @@ struct vector {
 			return;
 		}
 
-		if (!vmm_try_realloc(data, cap * sizeof(T), __FILE__, __LINE__)) {
+		if (!ktryrealloc(data, cap * sizeof(T))) {
 			T* newdata = (T*)kmalloc(cap * sizeof(T));
 			for (u32 i = 0; i < size; i++)
 				new (&newdata[i]) T(move<T>(data[i]));
@@ -798,6 +798,9 @@ struct span {
 			assert(idx < size);
 		return first[idx];
 	}
+
+	constexpr operator T*() { return first; }
+	constexpr operator T() { return *first; }
 
 	iter begin() { return iter(first); }
 	iter end() { return iter(first + size); }

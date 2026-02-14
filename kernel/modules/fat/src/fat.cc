@@ -131,6 +131,10 @@ static u64 chainread(const filesystem& f, u32 cluster, u64 offset, u64 bytes, vo
 
 u64 fat32_read(const filesystem& f, const char* path, u64 offset, u64 bytes, void* buf) {
 	fat_entry e = fat32_lookup(f, path).expect("File not found!");
+	if (!buf) {
+		assert((e.attrs & FatAttrs::DIRECTORY) == 0);
+		return e.size;
+	}
 
 	u64 cluster = clusterfrom(e.cluster_lo16, e.cluster_hi16);
 	assert(offset <= e.size);

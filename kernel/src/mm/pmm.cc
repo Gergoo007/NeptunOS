@@ -95,7 +95,6 @@ void pmm_init() {
 		pmm_freemem -= pmm_pagesize;
 	}
 	sprintk("init pmm heap at %p size %llx (%lld MiB)\n\r", pmm_heap_base, pmm_heap_size, bytes2mibs(pmm_heap_size));
-	sprintk("bits at %p", pmm_bm->buffer);
 
 	pmm4g_init(pmm4g_base, pmm4g_size);
 }

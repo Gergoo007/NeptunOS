@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arch/arch.hh>
+#include <arch/amd64/paging.hh>
 #include <util/storage.hh>
 
 enum struct TaskType {
@@ -55,6 +56,7 @@ void sched_add_thread(T&& fun) {
 	newt.state.rbp = newt.state.rsp;
 	newt.state.rfl = 0x202;
 	newt.state.rdi = (u64)(void*)&fun;
+	newt.state.cr3 = paging_lookup(pml4);
 
 	memcpy(newt.ssestate, sse_state, 512);
 
@@ -65,3 +67,6 @@ void sched_add_thread(T&& fun) {
 	sched_tasks.push_back(newt);
 	sched_m.unlock();
 }
+
+struct page_table_t;
+void sched_add_user_process(u64 cr3, u64 stackptr, void (*entry)(int argc, char** argv));

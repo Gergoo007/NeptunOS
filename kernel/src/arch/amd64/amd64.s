@@ -1,8 +1,11 @@
 .global arch_cpu_state_load
+.global amd64_get_msr
+.global amd64_set_msr
 
 .extern sse_state
 
 # %rdi: cpu_state_t {
+#	u64 cr3;
 # 	u64 r15;
 # 	u64 r14;
 # 	u64 r13;
@@ -32,6 +35,9 @@
 arch_cpu_state_load:
 	mov %rdi, %rsp
 
+	pop %rax
+	mov %rax, %cr3
+
 	pop %r15
 	pop %r14
 	pop %r13
@@ -56,7 +62,3 @@ arch_cpu_state_load:
 
 	popfq
 	iretq
-
-.data
-str0:
-	.asciz "asd turi %p %p %p %p\n"

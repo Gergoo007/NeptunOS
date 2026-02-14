@@ -282,6 +282,7 @@ static device_t* init_port(device_t& hba, u32 i) {
 	setrunning(r, i, true);
 
 	p.intr_sts = -1;
+	p.intr_enable = -1;
 
 	// Új eszközként hozzáadás
 	device_t& drive = devmgr_add_device(device_t {
@@ -303,13 +304,14 @@ static device_t* init_port(device_t& hba, u32 i) {
 	d.manufacturerName = string();
 	d.productName = string((char*)id->ModelNumber);
 	d.serial = string((char*)id->SerialNumber);
-	warn("turip %s %s %s", d.manufacturerName.c_str(), d.productName.c_str(), d.serial.c_str());
 	kfree(id);
 
 	return &drive;
 }
 
 extern "C" void mod_main(device_t& _dev) {
+	pci_setup_cmd_reg(_dev);
+
 	auto bar5 = pci_prepare_bar(_dev, 5);
 	assert(!bar5.io);
 	u64 mmio = bar5.addr;
@@ -328,6 +330,8 @@ extern "C" void mod_main(device_t& _dev) {
 
 	_dev.extra = new ahci_internal(r);
 
+	pci_enable_msi(_dev, 0x60);
+
 	ahci_ghc ghc = r->ghc;
 	// ghc.reset = 1;
 	// r->ghc = ghc.raw;
@@ -338,8 +342,9 @@ extern "C" void mod_main(device_t& _dev) {
 	// }
 
 	ghc.ahci_enable = 1;
+	ghc.intr = 1;
 	r->ghc = ghc.raw;
-	
+
 	arch_sleep(10, true);
 	ghc = r->ghc;
 

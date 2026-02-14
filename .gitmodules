@@ -2,3 +2,6 @@
 	path = limine
 	url = https://codeberg.org/Limine/Limine.git
 	branch = v9.x-binary
+[submodule "usertoolchain/rust"]
+	path = usertoolchain/rust
+	url = https://github.com/rust-lang/rust

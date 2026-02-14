@@ -14,7 +14,7 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 ASFLAGS += -fno-lto
 LDFLAGS += --no-gc-sections
 
-ifneq (,$(shell command -v x86_64-elf-g++ 2>/dev/null))
+ifeq (,$(shell command -v x86_64-elf-g++ 2>/dev/null))
 CC := g++
 LD ?= ld
 AS ?= gcc

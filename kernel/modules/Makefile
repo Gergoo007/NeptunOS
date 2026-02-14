@@ -5,7 +5,7 @@ modules:
 		echo "  > [Mod] $$mod"; \
 		$(MAKE) --no-print-directory -C $$mod module || exit 1; \
 	done
-	@tar -cf modules.tar -C template/out $(foreach MODNAME,$(MODULES),-C ../../$(MODNAME)/out/ $(MODNAME).ko)
+	@tar -cf modules.tar -C template/out $(foreach MODNAME,$(MODULES),-C ../../$(MODNAME)/out/ $(MODNAME).ko) -C ../../../../userland/teszt/ teszt
 	@cp modules.tar ../../boot/
 
 clean:

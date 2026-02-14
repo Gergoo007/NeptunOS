@@ -63,7 +63,11 @@ void msd_scout(device_t& d) {
 		});
 
 		// Mount megkísérlése
-		fs_mount(p, "/", FilesystemType::CUSTOM);
+		static bool mounted = false;
+		if (!mounted) {
+			fs_mount(p, "/", FilesystemType::CUSTOM);
+			mounted = true;
+		}
 		// auto files = fs_readdir("/");
 		// for (const auto& f : files) {
 		// 	report("found file of type %d: %s", f.dir, f.name.c_str());

@@ -12,4 +12,5 @@ extern bitmap_t* pmm_bm;
 
 void pmm_init();
 void* pmm_alloc(u64 size = pmm_pagesize);
+
 void pmm_free(void* p);

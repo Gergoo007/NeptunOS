@@ -1,21 +1,14 @@
 #pragma once
 
-#include <types.hh>
+#include <util/mm.hh>
 
-#define kmalloc4g(s) pmm4g_alloc(s, __FILE_NAME__, __LINE__)
-#define krealloc4g(p, s) pmm4g_realloc(p, s)
-#define kmalloc_aligned4g(s, a) pmm4g_alloc_aligned(s, a, __FILE_NAME__, __LINE__)
-#define kfree4g(p) pmm4g_free(p, __FILE_NAME__, __FUNCTION__)
+#define kmalloc4g(size) g_pmm4g.alloc(size, __FILE__, __LINE__)
+#define kmalloc_aligned4g(size, al) g_pmm4g.alloc_aligned(size, al, __FILE__, __LINE__)
+#define krealloc4g(ptr, size) g_pmm4g.realloc(ptr, size, __FILE__, __LINE__)
+#define kfree4g(ptr) g_pmm4g.free(ptr, __FILE__, __PRETTY_FUNCTION__)
+#define ktryrealloc4g(ptr, cap) g_pmm4g.try_realloc(ptr, cap, __FILE__, __LINE__)
 
-extern u64 pmm4g_usedmem;
-extern u64 pmm4g_freemem;
+extern u8 _g_pmm4g[sizeof(memorymgr)];
+extern memorymgr& g_pmm4g;
 
 void pmm4g_init(u64 heap_base, u64 size);
-u32 pmm4g_count_allocs();
-void* pmm4g_alloc(u64 size, const char* file, u32 line);
-void* pmm4g_alloc_aligned(u64 size, u32 align, const char* file, u32 line);
-void* pmm4g_realloc(void* ptr, u64 newsize);
-u64 pmm4g_dump();
-void pmm4g_info(void* p);
-void pmm4g_free(void* p, const char* file, const char* function);
-void pmm4g_print_files(void* around);

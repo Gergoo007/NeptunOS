@@ -5,5 +5,4 @@
 **/*.ko
 **/out/*
 bochslog.txt
-disk.img
-
+tools/mounted

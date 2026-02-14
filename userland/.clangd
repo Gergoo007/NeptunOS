@@ -1,0 +1,5 @@
+Diagnostics:
+  UnusedIncludes: None
+
+CompileFlags:
+  Add: [ "-I." ]

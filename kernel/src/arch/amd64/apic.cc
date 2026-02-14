@@ -76,6 +76,7 @@ void arch_parse_madt(madt_t* m) {
 				redirection_table[entry.MADT_OVERRIDE.irq].gsi = entry.MADT_OVERRIDE.gsi;
 				redirection_table[entry.MADT_OVERRIDE.irq].activelow = entry.MADT_OVERRIDE.flags.active_low;
 				redirection_table[entry.MADT_OVERRIDE.irq].lvltrig = entry.MADT_OVERRIDE.flags.lvl_triggered;
+				// report("%d -> %d: %d %d", entry.MADT_OVERRIDE.irq, entry.MADT_OVERRIDE.gsi, entry.MADT_OVERRIDE.flags.lvl_triggered);
 				break;
 			}
 			case MadtTypes::MADT_IOAPIC_NMI: {

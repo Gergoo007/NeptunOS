@@ -182,6 +182,7 @@ bool modules_launch_fs(module_t& m, filesystem& p) {
 	return ((bool (*)(filesystem&))m.entry)(p);
 }
 
+void* teszt;
 void modules_register(void* a, u64 size, const char* modfilename) {
 	Elf64_Ehdr* e = (Elf64_Ehdr*)a;
 	// Ennek \127-nek kéne lennie, 2002 óta nem lett kijavítva ez az elf.h-ban
@@ -199,6 +200,7 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 
 	if (!md) {
 		error("Invalid module (no .modinfo section found): %s", modfilename);
+		teszt = a;
 	} else {
 		module_t mod { .content = a, .size = size, .entry = 0, .metadata = md };
 

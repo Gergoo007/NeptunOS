@@ -33,7 +33,9 @@ u64 vfs_read(const filesystem& p, const char* path, u64 offset, u64 bytes, void*
 		return -1;
 	} else {
 		auto& content = file->content.get<vector<u8>>();
-		if (buf && content.data && bytes) {
+		if (!buf)
+			return content.size - offset;
+		if (content.data && bytes) {
 			if (offset > content.size) {
 				error("Offset '%llx' is bigger than the file (%llx)!", offset, content.size);
 				return -1;

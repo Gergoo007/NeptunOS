@@ -7,8 +7,7 @@ pstruct tss_t {
 	u64 rsp0;
 	u64 rsp1;
 	u64 rsp2;
-	u32 : 32;
-	u32 : 32;
+	u64 : 64;
 	u64 ist1;
 	u64 ist2;
 	u64 ist3;

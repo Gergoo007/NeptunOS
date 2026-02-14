@@ -32,7 +32,8 @@ void sched_dump() {
 }
 
 void sched_start() {
-	return;
+	assert(!sched_tasks.size);
+
 	sched_m.lock();
 	schedguard g;
 	sched_tasks.push_front(task {
@@ -91,4 +92,32 @@ void sched_tick(cpu_state_t* state, bool force) {
 	memcpy(sse_state, sched_cpus[cpuid_xapic_id()]->data.ssestate, 512);
 	sched_m.unlock();
 	arch_cpu_state_load(&sched_cpus[cpuid_xapic_id()]->data.state);
+}
+
+void sched_add_user_process(u64 cr3, u64 stackptr, void (*entry)(int argc, char** argv)) {
+	assert(sched_running);
+
+	sched_m.lock();
+	schedguard g;
+	task newt {
+		.state = {
+			.cs = 0x20 | 3,
+			.ss = 0x18 | 3,
+		},
+		.ssestate = (u8*)kmalloc(512),
+		.id = sched_current_pid++,
+		.parent = 0,
+		.type = TaskType::PROCESS
+	};
+	newt.state.rip = (u64)entry;
+	newt.state.rsp = stackptr;
+	newt.state.rbp = stackptr;
+	newt.state.rfl = 0x202;
+	newt.state.rdi = 0;
+	newt.state.cr3 = cr3;
+
+	memcpy(newt.ssestate, sse_state, 512);
+
+	sched_tasks.push_back(newt);
+	sched_m.unlock();
 }

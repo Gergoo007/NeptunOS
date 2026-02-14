@@ -18,27 +18,23 @@ void arch_init(bool bsp) {
 }
 
 void arch_late_init(bool bsp) {
+	wm_cursor = (u64)pmm_alloc();
+	wm_free = pmm_pagesize;
+
 	auto* gdt = arch_gdt_init();
-	// if (!bsp)
-	// 	pause();
 	arch_tss_init(gdt);
 	arch_idt_init();
 
 	if (bsp)
 		arch_pit_init();
+
+	thread_info* thr = (thread_info*)wm_alloc(sizeof(thread_info));
+	amd64_set_msr(Amd64Msrs::FSBase, (u64)thr);
 }
 
-void arch_halt() {
-	asm volatile ("hlt");
-}
-
-void arch_cli() {
-	asm volatile ("cli");
-}
-
-void arch_sti() {
-	asm volatile ("sti");
-}
+void arch_halt() { asm volatile ("hlt"); }
+void arch_cli() { asm volatile ("cli"); }
+void arch_sti() { asm volatile ("sti"); }
 
 void sinit() {
 	outb(PORT + 1, 0x00);
@@ -69,9 +65,6 @@ char sgetc() {
 void arch_sleep(u64 ms, bool skippable) {
 	// Emulátoron nem kell várni a hardverre
 	if (skippable && cpuid_is_emu()) return;
-
-	if (skippable && cpuid_is_emu())
-		return;
 	u64 end = tmr_counter + ms;
 	while (tmr_counter < end) arch_halt();
 }

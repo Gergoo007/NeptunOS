@@ -3,12 +3,9 @@
 #include <util/async.hh>
 #include <arch/amd64/cpuid.hh>
 
-mutex m;
-extern mutex pmm_m;
-
 extern "C" void gdt_load(gdtr_t* g);
 gdt_entry_t* arch_gdt_init() {
-	gdt_entry_t* gdt = (gdt_entry_t*)pmm_alloc();
+	gdt_entry_t* gdt = (gdt_entry_t*)wm_alloc(8 * sizeof(gdt_entry_t));
 	memset(gdt, 0, 0x1000);
 
 	// Kernel kód (0x08)

@@ -35,13 +35,6 @@ struct bitmap_t {
 
 	u64 find_and_set() {
 		lockguard turi(m);
-		// for (u64 i = 0; i < size; i++) {
-		// 	if (get(i) == false) {
-		// 		set(i, true);
-		// 		return i;
-		// 	}
-		// }
-		// return -1;
 		for (u64 i = 0; i < size; i++) {
 			u64 bufidx = i / 64;
 			u64 bitidx = i % 64;

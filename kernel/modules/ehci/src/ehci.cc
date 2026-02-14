@@ -7,6 +7,7 @@
 #include <arch/amd64/paging.hh>
 #include <devmgr/usb/usb.hh>
 #include <util/stacktrace.hh>
+#include <mm/pmm4g.hh>
 
 #include "ehci.hh"
 
@@ -19,28 +20,11 @@ volatile constexpr module_metadata_t _modinfo {
 
 static bool hchalted() { return EhciRegs::USBSTS.read().USBSTS.hchalted; }
 
-static u64 pool;
-static bitmap_t bm;
-static constexpr u32 unitsize = 128;
-static bool bm_init = false;
+[[nodiscard]]
+static ehci_qtd* ehci_alloc_qtd() { auto addr = kmalloc_aligned4g(64, 128); memset(addr, 0, 64); return (ehci_qtd*)addr; }
 
 [[nodiscard]]
-static ehci_qtd* ehci_alloc_qtd() {
-	u64 addr = pool + bm.find_and_set() * unitsize;
-	memset((void*)addr, 0, unitsize);
-	if constexpr (DBG)
-		assert((PHYSICAL(addr) >> 32) == 0);
-	return (ehci_qtd*)addr;
-}
-
-[[nodiscard]]
-static ehci_qh* ehci_alloc_qh() {
-	u64 addr = pool + bm.find_and_set() * unitsize;
-	memset((void*)addr, 0, unitsize);
-	if constexpr (DBG)
-		assert((PHYSICAL(addr) >> 32) == 0);
-	return (ehci_qh*)addr;
-}
+static ehci_qh* ehci_alloc_qh() { auto addr = kmalloc_aligned4g(64, 128); memset(addr, 0, 64); return (ehci_qh*)addr; }
 
 template <typename T>
 [[nodiscard]]
@@ -141,7 +125,6 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 	qh->endpoint_caps.int_sched_mask = 0;
 	qh->endpoint_caps.split_completion_mask = 0;
 
-	
 	if (usbdev.kinds.get<device_t_USB>().hci != usbdev.parent && usbdev.kinds.get<device_t_USB>().speed != UsbSpeed::HS) {
 		assert(usbdev.kinds.get<device_t_USB>().speed != UsbSpeed::SS);
 
@@ -277,12 +260,6 @@ u8 ehci_make_address(device_t& hc) {
 // a HC azonnal abbahagyja az async schedule végrehajtását
 
 extern "C" void mod_main(device_t& dev) {
-	if (!bm_init) {
-		pool = (u64)pmm_alloc();
-		bm.init(pmm_alloc(), 4096 * 8 / 32);
-		bm_init = true;
-	}
-
 	if (dev.extra)
 		fatal("Attempt to re-initialize USB controller");
 
@@ -302,7 +279,7 @@ extern "C" void mod_main(device_t& dev) {
 	context->hc = &dev;
 	dev.extra = context;
 
-	pci_enable_bus_mastering(dev);
+	pci_setup_cmd_reg(dev);
 
 	auto hcsp = EhciRegs::HCSPARAMS.read().HCSPARAMS;
 	auto eecp = EhciRegs::HCCPARAMS.read().HCCPARAMS.extended_caps_ptr;
@@ -357,6 +334,12 @@ extern "C" void mod_main(device_t& dev) {
 	context->head->horiz_link.type = EhciQHType::QH;
 
 	EhciRegs::ASYNCLISTBASE.write(elookup(context->head));
+
+	auto intr = EhciRegs::USBINTR.read().USBINTR;
+	intr.intr = 0;
+	intr.portchange = 0;
+	intr.errointr = 0;
+	EhciRegs::USBINTR.write(intr);
 
 	cmd = EhciRegs::USBCMD.read().USBCMD;
 	cmd.async_schedule_enable = true;

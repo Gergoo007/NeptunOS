@@ -17,6 +17,7 @@ constexpr unsigned long long HASHMAP_DEFAULT_SIZE = 64;
 static_assert(HASHMAP_DEFAULT_SIZE);
 
 constexpr unsigned int SCHED_MAX_PROCESSES = 1024;
+constexpr unsigned int SCHED_QUANTUM = 100;
 
 static constexpr const char* debug_files[] = {
 	// "ehci.cc",

@@ -50,18 +50,13 @@ pstruct page_table_t {
 
 extern page_table_t* pml4;
 
-// u64 paging_lookup(u64 virt);
 template <typename T>
-u64 paging_lookup(T _virt) {
+u64 paging_lookup(page_table_t* cr3, T _virt) {
 	u64 virt = (u64)_virt;
-	if (!pml4) {
-		asm volatile ("movq %%cr3, %0" : "=a"(pml4));
-		pml4 = VIRTUAL(pml4);
-	}
 
-	if (!(pml4->entries[ADDR_PML4I(virt)].flags & 1))
+	if (!(cr3->entries[ADDR_PML4I(virt)].flags & 1))
 		return -1;
-	page_table_t* pdp = (page_table_t*)VIRTUAL(pml4->entries[ADDR_PML4I(virt)].addr & ~0x0fff);
+	page_table_t* pdp = (page_table_t*)VIRTUAL(cr3->entries[ADDR_PML4I(virt)].addr & ~0x0fff);
 	if (!(pdp->entries[ADDR_PDPI(virt)].flags & 1))
 		return -1;
 	page_table_t* pd = (page_table_t*)VIRTUAL(pdp->entries[ADDR_PDPI(virt)].addr & ~0x0fff);
@@ -80,6 +75,17 @@ u64 paging_lookup(T _virt) {
 			return ((pt->entries[ADDR_PTI(virt)].addr & ~0x0fff) + (virt & 0x0fff)) & ~(1ull << 63);
 		}
 	}
+}
+
+template <typename T>
+u64 paging_lookup(T _virt) {
+	u64 virt = (u64)_virt;
+	if (!pml4) {
+		asm volatile ("movq %%cr3, %0" : "=a"(pml4));
+		pml4 = VIRTUAL(pml4);
+	}
+
+	return paging_lookup(pml4, virt);
 }
 
 template <typename T>
@@ -102,6 +108,8 @@ void paging_track(T _virt) {
 	report("ptent %p @ %p", *(void**)ptent, ptent);
 }
 
+void map_page(page_table_t* cr3, u64 virt, u64 phys, u64 flags, u32 cache = WB);
 void map_page(u64 virt, u64 phys, u64 flags, u32 cache = WB);
+
 void check_page(u64 addr, u64 cache);
 void check_pages(u64 addr, u64 count);

@@ -63,7 +63,7 @@ const char* usb_get_string(device_t& usbdev, u8 idx) {
 	char* str = (char*)kmalloc(len + 1);
 	str[len] = 0;
 	ucs2_to_asciin(string->string, str, len);
-	vmm_check(str);
+	g_vmm.check(str);
 
 	kfree4g(request);
 	kfree4g(string);

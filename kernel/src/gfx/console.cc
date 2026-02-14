@@ -70,7 +70,7 @@ void con_scroll() {
 
 	memset(fb_base + (fb->fb_width * (fb->fb_height - lineh)), 0, fb->fb_width * lineh * (fb->fb_bpp/8));
 
-	vmm_check(con_backbuf);
+	g_vmm.check(con_backbuf);
 }
 
 void con_swap_buffers() {
@@ -102,7 +102,7 @@ void con_swap_buffers() {
 			((u64*)(fbs[current_fb].fb_addr))[i] = ((u64*)con_backbuf)[i];
 }
 
-void cputc(const char c) {
+void con_cputc(const char c) {
 	if (!con_inited) {
 		sprintk("yo no console::init yet");
 		pause();
@@ -123,7 +123,7 @@ void cputc(const char c) {
 			con_cx += cw;
 			con_cx = align(con_cx, cw * tab_width);
 			if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
-				cputc('\n');
+				con_cputc('\n');
 			return;
 		}
 		case '\r': {
@@ -134,7 +134,7 @@ void cputc(const char c) {
 	}
 
 	if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
-		cputc('\n');
+		con_cputc('\n');
 
 	u8* start = (u8*)(con_glyphs + c * con_glyphsize);
 
@@ -159,9 +159,9 @@ void cputc(const char c) {
 	con_cx += con_glyphw + con_padx;
 }
 
-void cputs(const char* s) {
+void con_cputs(const char* s) {
 	while (*s) {
-		cputc(*(s++));
+		con_cputc(*(s++));
 	}
 	con_swap_buffers();
 }

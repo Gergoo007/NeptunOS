@@ -33,8 +33,8 @@ punion pci_hdr_t {
 		u16 status;
 		u8 rev_id;
 		u8 prog_if;
-		union {
-			struct {
+		punion {
+			pstruct {
 				u8 subclass;
 				u8 _class;
 			};
@@ -45,8 +45,8 @@ punion pci_hdr_t {
 		u8 hdr_type;
 		u8 bist;
 
-		union {
-			struct {
+		punion {
+			pstruct {
 				u32 bars[6];
 				u32 cardbus_cis;
 				u16 subsys_vendor;
@@ -61,7 +61,7 @@ punion pci_hdr_t {
 				u8 max_latency;
 			} type0;
 
-			struct {
+			pstruct {
 				u32 bars[2];
 				u8 primary_bus_num;
 				u8 secondary_bus_num;
@@ -86,7 +86,7 @@ punion pci_hdr_t {
 				u16 bridge_ctrl;
 			} type1;
 
-			struct {
+			pstruct {
 				// TODO
 			} type2;
 		};
@@ -94,6 +94,43 @@ punion pci_hdr_t {
 	pstruct {
 		u32 dword[16];
 	};
+};
+
+punion pci_msi_addr {
+	pstruct {
+		u32 xx : 2;
+		u32 dest_mode : 1;
+		u32 redir_hint : 1;
+		u32 z0 : 8;
+		u32 destination : 8;
+		u32 mmio : 12;
+	};
+	u32 raw;
+};
+
+punion pci_msi_data {
+	pstruct {
+		u32 vector : 8;
+		u32 delivery : 3;
+		u32 z0 : 3;
+		u32 active_hi : 1;
+		u32 lvl_trig : 1;
+		u32 z1 : 16;
+		u32 z2 : 32;
+	};
+	u32 raw;
+};
+
+punion pci_msi_control {
+	pstruct {
+		u32 enable : 1;
+		u32 multi_msg_capable : 3;
+		u32 multi_msg_enable : 3;
+		u32 bits64 : 1;
+		u32 per_vector_masking : 1;
+		u32 : 7;
+	};
+	u32 raw;
 };
 
 struct pci_register_t {
@@ -123,6 +160,7 @@ struct PciRegs {
 	static constexpr pci_register_t BAR4 		= { 0x20,	32	};
 	static constexpr pci_register_t BAR5 		= { 0x24,	32	};
 	static constexpr pci_register_t BAR6 		= { 0x28,	32	};
+	static constexpr pci_register_t CAPSPTR		= { 0x34,	8	};
 	static constexpr pci_register_t INTLINE 	= { 0x3c,	8	};
 	static constexpr pci_register_t INTPIN 		= { 0x3d,	8	};
 	static constexpr pci_register_t MINGRANT 	= { 0x3e,	8	};
@@ -140,5 +178,6 @@ void pci_init();
 struct device_t;
 u32 pci_read(device_t& dev, pci_register_t reg);
 void pci_write(device_t& dev, pci_register_t reg, u32 data);
-void pci_enable_bus_mastering(device_t& dev);
+void pci_setup_cmd_reg(device_t& dev);
 pci_bar pci_prepare_bar(device_t& dev, u8 barnum);
+void pci_enable_msi(device_t& d, u8 vector);

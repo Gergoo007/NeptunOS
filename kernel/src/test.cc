@@ -9,7 +9,7 @@ void test_libk() {
 	{
 		void* p = kmalloc(128);
 		memset(p, 0xff, 128);
-		vmm_check(p);
+		g_vmm.check(p);
 		kfree(p);
 	}
 
@@ -103,9 +103,18 @@ void test_libk() {
 		assert((paging_lookup((u64)p) >> 32) == 0);
 		kfree4g(p);
 
-		p = kmalloc_aligned4g(10, 128);
+		p = kmalloc4g(10);
+		assert((paging_lookup((u64)p) >> 32) == 0);
+		kfree4g(p);
+
+		p = kmalloc4g(10);
+		assert((paging_lookup((u64)p) >> 32) == 0);
+		kfree4g(p);
+
+		p = kmalloc_aligned4g(16, 128);
 		assert((paging_lookup((u64)p) >> 32) == 0);
 		assert(((u64)p & 127) == 0);
+		memset(p, 0xff, 10);
 		kfree4g(p);
 	}
 
@@ -180,11 +189,11 @@ void test_libk() {
 }
 
 void test() {
-	u32 allocs = vmm_count_allocs();
+	u32 allocs = g_vmm.count_allocs();
 
 	// test_mm();
 	test_libk();
 
-	if (vmm_count_allocs() != allocs)
+	if (g_vmm.count_allocs() != allocs)
 		fatal("Mismatch between vmm link count: %d", allocs);
 }

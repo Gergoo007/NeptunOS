@@ -1,6 +1,6 @@
 #include <arch/amd64/paging.hh>
 #include <util/mem.hh>
-#include <mm/pmm.hh>
+#include <mm/vmm.hh>
 
 page_table_t* pml4 = nullptr;
 
@@ -9,7 +9,18 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 		asm volatile ("movq %%cr3, %0" : "=a"(pml4));
 		pml4 = VIRTUAL(pml4);
 	}
+	
+	map_page(pml4, virt, phys, flags, cache);
+	
+	asm volatile ("invlpg (%0)" :: "r"(virt));
+}
 
+static void* allocpage() {
+	return wm_alloc(0x1000, 0x1000);
+	// return pmm_alloc();
+}
+
+void map_page(page_table_t* cr3, u64 virt, u64 phys, u64 flags, u32 cache) {
 	u16 patbits4k = ((cache & 1) << 3) | (((cache >> 1) & 1) << 4) | (((cache >> 2) & 1) << 7);
 	u16 patbits2m = ((cache & 1) << 3) | (((cache >> 1) & 1) << 4) | (((cache >> 2) & 1) << 12);
 
@@ -39,16 +50,16 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 	// Custom flagek (bit 12 fölött) eltávolítása
 	flags &= (1 << 13)-1;
 
-	entry = &pml4->entries[ADDR_PML4I(virt)];
+	entry = &cr3->entries[ADDR_PML4I(virt)];
 	if (entry->flags & PRESENT) {
-		pdp = (page_table_t*) ((pml4->entries[ADDR_PML4I(virt)].addr & ~0x0fff) | 0xffff800000000000ULL);
+		pdp = (page_table_t*) ((cr3->entries[ADDR_PML4I(virt)].addr & ~0x0fff) | 0xffff800000000000ULL);
 		if (flags & USER)
-			pml4->entries[ADDR_PML4I(virt)].flags |= USER;
+			cr3->entries[ADDR_PML4I(virt)].flags |= USER;
 	} else {
-		pdp = (page_table_t*)pmm_alloc();
+		pdp = (page_table_t*)allocpage();
 		memset(pdp, 0, 0x1000);
-		pml4->entries[ADDR_PML4I(virt)].addr = ((u64)pdp & ~0xffff800000000000ULL) | exemask;
-		pml4->entries[ADDR_PML4I(virt)].flags = flags;
+		cr3->entries[ADDR_PML4I(virt)].addr = ((u64)pdp & ~0xffff800000000000ULL) | exemask;
+		cr3->entries[ADDR_PML4I(virt)].flags = flags;
 	}
 
 	entry = &pdp->entries[ADDR_PDPI(virt)];
@@ -56,7 +67,7 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 		entry->addr = phys | exemask;
 		if (!exemask) {
 			// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
-			pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+			cr3->entries[ADDR_PML4I(virt)].addr = bitset(cr3->entries[ADDR_PML4I(virt)].addr, 63, 0);
 			pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
 		}
 
@@ -68,7 +79,7 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 			if (flags & USER)
 				pdp->entries[ADDR_PDPI(virt)].flags |= USER;
 		} else {
-			pd = (page_table_t*)pmm_alloc();
+			pd = (page_table_t*)allocpage();
 			memset(pd, 0, 0x1000);
 			pdp->entries[ADDR_PDPI(virt)].addr = ((u64)pd & ~0xffff800000000000ULL) | exemask;
 			pdp->entries[ADDR_PDPI(virt)].flags = flags;
@@ -80,7 +91,7 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 		entry->addr = phys | exemask;
 		if (!exemask) {
 			// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
-			pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+			cr3->entries[ADDR_PML4I(virt)].addr = bitset(cr3->entries[ADDR_PML4I(virt)].addr, 63, 0);
 			pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
 			pd->entries[ADDR_PDI(virt)].addr = bitset(pd->entries[ADDR_PDI(virt)].addr, 63, 0);
 		}
@@ -92,7 +103,7 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 			if (flags & USER)
 				pd->entries[ADDR_PDI(virt)].flags |= USER;
 		} else {
-			pt = (page_table_t*)pmm_alloc();
+			pt = (page_table_t*)allocpage();
 			memset(pt, 0, 0x1000);
 			pd->entries[ADDR_PDI(virt)].addr = ((u64)pt & ~0xffff800000000000ULL) | exemask;
 			pd->entries[ADDR_PDI(virt)].flags = flags;
@@ -102,15 +113,13 @@ void map_page(u64 virt, u64 phys, u64 flags, u32 cache) {
 		entry->addr = phys | exemask;
 		if (!exemask) {
 			// Az összes feljebb lévő struktúrán is ki kell kapcsolni az NX bitet
-			pml4->entries[ADDR_PML4I(virt)].addr = bitset(pml4->entries[ADDR_PML4I(virt)].addr, 63, 0);
+			cr3->entries[ADDR_PML4I(virt)].addr = bitset(cr3->entries[ADDR_PML4I(virt)].addr, 63, 0);
 			pdp->entries[ADDR_PDPI(virt)].addr = bitset(pdp->entries[ADDR_PDPI(virt)].addr, 63, 0);
 			pd->entries[ADDR_PDI(virt)].addr = bitset(pd->entries[ADDR_PDI(virt)].addr, 63, 0);
 			pt->entries[ADDR_PTI(virt)].addr = bitset(pt->entries[ADDR_PTI(virt)].addr, 63, 0);
 		}
 		entry->flags = flags | patbits4k;
 	}
-
-	asm volatile ("invlpg (%0)" :: "r"(virt));
 }
 
 void check_page(u64 addr, u64 cache) {

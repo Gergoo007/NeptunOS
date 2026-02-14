@@ -3,8 +3,12 @@
 #include <mm/vmm.hh>
 
 void arch_tss_init(gdt_entry_t* gdt) {
-	tss_t* tss = (tss_t*)pmm_alloc();
+	tss_t* tss = (tss_t*)wm_alloc(128);
 	memset(tss, 0, sizeof(*tss));
+
+	// Új stack az interrupt routine-oknak, 2M
+	u64 stack = (u64)pmm_alloc() + pmm_pagesize - 128 - 16;
+	tss->ist1 = stack;
 
 	tss->io_bm_offset = offsetof(tss_t, io_bm);
 

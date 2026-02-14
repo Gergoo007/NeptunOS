@@ -10,6 +10,7 @@ sse_init:
 	or  $(1 << 9), %rax       # set OSFXSR (bit 9)
 	or  $(1 << 10), %rax      # set OSXMMEXCPT (bit 10)
 	or  $(1 << 18), %rax      # set OSXSAVE (bit 18)
+	// or 	$(1 << 16), %rax
 	mov %rax, %cr4
 
 	// # van AVX meg XSAVE support?
@@ -36,9 +37,4 @@ sse_init:
     pop %rcx
 
 .sse_init.end:
-	// mov $0x277, %ecx
-	// mov $0, %eax
-	// mov $0, %edx
-	// wrmsr
-
     ret
