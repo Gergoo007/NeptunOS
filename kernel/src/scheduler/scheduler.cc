@@ -3,6 +3,7 @@
 #include <config.hh>
 #include <arch/amd64/cpuid.hh>
 #include <gfx/console.hh>
+#include <mm/vmm.hh>
 
 using task_elem = llist<task>::link_t;
 
@@ -69,7 +70,7 @@ void sched_exit_thread() {
 
 void sched_setrunning(bool otoole) { sched_running = otoole; }
 
-void sched_tick(cpu_state_t* state, bool force) {
+void sched_tick(cpu_state_t* state, bool force, bool eoi) {
 	if (!sched_running && !force) return;
 	sched_m.lock();
 
@@ -91,6 +92,7 @@ void sched_tick(cpu_state_t* state, bool force) {
 	// A következő task kontextusának betöltése
 	memcpy(sse_state, sched_cpus[cpuid_xapic_id()]->data.ssestate, 512);
 	sched_m.unlock();
+	if (eoi) arch_eoi();
 	arch_cpu_state_load(&sched_cpus[cpuid_xapic_id()]->data.state);
 }
 

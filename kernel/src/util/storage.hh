@@ -1,17 +1,16 @@
 #pragma once
 
-#include <mm/vmm.hh>
 #include <util/bitmap.hh>
 #include <util/string.hh>
 #include <util/helpers.hh>
 #include <util/smartptrs.hh>
 #include <cppcompat.hh>
+#include <util/allocator.hh>
 
-// itt lehet mókolni, a firefox elvikeg cap*cap-et használ
 static constexpr u64 growfun(u64 cap) {
 	if (cap == 0)
 		return 8;
-	return cap + 10;
+	return cap * 2;
 }
 
 template <typename T>
@@ -59,19 +58,19 @@ struct vector {
 
 	vector() {
 		if (capacity)
-			data = (T*)kmalloc(capacity * sizeof(T));
+			data = (T*)_galloc(capacity * sizeof(T));
 	}
 
 	vector(u64 cap): capacity(cap) {
 		if (capacity)
-			data = (T*)kmalloc(capacity * sizeof(T));
+			data = (T*)_galloc(capacity * sizeof(T));
 	}
 
 	vector(std::initializer_list<T> items) {
 		capacity = align(items.size(), 8);
 
 		if (capacity) {
-			data = (T*)kmalloc(capacity * sizeof(T));
+			data = (T*)_galloc(capacity * sizeof(T));
 			for (const auto& e : items)
 				emplace_back(e);
 		}
@@ -127,7 +126,7 @@ struct vector {
 		for (const auto& e : *this)
 			e.~T();
 
-		kfree(data);
+		_gfree(data);
 		data = nullptr;
 	}
 
@@ -136,18 +135,18 @@ struct vector {
 			cap = size;
 
 		if (!data && cap) {
-			data = (T*)kmalloc(cap * sizeof(T));
+			data = (T*)_galloc(cap * sizeof(T));
 			capacity = cap;
 			return;
 		}
 
-		if (!ktryrealloc(data, cap * sizeof(T))) {
-			T* newdata = (T*)kmalloc(cap * sizeof(T));
+		if (!_gtryrealloc(data, cap * sizeof(T))) {
+			T* newdata = (T*)_galloc(cap * sizeof(T));
 			for (u32 i = 0; i < size; i++)
 				new (&newdata[i]) T(move<T>(data[i]));
 			for (u32 i = 0; i < size; i++)
 				data[i].~T();
-			kfree(data);
+			_gfree(data);
 			data = newdata;
 		}
 		capacity = cap;
@@ -195,14 +194,12 @@ struct vector {
 	T& push_back(const T& item) {
 		if (size >= capacity)
 			reserve(growfun(capacity));
-		// return *(new (&data[size++]) T(item));
 		return *(new (&data[size++]) T(item));
 	}
 
 	T& push_back(T&& item) {
 		if (size >= capacity)
 			reserve(growfun(capacity));
-		// return *(new (&data[size++]) T(item));
 		return *(new (&data[size++]) T(move<T>(item)));
 	}
 
@@ -242,7 +239,10 @@ struct string : vector<char> {
 	// Ez mi a faszért kell?
 	using vector<char>::operator+=;
 
-	string() = default;
+	string(): vector<char>() {
+		if (size)
+			data[size] = 0;
+	}
 
 	void resize(u64 _size) { vector::resize(_size); vector::reserve(_size + 1); data[size] = 0; }
 
@@ -263,7 +263,7 @@ struct string : vector<char> {
 		capacity = align(items.size(), 8);
 
 		if (capacity) {
-			data = (char*)kmalloc(capacity * sizeof(char));
+			data = (char*)_galloc(capacity * sizeof(char));
 			for (const auto& e : items)
 				emplace_back(e);
 		}
@@ -275,7 +275,7 @@ struct string : vector<char> {
 		if (o.size) {
 			size = o.size;
 			capacity = o.size;
-			data = (char*)kmalloc(capacity);
+			data = (char*)_galloc(capacity);
 
 			memcpy(data, o.data, size + 1);
 		}
@@ -284,11 +284,11 @@ struct string : vector<char> {
 	string(string&& o): vector<char>(o) {  }
 
 	string& operator=(const string& o) {
-		if (data) kfree(data);
+		if (data) _gfree(data);
 
 		size = o.size;
 		capacity = o.size;
-		data = (char*)kmalloc(capacity);
+		data = (char*)_galloc(capacity);
 
 		if (data)
 			memcpy(data, o.data, size + 1);
@@ -297,7 +297,7 @@ struct string : vector<char> {
 	}
 
 	string& operator=(string&& o) {
-		if (data) kfree(data);
+		if (data) _gfree(data);
 		data = o.data;
 		size = o.size;
 		capacity = o.capacity;

@@ -5,6 +5,7 @@
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/amd64.hh>
 #include <mm/pmm4g.hh>
+#include <mm/vmm.hh>
 
 const char* usb_get_string(device_t& usbdev, u8 idx) {
 	if (!idx) return "";
@@ -24,8 +25,9 @@ const char* usb_get_string(device_t& usbdev, u8 idx) {
 		
 		hciint->usb_send(usbdev, 0, request, langids);
 		u32 num_langids = (langids->hdr.bLength - 2) / 2;
+		if (langids->hdr.bLength <= 2) num_langids = 0;
 		langids = (usb_descriptor_string_langids*)krealloc4g(langids, langids->hdr.bLength);
-		request->wLength = 2 + num_langids * 2;
+		request->wLength = langids->hdr.bLength;
 		hciint->usb_send(usbdev, 0, request, langids);
 
 		// Default is US English

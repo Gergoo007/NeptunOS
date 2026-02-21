@@ -6,6 +6,7 @@
 #include <gfx/console.hh>
 #include <scheduler/scheduler.hh>
 #include <util/stacktrace.hh>
+#include <devmgr/input/input.hh>
 
 #define print_reg(st, reg, reg2) error("%s: %p  %s: %p", #reg, (void*)st->reg, #reg2, (void*)st->reg2)
 
@@ -60,19 +61,30 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 
 		case 0x40: {
 			tmr_counter++;
-			// if (tmr_counter % VMM_REDZONE_CHECK_PERIOD == 0)
-			// 	vmm_check_all();
-			arch_lapic_eoi();
+			
+			if (tmr_counter % VMM_REDZONE_CHECK_PERIOD == 0)
+				g_vmm.check_all();
+
+			for (const auto& t : timer_tasks) {
+				if (tmr_counter % t.period == 0) t.routine();
+			}
+
+			if (tmr_counter % kbd_repeat == 0 && tmr_counter > kbd_lastpressed_time + kbd_delay) {
+				kbd_onrepeat();
+			}
+
 			if (tmr_counter % SCHED_QUANTUM == 0) {
 				servicing = 0;
-				sched_tick(frame, false);
+				sched_tick(frame, false, true);
 			}
+
+			arch_lapic_eoi();
 			break;
 		}
 
 		case 0x41: {
 			servicing = 0;
-			sched_tick(frame, true);
+			sched_tick(frame, true, false);
 			break;
 		}
 
@@ -83,7 +95,7 @@ extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
 		}
 
 		case 0x60: {
-			warn("MSI FROM AHCI!!");
+			// warn("MSI FROM AHCI!!");
 			arch_lapic_eoi();
 			break;
 		}

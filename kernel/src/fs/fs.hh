@@ -36,10 +36,12 @@ struct mountpoint {
 	string path;
 };
 
+string path_sanitize(const char* p);
+string path_join(const char* path1, const char* path2);
+const char* path_basename(char* p);
+
 void fs_mount(partition* p, const char* path, FilesystemType fstype);
 const mountpoint* fs_find_mnt(const char* p);
-string path_sanitize(const char* p);
-const char* path_basename(char* p);
 void fs_create(const char* path, bool mkdir);
 vector<fs_entry> fs_readdir(const char* path);
 u64 fs_write(const char* path, u64 offset, u64 bytes, void* buf);

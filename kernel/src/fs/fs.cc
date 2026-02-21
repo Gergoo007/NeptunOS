@@ -40,6 +40,14 @@ const char* path_basename(char* path) {
 	return basename;
 }
 
+string path_join(const char* path1, const char* path2) {
+	string ret = path1;
+	if (ret[ret.size - 1] != '/')
+		ret += '/';
+	ret += path2;
+	return ret;
+}
+
 const mountpoint* fs_find_mnt(const char* p) {
 	string san = path_sanitize(p);
 

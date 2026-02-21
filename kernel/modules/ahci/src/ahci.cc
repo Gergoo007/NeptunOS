@@ -6,6 +6,7 @@
 #include <pci/pci.hh>
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
+#include <mm/vmm.hh>
 
 #include "ahci.hh"
 

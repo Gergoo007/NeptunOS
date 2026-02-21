@@ -5,6 +5,7 @@
 #include <arch/amd64/io.hh>
 #include <arch/amd64/pit.hh>
 #include <arch/amd64/cpuid.hh>
+#include <arch/amd64/apic.hh>
 #include <mm/vmm.hh>
 
 #include <arch/arch.hh>
@@ -82,3 +83,12 @@ u64 arch_ms_passed() {
 bool arch_elapsed(u64 ms) {
 	return tmr_counter > timer + ms;
 }
+
+void arch_assign_irq(u32 irq, void (*handler)(cpu_state_t* frame)) {
+	u8 vector = idt_allocate_vector(handler);
+	arch_ioapic_initialize_irq(irq, vector, IoapicDelivmode::FIXED, cpuid_xapic_id());
+	arch_ioapic_mask_irq(irq, 0);
+}
+
+u32 arch_alloc_isr(void (*handler)(cpu_state_t* frame)) { return idt_allocate_vector(handler); }
+void arch_eoi() { arch_lapic_eoi(); }

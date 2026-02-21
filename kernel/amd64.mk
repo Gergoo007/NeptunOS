@@ -8,9 +8,10 @@ endif
 # no-red-zone: painful addition
 CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++2c -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
-	-Wno-unused-parameter -fno-stack-protector -mno-red-zone -O0 -g -Wno-multichar \
+	-Wno-unused-parameter -fno-stack-protector -O0 -g -Wno-multichar \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
-	-MMD -MP -DDEBUG -fno-lto -fstack-protector-strong -Wno-format -Wno-implicit-fallthrough -fno-PIC
+	-MMD -MP -DDEBUG -fno-lto -fstack-protector-strong -Wno-format -Wno-implicit-fallthrough -fno-PIC \
+	-DKERNEL
 ASFLAGS += -fno-lto
 LDFLAGS += --no-gc-sections
 

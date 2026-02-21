@@ -15,7 +15,7 @@
 #include <util/stacktrace.hh>
 #include <util/ksyms.hh>
 #include <cppcompat.hh>
-#include <devmgr/devmgr.hh>
+#include <devmgr/input/input.hh>
 #include <devmgr/usb/usb.hh>
 #include <scheduler/scheduler.hh>
 #include <fs/fs.hh>
@@ -60,6 +60,8 @@ extern "C" void kmain() {
 
 	sched_start();
 
+	input_init();
+
 	modules_register_all();
 
 	acpi_init();
@@ -93,16 +95,19 @@ extern "C" void kmain() {
 	init_syscalls();
 
 	// Dry read; ezzel lehet megszerezni a fájlméretet a legegyszerűbben
-	u64 size = fs_read("/bin/teszt", 0, -1u, nullptr);
-	report("filesize: %lld", size);
-
-	u8* data = (u8*)kmalloc(size);
-	fs_read("/bin/teszt", 0, size, data);
-	
-	program teszt(span(data, size));
-	report("after creation");
-	teszt.launch();
-	report("after launch");
+	// vector<fs_entry> root = fs_readdir("/");
+	// report("sysc 3");
+	// for (const auto& f : root) {
+	// 	report("/%s: %s", f.name.c_str(), f.dir ? "folder" : "file");
+	// 	if (f.dir) {
+	// 		string path = path_join("/", f.name.c_str());
+	// 		report("readin %s", path.c_str());
+	// 		vector<fs_entry> dir = fs_readdir(path.c_str());
+	// 		for (const auto& f2 : dir) {
+	// 			report("%s: %s", path_join(path.c_str(), f2.name.c_str()).c_str(), f.dir ? "folder" : "file");
+	// 		}
+	// 	}
+	// }
 
 	khang();
 }

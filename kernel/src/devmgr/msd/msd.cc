@@ -3,6 +3,7 @@
 #include <util/mem.hh>
 #include <util/printf.hh>
 #include <util/guid.hh>
+#include <mm/vmm.hh>
 
 void msd_read(device_t& d, u64 offset, u64 bytes, void* buf) {
 	auto* funcs = (msd_call_table*)d.extra;
@@ -22,7 +23,7 @@ PartitionType guid2parttype(u8* guid) {
 		case guid_parse::make_guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4").getraw(): return PartitionType::LINUX_FILESYSTEM;
 		case guid_parse::make_guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7").getraw(): return PartitionType::MICROSOFT_BASIC_DATA;
 		case guid_parse::make_guid("E3C9E316-0B5C-4DB8-817D-F92DF00215AE").getraw(): return PartitionType::MICROSOFT_RESERVED;
-		default: fatal("he");
+		default: return PartitionType::OTHER;
 	}
 }
 

@@ -88,7 +88,7 @@ void arch_parse_madt(madt_t* m) {
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_ADDR: {
-				lapic_base = VIRTUAL(entry.MADT_LAPIC_ADDR.lapic);
+				lapic_base = entry.MADT_LAPIC_ADDR.lapic;
 				break;
 			}
 			case MadtTypes::MADT_LAPIC_X2APIC: {
@@ -141,11 +141,10 @@ void arch_parse_madt(madt_t* m) {
 		}
 	}
 
-	arch_ioapic_initialize_irq(2, 0x40, IoapicDelivmode::FIXED, bspid);
-	arch_ioapic_mask_gsi(2, 0);
+	arch_ioapic_initialize_irq(0, 0x40, IoapicDelivmode::FIXED, bspid);
+	arch_ioapic_mask_irq(0, 0);
 
-	report("x2apic id: %d", cpuid_x2apic_id());
-	report("xapic  id: %d", cpuid_x2apic_id());
+	assert(cpuid_xapic_id() == 0);
 
 	smp_init();
 

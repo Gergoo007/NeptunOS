@@ -3,6 +3,8 @@
 #include <devmgr/devmgr.hh>
 #include <devmgr/msd/msd.hh>
 #include <util/string.hh>
+#include <mm/vmm.hh>
+#include <util/string.hh>
 
 #include "fat.hh"
 
@@ -21,6 +23,31 @@ struct fat_fshandle {
 	u64 dataoffset; // Root directory offset byte-okban
 };
 
+u64 clusteroff(const filesystem& f, u32 clusterlo, u32 clusterhi) {
+	fat_fshandle* h = (fat_fshandle*)f.fshandle;
+	return h->dataoffset + ((clusterlo | ((clusterhi) << 16)) - 2) * h->bpb->bytespersector * h->bpb->sectorspercluster;
+}
+
+// Külön function kell még erre is mert az egész egy legacy kupac szar
+optional<string> fat32_getname(const char* longname, fat_entry* en) {
+	if (longname[0]) {
+		return longname;
+	} else {
+		if (!strncmp((char*)en->simplename, ".", 1)) return {};
+		if (!strncmp((char*)en->simplename, "..", 2)) return {};
+		if (en->simplename[0] == ' ') return {};
+		// A fájl előzőleg ki lett törölve
+		if (en->simplename[0] > 128) return {};
+
+		u32 len = 0;
+		while (en->simplename[len] != ' ') len++;
+
+		if (!len) return {};
+
+		return string((char*)en->simplename, len);
+	}
+}
+
 optional<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
 	fat_fshandle* h = (fat_fshandle*)f.fshandle;
 	unique_ptr<fat_entry> ent = (fat_entry*)kmalloc_aligned(512, 512);
@@ -35,10 +62,11 @@ optional<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
 
 	while (*path) {
 		while (*path == '/') path++;
-		u32 seglen = 0;
-		while (path[seglen] != '/' && path[seglen] != 0) seglen++;
 
 		if (*path == 0) return *ent;
+
+		u32 seglen = 0;
+		while (path[seglen] != '/' && path[seglen] != 0) seglen++;
 
 		string basename = string(path, seglen);
 
@@ -57,14 +85,15 @@ optional<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
 				// else
 				// 	report("Found %s called %.11s", ent[i].attrs & FatAttrs::DIRECTORY ? "folder" : "file", ent->simplename);
 
-				if (longname[0]) {
-					if (!strcmp(basename.c_str(), longname)) {
+				auto name = fat32_getname(longname, ent + i);
+				if (name.present) {
+					if (!strcmp(basename.c_str(), name.expect("???").c_str())) {
 						path += seglen;
 						if (*path == 0) return ent[i];
-						msd_read(f.p->parent, h->dataoffset + (((u32)ent[i].cluster_lo16 | (((u32)ent[i].cluster_hi16) << 16)) - 2) * 512, 512, ent);
+						msd_read(f.p->parent, clusteroff(f, ent[i].cluster_lo16, ent[i].cluster_hi16), 512, ent);
 						found = true;
+						longname[0] = 0;
 					}
-					longname[0] = 0;
 				}
 			}
 		}
@@ -142,6 +171,8 @@ u64 fat32_read(const filesystem& f, const char* path, u64 offset, u64 bytes, voi
 }
 
 vector<fs_entry> fat32_readdir(const filesystem& f, const char* path) {
+	report("clusters: %d %s: %d", fat32_lookup(f, "/").expect("Folder not found!").cluster_lo16, path, fat32_lookup(f, path).expect("Folder not found!").cluster_lo16);
+
 	fat_entry e = fat32_lookup(f, path).expect("Folder not found!");
 	vector<fs_entry> entries;
 	u32 cluster = clusterfrom(e.cluster_lo16, e.cluster_hi16);
@@ -160,12 +191,7 @@ vector<fs_entry> fat32_readdir(const filesystem& f, const char* path) {
 			ucs2_to_asciin(lfn->no2, (char*)longname + (lfn->order - 1) * 13 + 5, 6);
 			ucs2_to_asciin(lfn->no3, (char*)longname + (lfn->order - 1) * 13 + 11, 2);
 		} else {
-			if (en->attrs & FatAttrs::VOLUME_ID) continue;
-
-			// if (longname[0])
-			// 	report("Found %s called %s (%.11s)", ent[i].attrs & FatAttrs::DIRECTORY ? "folder" : "file", longname, ent->simplename);
-			// else
-			// 	report("Found %s called %.11s", ent[i].attrs & FatAttrs::DIRECTORY ? "folder" : "file", ent->simplename);
+			if (en->attrs & FatAttrs::VOLUME_ID) goto cont;
 
 			if (longname[0]) {
 				entries.emplace_back(fs_entry {
@@ -174,9 +200,19 @@ vector<fs_entry> fat32_readdir(const filesystem& f, const char* path) {
 				});
 
 				longname[0] = 0;
+			} else {
+				auto name = fat32_getname(longname, en);
+				if (name.present) {
+					entries.emplace_back(fs_entry {
+						.name = name.expect("??"),
+						.dir = (en->attrs & FatAttrs::DIRECTORY) > 0,
+					});
+				}
+				longname[0] = 0;
 			}
 		}
 
+cont:
 		en++;
 	}
 	
@@ -206,14 +242,31 @@ extern "C" bool mod_main(filesystem& f) {
 
 	f.fshandle = kmalloc(sizeof(fat_fshandle));
 	fat_fshandle* h = (fat_fshandle*)f.fshandle;
-	
+
 	u64 alloc = (u64)kmalloc_aligned(512 * 2, 512);
 	h->bpb = (fat_bpb*)alloc;
 	h->fsi = (fat_fsinfo*)(alloc + 512);
 
+	if (!f.p->offset)
+		fatal("FAT volume at the start of the drive?");
 	msd_read(d, f.p->offset, 512, h->bpb);
 
 	u32 bps = h->bpb->bytespersector;
+
+	if (bps < 512 || bps > 0x1000) {
+		error("FAT BPS is %d, exiting...", bps);
+		return false;
+	}
+
+	if (!h->bpb->sectorspercluster) {
+		error("FAT sectorspercluster is 0, exiting...");
+		return false;
+	}
+
+	if (h->bpb->num_fats != 1 && h->bpb->num_fats != 2) {
+		error("FAT num_fats is %d, exiting...", h->bpb->num_fats);
+		return false;
+	}
 
 	debug("fat bytes/sector %d", h->bpb->bytespersector);
 	debug("fat sectors/cluster %d", h->bpb->sectorspercluster);
@@ -235,7 +288,7 @@ extern "C" bool mod_main(filesystem& f) {
 	msd_read(d, fatoffset, h->fatsize, h->fat);
 
 	h->dataoffset = fatoffset + (u64)h->bpb->num_fats * h->bpb->ext.sectorsperfat * bps;
-	
+
 	// A FAT32 mount sikeres volt, ki kell írni a modul function-jeit
 	f.calls = fs_calltable {
 		.read = fat32_read,

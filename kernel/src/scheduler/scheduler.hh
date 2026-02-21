@@ -3,6 +3,7 @@
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
 #include <util/storage.hh>
+#include <mm/vmm.hh>
 
 enum struct TaskType {
 	PROCESS,
@@ -29,7 +30,7 @@ extern llist<task> sched_tasks;
 extern llist<task>::link_t* sched_cpus[16];
 
 void sched_start();
-void sched_tick(cpu_state_t* state, bool force);
+void sched_tick(cpu_state_t* state, bool force, bool eoi);
 void sched_exit_thread();
 void sched_setrunning(bool otoole);
 

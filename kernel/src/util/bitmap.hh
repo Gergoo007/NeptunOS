@@ -6,7 +6,7 @@
 #include <config.hh>
 
 struct bitmap_t {
-	u64* buffer;
+	u64* buffer = nullptr;
 	u64 size;
 	mutex m;
 

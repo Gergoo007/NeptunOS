@@ -201,65 +201,65 @@ void pci_enable_msi(device_t& d, u8 vector) {
 	u8 id = 0;
 	while (caps) {
 		id = pci_read(d, pci_register_t(caps, 8));
-		if (id == 5)
+		if (id == 0x05) {
+			pci_msi_control ctl;
+			pci_msi_data data;
+			pci_msi_addr addr;
+
+			pci_register_t msi_ctl = pci_register_t(caps + 2, 16);
+			pci_register_t msi_addr = pci_register_t(caps + 4, 32);
+			pci_register_t msi_addrhi = pci_register_t(caps + 8, 32);
+			pci_register_t msi_data = pci_register_t(caps + 8, 16);
+
+			pci_register_t msi_mask = pci_register_t(caps + 16, 32);
+			pci_register_t msi_pending = pci_register_t(caps + 24, 32);
+
+			ctl.raw = pci_read(d, msi_ctl);
+
+			if (ctl.bits64) {
+				msi_data = pci_register_t(caps + 12, 16);
+				pci_write(d, msi_addrhi, 0);
+			}
+
+			data.vector = vector;
+			data.delivery = 0;
+			data.z0 = data.z1 = data.z2 = 0;
+			data.active_hi = 0;
+			data.lvl_trig = 0;
+			pci_write(d, msi_data, data.raw);
+
+			addr.mmio = 0xfee;
+			addr.destination = 0;
+			addr.redir_hint = 1;
+			addr.xx = 0;
+			addr.z0 = 0;
+			addr.dest_mode = 0;
+
+			// addr.raw = paging_lookup(dbgaddr);
+			// assert((paging_lookup(dbgaddr) >> 32) == 0);
+			// addr.raw = 0xfee00000;
+			pci_write(d, msi_addr, addr.raw);
+
+			ctl.enable = 1;
+			ctl.multi_msg_enable = 0;
+			ctl.per_vector_masking = 0;
+			pci_write(d, msi_ctl, ctl.raw);
+
+			if (ctl.bits64)
+				pci_write(d, msi_mask, 0);
+
 			break;
-		else if (id == 11)
+		} else if (id == 0x11) {
+			fatal("MSI-X");
+
 			break;
+		}
 
 		caps = pci_read(d, pci_register_t(caps + 1, 8));
 	}
-
-	if (id == 5) {
-		pci_msi_control ctl;
-		pci_msi_data data;
-		pci_msi_addr addr;
-
-		pci_register_t msi_ctl = pci_register_t(caps + 2, 16);
-		pci_register_t msi_addr = pci_register_t(caps + 4, 32);
-		pci_register_t msi_addrhi = pci_register_t(caps + 8, 32);
-		pci_register_t msi_data = pci_register_t(caps + 8, 16);
-
-		pci_register_t msi_mask = pci_register_t(caps + 16, 32);
-		pci_register_t msi_pending = pci_register_t(caps + 24, 32);
-
-		ctl.raw = pci_read(d, msi_ctl);
-
-		if (ctl.bits64) {
-			msi_data = pci_register_t(caps + 12, 16);
-			pci_write(d, msi_addrhi, 0);
-		}
-
-		data.vector = vector;
-		data.delivery = 0;
-		data.z0 = data.z1 = data.z2 = 0;
-		data.active_hi = 0;
-		data.lvl_trig = 0;
-		pci_write(d, msi_data, data.raw);
-
-		addr.mmio = 0xfee;
-		addr.destination = 0;
-		addr.redir_hint = 1;
-		addr.xx = 0;
-		addr.z0 = 0;
-		addr.dest_mode = 0;
-
-		// addr.raw = paging_lookup(dbgaddr);
-		// assert((paging_lookup(dbgaddr) >> 32) == 0);
-		// addr.raw = 0xfee00000;
-		pci_write(d, msi_addr, addr.raw);
-
-		ctl.enable = 1;
-		ctl.multi_msg_enable = 0;
-		ctl.per_vector_masking = 0;
-		pci_write(d, msi_ctl, ctl.raw);
-
-		if (ctl.bits64)
-			pci_write(d, msi_mask, 0);
-	} else if (id == 11) {
-		fatal("MSI-X");
-	} else {
+	
+	if (id != 0x05 && id != 0x11)
 		fatal("MSI not available for this device!");
-	}
 
 	u32 pcicmd = pci_read(d, PciRegs::CMD);
 	pcicmd |= (1 << 10);

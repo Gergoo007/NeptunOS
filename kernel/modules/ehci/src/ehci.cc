@@ -2,12 +2,13 @@
 #include <devmgr/module.hh>
 #include <devmgr/devmgr.hh>
 #include <pci/pci.hh>
-#include <arch/amd64/amd64.hh>
+#include <arch/arch.hh>
 #include <arch/amd64/io.hh>
 #include <arch/amd64/paging.hh>
 #include <devmgr/usb/usb.hh>
 #include <util/stacktrace.hh>
 #include <mm/pmm4g.hh>
+#include <mm/vmm.hh>
 
 #include "ehci.hh"
 
@@ -337,7 +338,7 @@ extern "C" void mod_main(device_t& dev) {
 
 	auto intr = EhciRegs::USBINTR.read().USBINTR;
 	intr.intr = 0;
-	intr.portchange = 0;
+	intr.portchange = 1;
 	intr.errointr = 0;
 	EhciRegs::USBINTR.write(intr);
 
@@ -357,4 +358,12 @@ extern "C" void mod_main(device_t& dev) {
 
 	for (u32 i = 0; i < hcsp.num_ports; i++)
 		init_port(i);
+
+	// extern void intr_handler(cpu_state_t* frame);
+	// pci_enable_msi(dev, arch_alloc_isr(intr_handler));
+}
+
+void intr_handler(cpu_state_t* frame) {
+	report("ehci intr");
+	arch_eoi();
 }

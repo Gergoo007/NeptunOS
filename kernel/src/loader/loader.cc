@@ -3,6 +3,7 @@
 #include <util/string.hh>
 #include <scheduler/scheduler.hh>
 #include <arch/amd64/paging.hh>
+#include <mm/vmm.hh>
 
 program::program(span<u8> exefile) {
 	// Új címtér létrehozása

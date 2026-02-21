@@ -8,7 +8,7 @@ CCSRCS += $(subst src/,,$(shell find src -name '*.cc' -not -path '*bakexclude*')
 
 CCOBJS += $(patsubst %.cc,out/%.cc.o,$(CCSRCS))
 CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
-EXTRADEPS := Makefile ../template/Makefile ../../$(ARCH).mk
+EXTRADEPS := Makefile ../module.mk ../../$(ARCH).mk
 
 MOD_NAME := $(notdir $(CURDIR))
 

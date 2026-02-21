@@ -6,6 +6,7 @@
 #include <arch/amd64/paging.hh>
 #include <arch/amd64/apic.hh>
 #include <pci/pci.hh>
+#include <devmgr/module.hh>
 
 #include <arch/amd64/io.hh>
 
@@ -61,6 +62,10 @@ static void check_table(sdt_t* a) {
 	}
 }
 
+bool acpi_i8042_present() {
+
+}
+
 void acpi_init() {
 	auto r = rsdp_req.response;
 	// Buggos ez az Istenverte szar
@@ -114,6 +119,7 @@ void acpi_init() {
 				} else {
 					dsdt = (sdt_t*)(u64)fadt->dsdt;
 				}
+
 				// error("dsdt @ %p; enabling acpi", dsdt);
 				// arch_ioapic_initialize_irq(fadt->sci_int, 0x42, IoapicDelivmode::FIXED, 0);
 				// arch_ioapic_mask_irq(fadt->sci_int, 0);
@@ -128,6 +134,18 @@ void acpi_init() {
 				dsdt = VIRTUAL(dsdt);
 				check_table(dsdt);
 				acpi_parse_aml(dsdt);
+
+				if (fadt->x86_legacy.nomsi) fatal("MSI support required");
+				if (fadt->x86_legacy.i8042) { // TODO: Bochs-on szar
+					for (auto& m : modules) {
+						const module_metadata_t& md = *m.metadata;
+						if (md.triggertype == ModuleTriggerTypes::FADT_LEGACY_I8042)
+							modules_launch(m);
+					}
+				} else {
+					warn("No PS/2 according to FADT?");
+				}
+
 				break;
 		}
 	}

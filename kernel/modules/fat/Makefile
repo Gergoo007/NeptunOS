@@ -1,1 +1,1 @@
-include ../template/Makefile
+include ../module.mk

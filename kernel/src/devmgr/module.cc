@@ -5,6 +5,7 @@
 #include <util/string.hh>
 #include <util/ksyms.hh>
 #include <arch/amd64/paging.hh>
+#include <mm/vmm.hh>
 
 #define MODULES_BASE 0xfffffff000000000
 
@@ -173,6 +174,13 @@ void modules_launch(module_t& m, device_t& devptr) {
 
 	// Futtatás a mod_main() által
 	((void (*)(device_t&))m.entry)(devptr);
+}
+
+void modules_launch(module_t& m) {
+	if (!m.loaded) modules_load(m);
+
+	// Futtatás a mod_main() által
+	((void (*)())m.entry)();
 }
 
 bool modules_launch_fs(module_t& m, filesystem& p) {

@@ -1,5 +1,6 @@
 #include <arch/arch.hh>
 #include <arch/limine.hh>
+#include <util/storage.hh>
 
 void* higherhalf;
 framebuffer_t fbs[2];
@@ -56,4 +57,13 @@ void arch_read_boot_info() {
 
 void sputs(const char* s) {
 	while (*s) sputc(*(s++));
+}
+
+vector<timer_task> timer_tasks;
+
+const timer_task& arch_timer_add(const timer_task& task) { return timer_tasks.emplace_back(task); }
+
+void arch_timer_remove(const timer_task& task) {
+	// TODO
+	// timer_tasks.remove(task);
 }

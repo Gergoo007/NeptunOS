@@ -8,10 +8,9 @@ endif
 
 QEMU_FLAGS_X86_64 := -cdrom image.iso -no-reboot -no-shutdown -m $(RAMSIZE) -M q35 $(QEMU_FLAGS) \
 		-smp 1 -drive id=disk,file=disk.img,if=none -device pci-bridge,id=bridge0,chassis_nr=1 \
-		-device ich9-usb-uhci6,bus=bridge0,id=uhci \
-		-device ich9-usb-ehci1,bus=bridge0,id=ehci -device ahci,id=ahci \
-		-device ide-hd,drive=disk,bus=ahci.0 -device usb-mouse,bus=ehci.0 \
-		-device usb-tablet,bus=uhci.0 -boot d -cpu SandyBridge $(QEMUFLAGS) -trace events=events.txt
+		-device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 \
+		-boot d -cpu SandyBridge $(QEMUFLAGS) -trace events=events.txt \
+		#-device ich9-usb-uhci6,bus=bridge0,id=uhci -device ich9-usb-ehci1,bus=bridge0,id=ehci -device usb-mouse,bus=ehci.0
 
 QEMU_FLAGS_X86_64_UEFI := -drive if=pflash,format=raw,unit=0,file="emu/OVMF/OVMF_CODE.fd",readonly=on \
 		-drive if=pflash,format=raw,unit=1,file="emu/OVMF/OVMF_VARS.fd",readonly=on \

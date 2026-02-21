@@ -4,6 +4,7 @@
 #include <util/variant.hh>
 #include <mm/pmm4g.hh>
 #include <arch/amd64/paging.hh>
+#include <mm/vmm.hh>
 
 void test_libk() {
 	{

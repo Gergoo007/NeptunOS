@@ -222,8 +222,8 @@ void* memorymgr::alloc_aligned(u64 size, u32 align, const char* file, u32 line) 
 			assert(isaligned(alignfixl->length, VMM_MIN_ALLOC));
 
 			#ifdef VMM_DEBUG
-			alignfixl->file = __FILE__;
-			alignfixl->line = __LINE__;
+			alignfixl->file = file;
+			alignfixl->line = line;
 			#endif
 
 			if (l->prev)

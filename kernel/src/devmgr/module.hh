@@ -66,6 +66,7 @@ enum struct ModuleTriggerTypes : u32 {
 	PCIMASK		= 0x00000100,
 	USBMASK		= 0x00000200,
 	FILESYSTEM	= 0x00000400,
+	MISC		= 0x00000800,
 
 	PCI_VENDOR_PRODUCT			= PCIMASK | 1,
 	PCI_CLASS_SUBCLASS			= PCIMASK | 2,
@@ -74,6 +75,9 @@ enum struct ModuleTriggerTypes : u32 {
 	USB_VENDOR_PRODUCT			= USBMASK | 1,
 	USB_CLASS_SUBCLASS			= USBMASK | 2,
 	USB_CLASS_SUBCLASS_PROGIF	= USBMASK | 3,
+
+	FADT_LEGACY_I8042			= MISC | 1,
+	FADT_LEGACY_RTC				= MISC | 2,
 };
 
 union ModuleTrigger {
@@ -102,6 +106,7 @@ extern vector<module_t> modules;
 struct device_t;
 struct partition;
 void modules_register_all();
-void modules_launch(module_t& m, device_t& dev);
 struct filesystem;
 bool modules_launch_fs(module_t& m, filesystem& f);
+void modules_launch(module_t& m, device_t& dev);
+void modules_launch(module_t& m);

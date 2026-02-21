@@ -78,7 +78,17 @@ pstruct fadt_t {
 	u32 gpe1;
 	u32 : 24;
 	u8 pm_timer_bytes;
-	u8 r0[20];
+	u8 r0[17];
+	pstruct {
+		u16 legacy_devs : 1;
+		u16 i8042 : 1;
+		u16 novga : 1;
+		u16 nomsi : 1;
+		u16 noaspm : 1;
+		u16 nortc : 1;
+		u16 : 10;
+	} x86_legacy;
+	u8 r1[1];
 	punion {
 		pstruct {
 			u8 wbinvd : 1;
@@ -99,7 +109,7 @@ pstruct fadt_t {
 		};
 		u32 raw;
 	} flags;
-	u8 r1[15];
+	u8 r2[15];
 	u8 fadt_minor;
 	u64 x_fw_ctl;
 	u64 x_dsdt;
