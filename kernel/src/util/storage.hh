@@ -4,8 +4,8 @@
 #include <util/string.hh>
 #include <util/helpers.hh>
 #include <util/smartptrs.hh>
-#include <cppcompat.hh>
 #include <util/allocator.hh>
+#include <cppcompat.hh>
 
 static constexpr u64 growfun(u64 cap) {
 	if (cap == 0)
@@ -38,35 +38,35 @@ struct _generic_iter {
 	T& operator*()	{ return *data; }
 
 	bool operator==(const _generic_iter& o) const { return data == o.data; }
-    bool operator!=(const _generic_iter& o) const { return data != o.data; }
-    bool operator< (const _generic_iter& o) const { return data  < o.data; }
-    bool operator<=(const _generic_iter& o) const { return data <= o.data; }
-    bool operator> (const _generic_iter& o) const { return data  > o.data; }
-    bool operator>=(const _generic_iter& o) const { return data >= o.data; }
+	bool operator!=(const _generic_iter& o) const { return data != o.data; }
+	bool operator< (const _generic_iter& o) const { return data  < o.data; }
+	bool operator<=(const _generic_iter& o) const { return data <= o.data; }
+	bool operator> (const _generic_iter& o) const { return data  > o.data; }
+	bool operator>=(const _generic_iter& o) const { return data >= o.data; }
 };
 
 template <typename T>
 _generic_iter(T*) -> _generic_iter<T>;
 
 template <typename T>
-struct vector {
-	using iter = _generic_iter<T>;
+struct Vector {
+	using Iter = _generic_iter<T>;
 
 	T* data = nullptr;
 	u64 size = 0;
 	u64 capacity = VEC_DEFAULT_SIZE;
 
-	vector() {
+	Vector() {
 		if (capacity)
 			data = (T*)_galloc(capacity * sizeof(T));
 	}
 
-	vector(u64 cap): capacity(cap) {
+	Vector(u64 cap): capacity(cap) {
 		if (capacity)
 			data = (T*)_galloc(capacity * sizeof(T));
 	}
 
-	vector(std::initializer_list<T> items) {
+	Vector(std::initializer_list<T> items) {
 		capacity = align(items.size(), 8);
 
 		if (capacity) {
@@ -76,7 +76,7 @@ struct vector {
 		}
 	}
 
-	vector(const vector& o) {
+	Vector(const Vector& o) {
 		reserve(o.capacity);
 		size = o.size;
 
@@ -84,7 +84,7 @@ struct vector {
 			new (&data[i]) T(o[i]);
 	}
 
-	vector(vector&& o) {
+	Vector(Vector&& o) {
 		data = o.data;
 		size = o.size;
 		capacity = o.capacity;
@@ -94,7 +94,7 @@ struct vector {
 		o.data = nullptr;
 	}
 
-	vector& operator=(const vector& o) {
+	Vector& operator=(const Vector& o) {
 		for (const auto& e : *this)
 			e.~T();
 
@@ -107,7 +107,7 @@ struct vector {
 		return *this;
 	}
 
-	vector& operator=(vector&& o) {
+	Vector& operator=(Vector&& o) {
 		for (const auto& e : *this)
 			e.~T();
 
@@ -122,7 +122,7 @@ struct vector {
 		return *this;
 	}
 
-	~vector() {
+	~Vector() {
 		for (const auto& e : *this)
 			e.~T();
 
@@ -176,7 +176,7 @@ struct vector {
 		return data[size - 1];
 	}
 
-	bool operator==(const vector& o) const {
+	bool operator==(const Vector& o) const {
 		if (o.size != size) return false;
 		for (u64 i = 0; i < size; i++) {
 			if (data[i] != o.data[i])
@@ -185,7 +185,7 @@ struct vector {
 		return true;
 	}
 
-	vector& operator+=(T c) {
+	Vector& operator+=(T c) {
 		reserve(size + 1);
 		data[size++] = c;
 		return *this;
@@ -230,36 +230,36 @@ struct vector {
 		return data[--size];
 	}
 
-	iter begin() const { return iter(data); }
-	iter end() const { return iter(data + size); }
+	Iter begin() const { return Iter(data); }
+	Iter end() const { return Iter(data + size); }
 };
 
 // a size-ba NINCS bele számítva a null terminator
-struct string : vector<char> {
+struct String : Vector<char> {
 	// Ez mi a faszért kell?
-	using vector<char>::operator+=;
+	using Vector<char>::operator+=;
 
-	string(): vector<char>() {
+	String(): Vector<char>() {
 		if (size)
 			data[size] = 0;
 	}
 
-	void resize(u64 _size) { vector::resize(_size); vector::reserve(_size + 1); data[size] = 0; }
+	void resize(u64 _size) { Vector::resize(_size); Vector::reserve(_size + 1); data[size] = 0; }
 
-	string(const char* str): vector<char>(strlen(str)+1) {
+	String(const char* str): Vector<char>(strlen(str)+1) {
 		size = capacity - 1;
 		memcpy((void*)data, (void*)str, size+1);
 		data[size] = 0;
 	}
 
 	// Substring
-	string(const char* str, u64 len): vector<char>(len + 1) {
+	String(const char* str, u64 len): Vector<char>(len + 1) {
 		size = capacity - 1;
 		memcpy((void*)data, (void*)str, size);
 		data[size] = 0;
 	}
 
-	string(std::initializer_list<char> items) {
+	String(std::initializer_list<char> items) {
 		capacity = align(items.size(), 8);
 
 		if (capacity) {
@@ -271,7 +271,7 @@ struct string : vector<char> {
 		data[size] = 0;
 	}
 
-	string(const string& o): vector<char>() {
+	String(const String& o): Vector<char>() {
 		if (o.size) {
 			size = o.size;
 			capacity = o.size;
@@ -281,9 +281,9 @@ struct string : vector<char> {
 		}
 	}
 
-	string(string&& o): vector<char>(o) {  }
+	String(String&& o): Vector<char>(o) {  }
 
-	string& operator=(const string& o) {
+	String& operator=(const String& o) {
 		if (data) _gfree(data);
 
 		size = o.size;
@@ -296,7 +296,7 @@ struct string : vector<char> {
 		return *this;
 	}
 
-	string& operator=(string&& o) {
+	String& operator=(String&& o) {
 		if (data) _gfree(data);
 		data = o.data;
 		size = o.size;
@@ -309,7 +309,7 @@ struct string : vector<char> {
 		return *this;
 	}
 
-	string& operator+=(const char* s) {
+	String& operator+=(const char* s) {
 		u64 len = strlen(s);
 		reserve(size + len + 1);
 		memcpy((void*)&data[size], (void*)s, len);
@@ -318,7 +318,7 @@ struct string : vector<char> {
 		return *this;
 	}
 
-	string& operator+=(char c) {
+	String& operator+=(char c) {
 		reserve(size + 1);
 		data[size++] = c;
 		data[size] = 0;
@@ -328,32 +328,16 @@ struct string : vector<char> {
 	char* c_str() const { if (!data) return (char*)""; else return (char*)data; }
 };
 
-struct stringv {
-	using iter = _generic_iter<const char>;
-
-	const char* s = nullptr;
-	stringv() = delete("14");
-	stringv(const char* d): s(d) {  }
-
-	const char& operator[](u64 idx) { return s[idx]; }
-
-	bool operator==(const char* o) { return !strcmp(s, o); }
-	bool operator!=(const char* o) { return strcmp(s, o); }
-
-	iter begin() { return iter(s); }
-	iter end() { u64 len = strlen(s); return iter(s + len); }
-};
-
 template <u64 S, typename T>
-struct array {
-	using iter = _generic_iter<T>;
+struct Array {
+	using Iter = _generic_iter<T>;
 	static constexpr u64 size = S;
 
 	T data[S] = {};
 
-	array();
+	Array();
 
-	array(std::initializer_list<T> items) {
+	Array(std::initializer_list<T> items) {
 		assert(items.__size_ <= size);
 
 		u64 idx = 0;
@@ -361,7 +345,7 @@ struct array {
 			data[idx++] = e;
 	}
 
-	array(const array& o) {
+	Array(const Array& o) {
 		static_assert(size == o.size);
 
 		for (u64 i = 0; i < o.size; i++)
@@ -372,9 +356,9 @@ struct array {
 	}
 
 
-	array(array&& o) = default;
+	Array(Array&& o) = default;
 
-	array& operator=(const array& o) {
+	Array& operator=(const Array& o) {
 		static_assert(size == o.size);
 	
 		for (const auto& e : *this)
@@ -386,7 +370,7 @@ struct array {
 		return *this;
 	}
 
-	~array() {
+	~Array() {
 		for (auto& e : *this)
 			e.~T();
 	}
@@ -407,7 +391,7 @@ struct array {
 		return data[idx];
 	}
 
-	bool operator==(const array& o) const {
+	bool operator==(const Array& o) const {
 		if (o.size != size) return false;
 		for (u64 i = 0; i < size; i++) {
 			if (!(data[i] == o.data[i]))
@@ -416,88 +400,101 @@ struct array {
 		return true;
 	}
 
-	iter begin() { return iter(data); }
-	iter end() { return iter(data + size); }
+	Iter begin() { return Iter(data); }
+	Iter end() { return Iter(data + size); }
 };
 
 template <typename T>
-struct optional {
-	__attribute__((aligned(alignof(T))))
-	u8 storage[sizeof(T)];
+struct Opt {
+	union storage {
+		T data;
+		bool dummy;
+
+		constexpr storage(): dummy(false) {}
+		constexpr storage(const T& d): data(d) {}
+		constexpr storage(T&& d): data(d) {}
+
+		constexpr ~storage() {}
+	} storage;
 	bool present = false;
 
-	optional(T&& init): present(true) { new (&storage) T(forward<T>(init)); }
-	optional(const T& init): present(true) { new (&storage) T(init); }
-	optional(): present(false) {  }
+	constexpr Opt(T&& init): storage(forward<T>(init)), present(true) {  }
+	constexpr Opt(const T& init): storage(init), present(true) {  }
+	constexpr Opt(): storage(), present(false) {  }
 
 	template <typename... Args>
-	optional(Args&&... args): present(true) { new (&storage) T(forward<Args>(args)...); }
+	constexpr Opt(Args&&... args): storage(T(forward<Args>(args)...)), present(true) {  }
 
-	T& expect(const char* error) {
+	constexpr T& expect(const char* error = "") {
 		if (!present)
 			fatal("Optional not present: %s", error);
 
-		return *(T*)storage;
+		return storage.data;
 	}
 
-	T& emplace_back(T&& init) {
-		new (&storage) T(forward<T>(init));
+	constexpr T& emplace_back(T&& init) {
+		storage.data = T(forward<T>(init));
 		present = true;
-		return *(T*)storage;
+		return storage.data;
+	}
+
+	constexpr ~Opt() {
+		if (present)
+			storage.data.~T();
 	}
 };
 
 template <typename T>
-struct llist {
-	struct link_t {
-		link_t* prev;
-		link_t* next;
+struct LinkedList {
+	struct Link {
+		Link* prev;
+		Link* next;
 		T data;
 		bool last = false;
 
-		link_t(link_t* _prev, link_t* _next, const T& _data): prev(_prev), next(_next), data(_data) {  }
-		~link_t() { prev = next = nullptr; }
+		Link(Link* _prev, Link* _next, const T& _data): prev(_prev), next(_next), data(_data) {  }
+		~Link() { prev = next = nullptr; }
 	};
 
-	struct iter {
-		link_t* data;
-		iter(link_t* _data): data(_data) {  }
+	struct Iter {
+		Link* data;
+		Iter(Link* _data): data(_data) {  }
 		
-		iter& operator++()		{ data=data->last?nullptr:data->next; return *this; }
-		iter  operator++(int)	{ auto old = *this; data=data->last?nullptr:data->next; return old; }
+		Iter& operator++()		{ data=data->last?nullptr:data->next; return *this; }
+		Iter  operator++(int)	{ auto old = *this; data=data->last?nullptr:data->next; return old; }
 		
-		iter& operator--()		{ data=data->prev; return *this; }
-		iter  operator--(int)	{ auto old = *this; data=data->prev; return old; }
+		Iter& operator--()		{ data=data->prev; return *this; }
+		Iter  operator--(int)	{ auto old = *this; data=data->prev; return old; }
 
-		iter  operator+ (T* a)	{ fatal("llist: iter operator+ not implemented"); }
-		iter  operator- (T* a)	{ fatal("llist: iter operator-(*) not implemented"); }
+		Iter  operator+ (T* a)	{ fatal("llist: iter operator+ not implemented"); }
+		Iter  operator- (T* a)	{ fatal("llist: iter operator-(*) not implemented"); }
 
-		iter& operator+=(T* a)	{ fatal("llist: iter operator+= not implemented"); }
-		iter& operator-=(T* a)	{ fatal("llist: iter operator-= not implemented"); }
+		Iter& operator+=(T* a)	{ fatal("llist: iter operator+= not implemented"); }
+		Iter& operator-=(T* a)	{ fatal("llist: iter operator-= not implemented"); }
 
-		T* operator-(const iter& o) { fatal("llist: iter operator-(&) not implemented"); }
+		T* operator-(const Iter& o) { fatal("llist: iter operator-(&) not implemented"); }
 		T& operator[](const u64 idx) { fatal("llist: iter operator[] not implemented"); }
 
 		T* operator->()	{ return &data->data; }
 		T& operator*()	{ return data->data;  }
 
-		bool operator==(const iter& o) const { return data == o.data; }
-		bool operator!=(const iter& o) const { return data != o.data; }
-		bool operator< (const iter& o) const { return data  < o.data; }
-		bool operator<=(const iter& o) const { return data <= o.data; }
-		bool operator> (const iter& o) const { return data  > o.data; }
-		bool operator>=(const iter& o) const { return data >= o.data; }
+		bool operator==(const Iter& o) const { return data == o.data; }
+		bool operator!=(const Iter& o) const { return data != o.data; }
+		bool operator< (const Iter& o) const { return data  < o.data; }
+		bool operator<=(const Iter& o) const { return data <= o.data; }
+		bool operator> (const Iter& o) const { return data  > o.data; }
+		bool operator>=(const Iter& o) const { return data >= o.data; }
 	};
 
-	link_t* first = nullptr;
+	Link* first = nullptr;
 	u64 size = 0;
-	mutex m;
+	MutexSimple m;
 
 	T& push_back(const T& elem) {
-		lockguard yes(m);
+		LockguardSimple yes(m);
 		size++;
 		if (first) {
-			link_t* newl = new link_t(first->prev, first, elem);
+			Link* newl = new Link(first->prev, first, elem);
 			first->prev->next = newl;
 
 			assert(first->prev->last);
@@ -508,7 +505,7 @@ struct llist {
 			return newl->data;
 		} else {
 			// Create the first link
-			first = new link_t(nullptr, nullptr, elem);
+			first = new Link(nullptr, nullptr, elem);
 			first->next = first;
 			first->prev = first;
 			first->last = true;
@@ -517,18 +514,17 @@ struct llist {
 	}
 
 	T& push_front(const T& elem) {
-		lockguard yes(m);
+		LockguardSimple yes(m);
 		size++;
 		if (first) {
-			link_t* newfirst = new link_t(first->prev, first, elem);
-			warn("%p", first->prev);
+			Link* newfirst = new Link(first->prev, first, elem);
 			first->prev->next = newfirst;
 			first->prev = newfirst;
 			first = newfirst;
 			return first->data;
 		} else {
 			// Create the first link
-			first = new link_t(nullptr, nullptr, elem);
+			first = new Link(nullptr, nullptr, elem);
 			first->prev = first;
 			first->next = first;
 			first->last = true;
@@ -536,8 +532,8 @@ struct llist {
 		}
 	}
 
-	void remove(link_t& l) {
-		lockguard yes(m);
+	void remove(Link& l) {
+		LockguardSimple yes(m);
 		if (!size) fatal("Tried to delete elem from empty list (size 0)");
 		if (!first) fatal("Tried to delete elem from empty list (first null)");
 		size--;
@@ -561,7 +557,7 @@ struct llist {
 			fatal("dlinkedlist: index out of bounds! %lld > %lld", idx, size);
 
 		u64 idx2 = idx;
-		link_t* l = first;
+		Link* l = first;
 		while (l && idx2) {
 			l = l->next;
 			idx2--;
@@ -569,11 +565,11 @@ struct llist {
 		remove(*l);
 	}
 
-	void remove(iter it) { remove(*it); }
+	void remove(Iter it) { remove(*it); }
 
 	T& operator[](const u64 idx) {
 		u64 idx2 = idx;
-		link_t* l = first;
+		Link* l = first;
 		while (l && idx2) {
 			l = l->next;
 			idx2--;
@@ -585,7 +581,7 @@ struct llist {
 
 	const T& operator[](const u64 idx) const {
 		u64 idx2 = idx;
-		link_t* l = first;
+		Link* l = first;
 		while (l && idx2) {
 			l = l->next;
 			idx2--;
@@ -595,9 +591,9 @@ struct llist {
 		return l->data;
 	}
 
-	link_t& get_link(u64 idx) {
+	Link& get_link(u64 idx) {
 		u64 idx2 = idx;
-		link_t* l = first;
+		Link* l = first;
 		while (l && idx2) {
 			l = l->next;
 			idx2--;
@@ -607,16 +603,16 @@ struct llist {
 		return *l;
 	}
 
-	iter begin() { return iter(first); }
-	iter end() { return iter(nullptr); }
+	Iter begin() { return Iter(first); }
+	Iter end() { return Iter(nullptr); }
 
-	~llist() {
-		link_t* l = first;
+	~LinkedList() {
+		Link* l = first;
 		// Különben visszajut a loop a firstre
 		if (first)
 			first->prev->next = nullptr;
 		while (l) {
-			link_t* next = l->next;
+			Link* next = l->next;
 			delete l;
 			l = next;
 		}
@@ -641,7 +637,7 @@ constexpr u64 hash(const char* val, u64 size) {
 	}
 	return sum % size;
 }
-constexpr u64 hash(const string& val, u64 size) {
+constexpr u64 hash(const String& val, u64 size) {
 	u64 sum = 0;
 	for (u64 i = 0; i < val.size; i++)
 		sum += pow(valueperchar, i) * val[i];
@@ -649,12 +645,12 @@ constexpr u64 hash(const string& val, u64 size) {
 }
 
 template <typename K, typename V>
-struct hashmap {
-	struct pair_t { K key; V value; };
+struct HashMap {
+	struct Pair { K key; V value; };
 
-	struct iter {
-		using veciter = vector<llist<pair_t>>::iter;
-		using lliter = llist<pair_t>::iter;
+	struct Iter {
+		using veciter = typename Vector<LinkedList<Pair>>::Iter;
+		using lliter = typename LinkedList<Pair>::Iter;
 
 		veciter vcur, vend;
 		lliter lcur;
@@ -667,46 +663,46 @@ struct hashmap {
 			}
 		}
 
-		iter(veciter _vstart, veciter _vend):
+		Iter(veciter _vstart, veciter _vend):
 		vcur(_vstart), vend(_vend), lcur(vcur->begin()) {
 			if (vcur != vend)
 				lcur = vcur->begin();
 			find_next_valid();
 		}
 
-		iter& operator++() {
+		Iter& operator++() {
 			lcur++;
 			find_next_valid();
 			return *this;
 		}
 
-		iter operator++(int) {
-			iter i = *this;
+		Iter operator++(int) {
+			Iter i = *this;
 			lcur++;
 			find_next_valid();
 			return i;
 		}
 
-		bool operator==(iter& o) {
+		bool operator==(Iter& o) {
 			if (vcur == o.vcur && o.vcur == o.vend) return true;
 			return vcur == o.vcur && lcur == o.lcur;
 		}
 
-		bool operator!=(iter& o) { return !(*this == o); }
+		bool operator!=(Iter& o) { return !(*this == o); }
 
-		pair_t& operator*() { return *lcur; }
-		pair_t* operator->() { return &(*lcur); }
+		Pair& operator*() { return *lcur; }
+		Pair* operator->() { return &(*lcur); }
 	};
 
-	iter begin() { return iter(entries.begin(), entries.end()); }
-	iter end() { return iter(entries.end(), entries.end()); }
+	Iter begin() { return Iter(entries.begin(), entries.end()); }
+	Iter end() { return Iter(entries.end(), entries.end()); }
 
-	vector<llist<pair_t>> entries;
+	Vector<LinkedList<Pair>> entries;
 	static constexpr u32 defsize = 1024;
 	u32 size;
 
-	hashmap(): entries(defsize), size(defsize) { entries.resize(size); }
-	hashmap(u64 s): entries(s), size(s) { entries.resize(size); }
+	HashMap(): entries(defsize), size(defsize) { entries.resize(size); }
+	HashMap(u64 s): entries(s), size(s) { entries.resize(size); }
 
 	// Amikor a kulcs move-olható
 	V& operator[](K&& key) {
@@ -714,7 +710,7 @@ struct hashmap {
 		if (!bucket.size) {
 			// Még nincs ilyen elem, be kell szúrni egy alapértelmezett
 			// értéket majd visszaadani egy utalást rá
-			return bucket.push_front(pair_t {
+			return bucket.push_front(Pair {
 				move<K>(key),
 				V()
 			}).value;
@@ -734,7 +730,7 @@ struct hashmap {
 		if (!bucket.size) {
 			// Még nincs ilyen elem, be kell szúrni egy alapértelmezett
 			// értéket majd visszaadani egy utalást rá
-			return bucket.push_front(pair_t {
+			return bucket.push_front(Pair {
 				key,
 				V()
 			}).value;
@@ -760,7 +756,7 @@ struct hashmap {
 		auto& bucket = entries[hash(key, size)];
 		if (!bucket.size) fatal("Tried to delete non-existent element!");
 
-		typename llist<pair_t>::link_t* l = &bucket.get_link(0);
+		typename LinkedList<Pair>::Link* l = &bucket.get_link(0);
 		auto* first = l;
 		do {
 			if (l->data.key == key) {
@@ -774,24 +770,24 @@ struct hashmap {
 };
 
 template <typename T>
-struct span {
+struct Span {
 	T* first = nullptr;
 	u64 size = 0;
-	using iter = _generic_iter<T>;
+	using Iter = _generic_iter<T>;
 
-	constexpr span() {}
-	constexpr span(T* start, u64 sz): first(start), size(sz) {}
-	constexpr span(std::initializer_list<T> items) = delete("Use vector/array for initializer lists!");
-
-	template <u64 N>
-	constexpr span(T (arr)[N]): first(arr), size(N) {  }
+	constexpr Span() {}
+	constexpr Span(T* start, u64 sz): first(start), size(sz) {}
+	constexpr Span(std::initializer_list<T> items) = delete("Use vector/array for initializer lists!");
 
 	template <u64 N>
-	constexpr span(const array<N, T>& arr): first((T*)arr.data), size(N) {  }
+	constexpr Span(T (arr)[N]): first(arr), size(N) {  }
 
-	constexpr span(const vector<T>& vec): first((T*)vec.data), size(vec.size) {  }
+	template <u64 N>
+	constexpr Span(const Array<N, T>& arr): first((T*)arr.data), size(N) {  }
 
-	constexpr span(const span& o): first(o.first), size(o.size) {}
+	constexpr Span(const Vector<T>& vec): first((T*)vec.data), size(vec.size) {  }
+
+	constexpr Span(const Span& o): first(o.first), size(o.size) {}
 
 	constexpr T& operator[](u64 idx) const {
 		if constexpr (DBG)
@@ -802,15 +798,15 @@ struct span {
 	constexpr operator T*() { return first; }
 	constexpr operator T() { return *first; }
 
-	iter begin() { return iter(first); }
-	iter end() { return iter(first + size); }
+	Iter begin() { return Iter(first); }
+	Iter end() { return Iter(first + size); }
 };
 
 template <typename T, typename U>
-struct pair {
+struct Pair {
 	T first;
 	U second;
 
-	pair(): first(), second() {  }
-	pair(T f, U s): first(f), second(s) {  }
+	Pair(): first(), second() {  }
+	Pair(T f, U s): first(f), second(s) {  }
 };

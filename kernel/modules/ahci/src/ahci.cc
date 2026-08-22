@@ -7,6 +7,7 @@
 #include <arch/arch.hh>
 #include <arch/amd64/paging.hh>
 #include <mm/vmm.hh>
+#include <cppcompat.hh>
 
 #include "ahci.hh"
 
@@ -18,7 +19,7 @@ constexpr u32 SIG_ATAPI = 0xEB140101;
 constexpr u32 SIG_SEMB = 0xC33C0101; // enclosure mgmt bridge
 constexpr u32 SIG_PM = 0x96690101; // port multipl
 
-static_assert(pmm_pagesize == mib2bytes(2));
+// static_assert(PMM_PAGESIZE == mibs2bytes(2));
 // 2 MiB-os pool, ebből:
 // 1024 + 256 + 128*32 + 16*32 -> 5376 byte kell az alapvető struktúráknak, így marad
 // 2 091 776 byte a PRDT-knek, így jut 4080 PRDT mindegyik command table-nek
@@ -78,7 +79,7 @@ static void setrunning(volatile hba_regs* r, u32 i, bool run) {
 }
 
 template <typename Lambda>
-static bool ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
+static bool ahci_send_cmd(Device& dev, Lambda&& create_cmd) {
 	auto* r = ((ahci_internal*)dev.parent->extra)->r;
 	u32 i = dev.loc;
 
@@ -102,7 +103,7 @@ static bool ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 	auto& port = r->ports[i];
 
 	if (port.sata_err)
-		fatal("SATA error preceding: %08x", port.sata_err);
+		fatal("SATA error preceding: %08x", +port.sata_err);
 
 	port.intr_sts = -1u;
 	port.cmd_issue |= (1 << slot);
@@ -120,7 +121,7 @@ static bool ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 		}
 
 		if (port.sata_err) {
-			error("SATA error: %08x", port.sata_err);
+			error("SATA error: %08x", +port.sata_err);
 			return false;
 		}
 	}
@@ -128,7 +129,7 @@ static bool ahci_send_cmd(device_t& dev, Lambda&& create_cmd) {
 	return true;
 }
 
-void ahci_identify(device_t& dev, void* identity) {
+void ahci_identify(Device& dev, void* identity) {
 	assert(dev.subsys == DevmgrSubsys::MSD);
 	assert(isaligned(identity, 512));
 
@@ -166,7 +167,7 @@ void ahci_identify(device_t& dev, void* identity) {
 	});
 }
 
-void ahci_read(device_t& dev, u64 lba, u64 sectors, void* into) {
+void ahci_read(Device& dev, u64 lba, u64 sectors, void* into) {
 	assert(dev.subsys == DevmgrSubsys::MSD);
 	assert(((u64)into & 511) == 0);
 	assert(sectors < PRDTL);
@@ -231,7 +232,7 @@ void ahci_sanitize(char* str, u32 len) {
 	str[i + 1] = 0;
 }
 
-static device_t* init_port(device_t& hba, u32 i) {
+static Device* init_port(Device& hba, u32 i) {
 	auto* r = ((ahci_internal*)hba.extra)->r;
 	auto& p = r->ports[i];
 
@@ -252,12 +253,13 @@ static device_t* init_port(device_t& hba, u32 i) {
 		case SIG_SEMB:
 			return nullptr;
 		default:
-			error("Unknown AHCI signature: %08x", p.sign);
+			error("Unknown AHCI signature: %08x", +p.sign);
 			return nullptr;
 	}
 
-	u64 pool = (u64)pmm_alloc();
-	memset((void*)pool, 0, kib2bytes(2048));
+	constexpr u32 POOL_SIZE = mibs2bytes(2);
+	u64 pool = (u64)pmm_alloc(POOL_SIZE);
+	memset((void*)pool, 0, POOL_SIZE);
 
 	setrunning(r, i, false);
 
@@ -286,7 +288,7 @@ static device_t* init_port(device_t& hba, u32 i) {
 	p.intr_enable = -1;
 
 	// Új eszközként hozzáadás
-	device_t& drive = devmgr_add_device(device_t {
+	Device& drive = devmgr_add_device(Device {
 		.parent = &hba,
 		.extra = new msd_call_table { .read = ahci_read },
 		.subsys = DevmgrSubsys::MSD,
@@ -302,15 +304,15 @@ static device_t* init_port(device_t& hba, u32 i) {
 	ahci_sanitize((char*)id->SerialNumber, 20);
 
 	auto& d = drive.kinds.get<device_t_MSD>();
-	d.manufacturerName = string();
-	d.productName = string((char*)id->ModelNumber);
-	d.serial = string((char*)id->SerialNumber);
+	d.manufacturerName = String();
+	d.productName = String((char*)id->ModelNumber);
+	d.serial = String((char*)id->SerialNumber);
 	kfree(id);
 
 	return &drive;
 }
 
-extern "C" void mod_main(device_t& _dev) {
+extern "C" void mod_main(Device& _dev) {
 	pci_setup_cmd_reg(_dev);
 
 	auto bar5 = pci_prepare_bar(_dev, 5);
@@ -343,7 +345,7 @@ extern "C" void mod_main(device_t& _dev) {
 	// }
 
 	ghc.ahci_enable = 1;
-	ghc.intr = 1;
+	ghc.intr = 0;
 	r->ghc = ghc.raw;
 
 	arch_sleep(10, true);

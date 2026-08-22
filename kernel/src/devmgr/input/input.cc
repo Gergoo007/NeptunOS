@@ -11,7 +11,7 @@ char* input_buffer = nullptr;
 u64 input_buffer_size = 0;
 constexpr u64 INPUT_BUFFER_MAX_SIZE = 4096;
 
-bitmap_t kbd_state;
+Bitmap kbd_state;
 
 // Milliszekundumokban
 u32 kbd_delay = 175;
@@ -22,7 +22,6 @@ u64 kbd_lastpressed_time;
 
 static void append_char(ScanCode sc) {
 	char_t c = kbd_translate_hu(sc);
-	printk("%c", c);
 
 	if (c >> 24)
 		fatal("UTF-8 characters with more than 3 code points are not supported!");
@@ -30,9 +29,12 @@ static void append_char(ScanCode sc) {
 	if (input_buffer_size == INPUT_BUFFER_MAX_SIZE - 1) {
 		warn("Input buffer is full (%llu)!", input_buffer_size);
 	} else {
-		if (c & ~0x7f)
-			fatal("UTF-8 scan codes are not supported yet!");
+		if (c & ~0x7f) {
+			// warn("UTF-8 scan codes are not supported yet!");
+			return;
+		}
 		input_buffer[input_buffer_size++] = c;
+		printk("%c", c);
 	}
 }
 

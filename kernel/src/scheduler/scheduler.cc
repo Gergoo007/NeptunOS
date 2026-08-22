@@ -5,10 +5,10 @@
 #include <gfx/console.hh>
 #include <mm/vmm.hh>
 
-using task_elem = llist<task>::link_t;
+using task_elem = LinkedList<task>::Link;
 
-mutex sched_m;
-llist<task> sched_tasks;
+MutexSimple sched_m;
+LinkedList<task> sched_tasks;
 bool sched_running = false;
 task_elem* sched_cpus[16];
 

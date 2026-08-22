@@ -190,7 +190,7 @@ struct LapicRegs {
 	static constexpr lapic_register_t TMR_DIVIDE		{ 0x3E0 };	//	Divide Configuration Register (for Timer)	Read/Write
 };
 
-extern vector<lapic_t> cpus;
+extern Vector<lapic_t> cpus;
 
 void arch_parse_madt(madt_t* m);
 void arch_ioapic_initialize_gsi(u32 gsi, u8 vector, IoapicDelivmode delivmode, u8 dest, bool activelow, bool lvl_trig = false);

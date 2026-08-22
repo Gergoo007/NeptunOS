@@ -7,4 +7,4 @@ pstruct stackframe_t {
 	u64 rip;
 };
 
-void stacktrace(u64 rsp = -1, void (*_printk)(const char* fmt, ...) = printk);
+void stacktrace(u64 rsp = -1);

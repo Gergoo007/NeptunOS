@@ -51,26 +51,6 @@ void pci_write32(u8 bus, u8 slot, u8 func, u8 offset, u32 data) {
 	}
 }
 
-u32 pci_read(u8 bus, u8 slot, u8 func, u8 offset, u8 bits = 32) {
-	u32 realoffset = align_down(offset, 4);
-	if (align_down(offset, 4) != align_down(offset + (bits/8) - 1, 4))
-		error("overlapping reads not supported: %d bits @ %08x", bits, offset);
-	u32 data = pci_read32(bus, slot, func, realoffset);
-	data >>= (offset - realoffset) * 8;
-	data &= numbits(bits);
-	return data;
-}
-
-void pci_write(u8 bus, u8 slot, u8 func, u8 offset, u32 data, u8 bits = 32) {
-	u32 realoffset = align_down(offset, 4);
-	if (align_down(offset, 4) != align_down(offset + (bits/8) - 1, 4))
-		error("overlapping writes not supported: %d bits @ %08x", bits, offset);
-	u32 value = pci_read32(bus, slot, func, realoffset);
-	u32 new_value = value & ~numbits(bits);
-	new_value |= data << ((offset & 3) * 8);
-	pci_write32(bus, slot, func, realoffset, new_value);
-}
-
 u32 pci_read(u8 bus, u8 slot, u8 func, pci_register_t reg) {
 	u32 realoffset = align_down(reg.offset, 4);
 	if (align_down(reg.offset, 4) != align_down(reg.offset + (reg.bits/8) - 1, 4))
@@ -91,8 +71,8 @@ void pci_write(u8 bus, u8 slot, u8 func, pci_register_t reg, u32 data) {
 	pci_write32(bus, slot, func, realoffset, new_value);
 }
 
-u32 pci_read(device_t& dev, pci_register_t reg) { return pci_read(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg); }
-void pci_write(device_t& dev, pci_register_t reg, u32 data) { pci_write(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg, data); }
+u32 pci_read(Device& dev, pci_register_t reg) { return pci_read(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg); }
+void pci_write(Device& dev, pci_register_t reg, u32 data) { pci_write(dev.kinds.get<device_t_PCI>().bus, dev.kinds.get<device_t_PCI>().dev, dev.kinds.get<device_t_PCI>().fun, reg, data); }
 
 void check_bus(u8 bus) {
 	for (u32 j = 0; j < 32; j++) {
@@ -102,7 +82,7 @@ void check_bus(u8 bus) {
 
 			u32 hdrt = pci_read(bus, j, i, PciRegs::HDRTYPE);
 			
-			devmgr_add_device(device_t {
+			devmgr_add_device(Device {
 				.extra = nullptr,
 				.subsys = DevmgrSubsys::PCI,
 				.loc = 0,
@@ -153,7 +133,7 @@ void pci_init() {
 	}
 }
 
-void pci_setup_cmd_reg(device_t& dev) {
+void pci_setup_cmd_reg(Device& dev) {
 	u32 pcicmd = pci_read(dev, PciRegs::CMD);
 	pcicmd |= 0b100; // bus master
 	pcicmd |= 0b010; // mem access
@@ -162,7 +142,7 @@ void pci_setup_cmd_reg(device_t& dev) {
 	pci_write(dev, PciRegs::CMD, pcicmd);
 }
 
-pci_bar pci_prepare_bar(device_t& dev, u8 barnum) {
+pci_bar pci_prepare_bar(Device& dev, u8 barnum) {
 	auto barreg = pci_register_t(barnum);
 	u64 addr = pci_read(dev, barreg), orig = addr;
 	pci_bar ret;
@@ -193,7 +173,7 @@ pci_bar pci_prepare_bar(device_t& dev, u8 barnum) {
 	return ret;
 }
 
-void pci_enable_msi(device_t& d, u8 vector) {
+void pci_enable_msi(Device& d, u8 vector) {
 	u16 sts = pci_read(d, PciRegs::STS);
 	if ((sts & (1 << 4)) == 0) return;
 
@@ -212,7 +192,7 @@ void pci_enable_msi(device_t& d, u8 vector) {
 			pci_register_t msi_data = pci_register_t(caps + 8, 16);
 
 			pci_register_t msi_mask = pci_register_t(caps + 16, 32);
-			pci_register_t msi_pending = pci_register_t(caps + 24, 32);
+			pci_register_t msi_pending = pci_register_t(caps + 24, 32); (void)msi_pending;
 
 			ctl.raw = pci_read(d, msi_ctl);
 

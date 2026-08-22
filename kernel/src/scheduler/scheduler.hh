@@ -26,15 +26,15 @@ struct schedguard {
 };
 
 // For now this is only a dumb round-robin
-extern llist<task> sched_tasks;
-extern llist<task>::link_t* sched_cpus[16];
+extern LinkedList<task> sched_tasks;
+extern LinkedList<task>::Link* sched_cpus[16];
 
 void sched_start();
 void sched_tick(cpu_state_t* state, bool force, bool eoi);
 void sched_exit_thread();
 void sched_setrunning(bool otoole);
 
-extern mutex sched_m;
+extern MutexSimple sched_m;
 extern u32 sched_current_pid;
 extern "C" u8 sse_state[512];
 

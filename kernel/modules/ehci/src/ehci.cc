@@ -37,7 +37,7 @@ static u32 elookup(T* turi) {
 
 // Minden kernel interfész procedúrának BE KELL EZT ÁLLÍTANIA!
 ehci_internal* context;
-static void ehci_update_context(device_t& hc) {
+static void ehci_update_context(Device& hc) {
 	context = (ehci_internal*)hc.extra;
 }
 
@@ -47,7 +47,7 @@ static void insert_qh(ehci_qh* qh) {
 	context->head->horiz_link.ptr = elookup(qh) | ((u32)EhciQHType::QH << 1);
 }
 
-void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
+void ehci_send(Device& usbdev, u8 endp, usb_request* request, void* databuf) {
 	ehci_update_context(*usbdev.kinds.get<device_t_USB>().hci);
 	volatile ehci_qtd* setup_td = ehci_alloc_qtd();
 	volatile ehci_qtd* status_td = ehci_alloc_qtd();
@@ -96,7 +96,8 @@ void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf) {
 		td->buffers[4] = td->buffers[3] + 0x1000;
 		td->next_qtd.ptr = elookup(status_td);
 		td->alt_next_qtd.ptr = elookup(status_td);
-		td->token.bytes = min(size, usbdev.kinds.get<device_t_USB>().mps);
+		// td->token.bytes = min(size, usbdev.kinds.get<device_t_USB>().mps);
+		td->token.bytes = min(request->wLength, usbdev.kinds.get<device_t_USB>().mps);
 		td->token.current_page = 0;
 		td->token.data = i % 2;
 		td->token.err_counter = 3;
@@ -244,12 +245,12 @@ static void init_port(u8 portnum) {
 	usb_device_add_skeleton(*context->hc, portnum, UsbSpeed::HS);
 }
 
-void ehci_send_reset(device_t& usbdev) {
+void ehci_send_reset(Device& usbdev) {
 	ehci_update_context(*usbdev.kinds.get<device_t_USB>().hci);
 	ehci_send_reset0(usbdev.loc);
 }
 
-u8 ehci_make_address(device_t& hc) {
+u8 ehci_make_address(Device& hc) {
 	ehci_update_context(hc);
 	return context->addresses.find_and_set();
 }
@@ -260,7 +261,7 @@ u8 ehci_make_address(device_t& hc) {
 // Async queue feldolgozásakor ha a recl. head bit 1, a USBSTS.Reclamation pedig 0,
 // a HC azonnal abbahagyja az async schedule végrehajtását
 
-extern "C" void mod_main(device_t& dev) {
+extern "C" void mod_main(Device& dev) {
 	if (dev.extra)
 		fatal("Attempt to re-initialize USB controller");
 

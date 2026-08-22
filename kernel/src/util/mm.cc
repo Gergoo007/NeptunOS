@@ -1,14 +1,16 @@
 #include <util/mm.hh>
+#include <cppcompat.hh>
+#include <mm/pmm.hh>
 
-memorymgr::memorymgr(u64 heap, u64 size): heap_base(heap) {
-	first = links = (link_t*)pmm_alloc();
+MemoryMgr::MemoryMgr(u64 heap, u64 size): heap_base(heap) {
+	capacity = PMM_PAGESIZE / sizeof(link_t);
 
-	memset(links, 0, pmm_pagesize);
-	capacity = pmm_pagesize / sizeof(link_t);
+	first = links = (link_t*)pmm_alloc(PMM_PAGESIZE);
+	memset(links, 0, PMM_PAGESIZE);
 
-	bm = new (bitmapStorage) bitmap_t;
+	bm = new (bitmapStorage) Bitmap;
 
-	bm->init((u64*)pmm_alloc(), capacity);
+	bm->init((u64*)pmm_alloc(PMM_PAGESIZE), capacity);
 
 	links[0] = link_t {
 		.next = nullptr,
@@ -27,9 +29,9 @@ memorymgr::memorymgr(u64 heap, u64 size): heap_base(heap) {
 	freemem = size;
 }
 
-memorymgr::~memorymgr() { fatal("unimpl."); }
+MemoryMgr::~MemoryMgr() { fatal("unimpl."); }
 
-u32 memorymgr::count_allocs() {
+u32 MemoryMgr::count_allocs() {
 	u32 ret = 0;
 	link_t* l = first;
 	while (l) {
@@ -40,7 +42,7 @@ u32 memorymgr::count_allocs() {
 	return ret;
 }
 
-void memorymgr::delete_link(link_t* l) {
+void MemoryMgr::delete_link(link_t* l) {
 	// Külön változó hogy ne sírjon a clang
 	u64 offset = (u64)l - (u64)links;
 	u64 index = offset / sizeof(link_t);
@@ -57,15 +59,16 @@ void memorymgr::delete_link(link_t* l) {
 	#endif
 }
 
-memorymgr::link_t* memorymgr::create_link() {
+MemoryMgr::link_t* MemoryMgr::create_link() {
 	u64 idx = bm->find_and_set();
 	if (idx == -1ULL) {
 		fatal(
-			"Kifogyott a vmm bitmap! Hasznalt: %llu KiB (%llu MiB) Szabad: %llu KiB (%llu MiB)",
+			"Kifogyott a vmm bitmap! Hasznalt: %llu KiB (%llu MiB) Szabad: %llu KiB (%llu MiB) bm @ %p",
 			bytes2kibs(pmm_usedmem),
 			bytes2mibs(pmm_usedmem),
 			bytes2kibs(pmm_freemem),
-			bytes2mibs(pmm_freemem)
+			bytes2mibs(pmm_freemem),
+			bm->buffer
 		);
 	}
 
@@ -76,7 +79,7 @@ memorymgr::link_t* memorymgr::create_link() {
 	return &links[idx];
 }
 
-void memorymgr::merge(link_t* l) {
+void MemoryMgr::merge(link_t* l) {
 	// Összevonás az utána lévővel
 	if (l->next) {
 		link_t* old = l->next;
@@ -106,9 +109,13 @@ void memorymgr::merge(link_t* l) {
 }
 
 // Kisajátít egy free blokkot, és létrehoz egy újat ha maradt még az eredetiből
-memorymgr::link_t& memorymgr::allocate_into_free(link_t* current, u64 size, u32 additional) {
+MemoryMgr::link_t& MemoryMgr::allocate_into_free(link_t* current, u64 size, u32 additional) {
 	assert(current->free);
 	current->free = false;
+
+	assert(current->length >= size);
+	assert(current->length - size >= additional);
+
 	u64 rem = current->length - size - additional;
 	
 	// Ha maradt még a free linkből akkor kell utána egy újat csinálni
@@ -134,7 +141,7 @@ memorymgr::link_t& memorymgr::allocate_into_free(link_t* current, u64 size, u32 
 	return *current;
 }
 
-void* memorymgr::alloc_nomutex(u64 size, const char* file, u32 line) {
+void* MemoryMgr::alloc_nomutex(u64 size, const char* file, u32 line) {
 	if (!size) return nullptr;
 	size = align(size, VMM_MIN_ALLOC);
 
@@ -173,15 +180,15 @@ void* memorymgr::alloc_nomutex(u64 size, const char* file, u32 line) {
 	return (void*)address;
 }
 
-void* memorymgr::alloc(u64 size, const char* file, u32 line) {
-	lockguard g(m);
+void* MemoryMgr::alloc(u64 size, const char* file, u32 line) {
+	LockguardSimple g(m);
 	auto p = alloc_nomutex(size, file, line);
 	// if ((u64)p == 0xffff9000003e8aa0) pause();
 	return p;
 }
 
-void* memorymgr::alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
-	lockguard g(m);
+void* MemoryMgr::alloc_aligned(u64 size, u32 align, const char* file, u32 line) {
+	LockguardSimple g(m);
 	size = align(size, VMM_MIN_ALLOC);
 	align = align(align, VMM_MIN_ALLOC);
 
@@ -236,6 +243,8 @@ void* memorymgr::alloc_aligned(u64 size, u32 align, const char* file, u32 line) 
 				first = alignfixl;
 
 			i64 remaining = l->length - size;
+			sprintk("%llx vs %llx + %llx\r\n", l->length, size, alignfix);
+			sprintk("rem %llx\r\n", remaining);
 			assert(remaining >= 0ll);
 			l->length -= remaining;
 			l->free = false;
@@ -284,8 +293,8 @@ cont:
 
 // If the sector can be increased in size without alloc+memcpy,
 // do that and return true, otherwise dont do anythign and return false
-bool memorymgr::try_realloc(void* ptr, u64 newsize, const char* file, u32 line) {
-	lockguard g(m);
+bool MemoryMgr::try_realloc(void* ptr, u64 newsize, const char* file, u32 line) {
+	LockguardSimple g(m);
 	if (!ptr)
 		return alloc_nomutex(newsize, file, line);
 
@@ -356,7 +365,7 @@ allocd:
 	return true;
 }
 
-u64 memorymgr::get_size(void* p) {
+u64 MemoryMgr::get_size(void* p) {
 	link_t* i = first;
 	u64 addr = heap_base;
 
@@ -379,7 +388,7 @@ u64 memorymgr::get_size(void* p) {
 	fatal("Unreachable code in get_size!");
 }
 
-void* memorymgr::realloc(void* ptr, u64 newsize, const char* file, u32 line) {
+void* MemoryMgr::realloc(void* ptr, u64 newsize, const char* file, u32 line) {
 	if (try_realloc(ptr, newsize, file, line)) {
 		return ptr;
 	} else {
@@ -392,8 +401,8 @@ void* memorymgr::realloc(void* ptr, u64 newsize, const char* file, u32 line) {
 }
 
 
-u64 memorymgr::dump() {
-	lockguard g(m);
+u64 MemoryMgr::dump() {
+	LockguardSimple g(m);
 	printk("===============================\n");
 	link_t* i = first;
 	u64 addr = heap_base;
@@ -410,8 +419,8 @@ u64 memorymgr::dump() {
 	return addr - heap_base;
 }
 
-void memorymgr::info(void* p) {
-	lockguard g(m);
+void MemoryMgr::info(void* p) {
+	LockguardSimple g(m);
 	link_t* i = first;
 	u64 addr = heap_base;
 
@@ -430,7 +439,7 @@ void memorymgr::info(void* p) {
 	fatal("Nincs allokacio ilyen cimen: %p", p);
 }
 
-void memorymgr::free_nomutex(void* p, const char* file, const char* function) {
+void MemoryMgr::free_nomutex(void* p, const char* file, const char* function) {
 	if (!p) return;
 
 	check(p);
@@ -474,13 +483,13 @@ void memorymgr::free_nomutex(void* p, const char* file, const char* function) {
 	merge(i);
 }
 
-void memorymgr::free(void* p, const char* file, const char* function) {
-	lockguard g(m);
+void MemoryMgr::free(void* p, const char* file, const char* function) {
+	LockguardSimple g(m);
 	free_nomutex(p, file, function);
 }
 
-void memorymgr::print_files(void* around) {
-	lockguard g(m);
+void MemoryMgr::print_files(void* around) {
+	LockguardSimple g(m);
 	#ifdef VMM_DEBUG
 		link_t* l = first;
 		u64 addr = heap_base;
@@ -501,7 +510,7 @@ void memorymgr::print_files(void* around) {
 	#endif
 }
 
-void memorymgr::check(void* p, bool checkbefore, bool checkafter) {
+void MemoryMgr::check(void* p, bool checkbefore, bool checkafter) {
 	#ifdef VMM_DEBUG
 	p = (void*)((u64)p - VMM_REDZONE_SIZE);
 
@@ -571,7 +580,7 @@ void memorymgr::check(void* p, bool checkbefore, bool checkafter) {
 	#endif
 }
 
-void memorymgr::check_all() {
+void MemoryMgr::check_all() {
 	link_t* l = first;
 	u64 a = heap_base;
 	while (l) {

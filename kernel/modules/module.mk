@@ -2,7 +2,7 @@ MANAGE_ARCH_STUFF := 0
 ARCH ?= amd64
 include ../../$(ARCH).mk
 
-CXXFLAGS += -I../../src -DIS_MODULE -mcmodel=large
+CXXFLAGS += -I../../src -I../../libkernel/src -DIS_MODULE -mcmodel=large
 
 CCSRCS += $(subst src/,,$(shell find src -name '*.cc' -not -path '*bakexclude*'))
 

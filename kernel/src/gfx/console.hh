@@ -50,17 +50,3 @@ void con_pop_color();
 void con_clear();
 
 void con_swap_buffers();
-
-#include <util/printf.hh>
-
-__attribute__((format(printf, 1, 2)))
-void printk(const char* fmt, ...);
-
-
-static constexpr u32 con_colors[5] = {
-	0xffa0a0a0,
-	0xffd0d0d0,
-	0xffEB6534,
-	0xffC41E3D,
-	0xff710627,
-};

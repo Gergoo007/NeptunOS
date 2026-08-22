@@ -28,7 +28,7 @@ static volatile limine_stack_size_request stack_req {
 	.id = LIMINE_STACK_SIZE_REQUEST,
 	.revision = 0,
 	.response = nullptr,
-	.stack_size = mib2bytes(1),
+	.stack_size = mibs2bytes(1),
 };
 
 __attribute__((used, section(".limine_requests_start")))
@@ -59,7 +59,7 @@ void sputs(const char* s) {
 	while (*s) sputc(*(s++));
 }
 
-vector<timer_task> timer_tasks;
+Vector<timer_task> timer_tasks;
 
 const timer_task& arch_timer_add(const timer_task& task) { return timer_tasks.emplace_back(task); }
 

@@ -10,7 +10,7 @@ CXXFLAGS += -mgeneral-regs-only -ffreestanding -nostdlib -nostdinc \
 	-Isrc -xc++ -std=gnu++2c -Wall -Wextra -Wshadow -Wno-address-of-packed-member \
 	-Wno-unused-parameter -fno-stack-protector -O0 -g -Wno-multichar \
 	-Wno-packed-bitfield-compat -msse2 -fno-omit-frame-pointer -fno-rtti -fno-exceptions \
-	-MMD -MP -DDEBUG -fno-lto -fstack-protector-strong -Wno-format -Wno-implicit-fallthrough -fno-PIC \
+	-MMD -MP -DDEBUG -fno-lto -Wno-format -Wno-implicit-fallthrough -fno-PIC \
 	-DKERNEL
 ASFLAGS += -fno-lto
 LDFLAGS += --no-gc-sections
@@ -30,7 +30,11 @@ AS ?= x86_64-elf-gcc
 STRIP ?= x86_64-elf-strip
 endif
 
-# CC := clang++ -fno-lto
-# LD ?= ld.lld -m elf_x86_64
-# AS ?= clang -fno-integrated-as -fno-lto
-# STRIP ?= x86_64-elf-strip
+ifdef CLANG
+CC := clang++
+LD ?= ld.lld -m elf_x86_64
+AS ?= clang -fno-integrated-as
+STRIP ?= x86_64-elf-strip
+else
+CXXFLAGS += -fstack-protector-strong
+endif

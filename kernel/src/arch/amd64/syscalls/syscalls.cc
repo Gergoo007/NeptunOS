@@ -7,7 +7,7 @@
 extern "C" void syscalls_asm_setup(u64 stack);
 
 void init_syscalls() {
-	u64 syscallstack = (u64)pmm_alloc() + pmm_pagesize - 128 - 64;
+	u64 syscallstack = (u64)pmm_alloc(SYSCALL_STACK_SIZE) + SYSCALL_STACK_SIZE - 128 - 64;
 	syscalls_asm_setup(syscallstack);
 }
 

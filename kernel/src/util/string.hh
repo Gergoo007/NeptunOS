@@ -12,7 +12,7 @@ constexpr u8 strlen(const char* str) {
 }
 
 // Szöveg hossza de a szöveg UTF-16/UCS-2
-constexpr u8 wstrlen(const wchar* str) {
+constexpr u8 wstrlen(const wchar_t* str) {
 	u8 len = 0;
 	while (*(str++))
 		len++;
@@ -26,9 +26,38 @@ u32 strcpy(const char* src, char* dest);
 u8 strncmp(const char* s1, const char* s2, u32 chars);
 u8 strcmp(const char* s1, const char* s2);
 void strcat(char* dest, char* src);
-void int_to_str(i64 i, char* str);
-void uint_to_str(u64 i, char* str);
-void uintn_to_str(u64 i, char* str, u8 num);
-void hex_to_str(u64 i, char* str);
-void hexn_to_str(u64 i, char* str, u8 num);
-u64 str_to_uint(const char* s, u64* numlen = nullptr);
+
+[[nodiscard]]
+constexpr i64 str_to_int(const char*& str, u32 base = 10, bool advance = true) {
+	i64 ret = 0;
+	const char* orig = str;
+	bool neg = false;
+
+	if (*str == '-') {
+		neg = true;
+		str++;
+	}
+
+	if (*str == '0' && *(str + 1) == 'x') {
+		base = 16;
+		str += 2;
+	}
+
+	while ((base <= 10 && ISDIGIT(*str)) || (base > 10 && (ISLETTER(*str) || ISDIGIT(*str)))) {
+		ret *= base;
+		if (ISUPPERCASE(*str)) {
+			ret += *(str++) - 'A' + 10;
+		} else if (ISLOWERCASE(*str)) {
+			ret += *(str++) - 'a' + 10;
+		} else {
+			ret += *(str++) - '0';
+		}
+	}
+
+	if (!advance) str = orig;
+	if (neg) ret *= -1;
+	return ret;
+}
+
+[[nodiscard]]
+constexpr i64 str_to_int(const char* str, u32 base = 10) { return str_to_int(str, base, false); }

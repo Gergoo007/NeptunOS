@@ -4,7 +4,7 @@
 #include <util/variant.hh>
 
 struct fs_entry {
-	string name;
+	String name;
 	bool dir;
 };
 
@@ -14,8 +14,8 @@ struct fs_calltable {
 	u64 (*write)(const filesystem& f, const char* path, u64 offset, u64 bytes, void* data) = nullptr;
 	void (*remove)(const filesystem& f, const char* path) = nullptr;
 	void (*create)(const filesystem& f, const char* path, bool mkdir) = nullptr;
-	vector<fs_entry> (*readdir)(const filesystem& f, const char* path) = nullptr;
-	optional<fs_entry> (*readmeta)(const filesystem& f, const char* path);
+	Vector<fs_entry> (*readdir)(const filesystem& f, const char* path) = nullptr;
+	Opt<fs_entry> (*readmeta)(const filesystem& f, const char* path);
 };
 
 enum struct FilesystemType : u32 {
@@ -23,9 +23,9 @@ enum struct FilesystemType : u32 {
 	VFS,
 };
 
-struct partition;
+struct Partition;
 struct filesystem {
-	partition* p;
+	Partition* p;
 	fs_calltable calls;
 	void* fshandle;
 	FilesystemType type;
@@ -33,16 +33,16 @@ struct filesystem {
 
 struct mountpoint {
 	filesystem f;
-	string path;
+	String path;
 };
 
-string path_sanitize(const char* p);
-string path_join(const char* path1, const char* path2);
+String path_sanitize(const char* p);
+String path_join(const char* path1, const char* path2);
 const char* path_basename(char* p);
 
-void fs_mount(partition* p, const char* path, FilesystemType fstype);
+void fs_mount(Partition* p, const char* path, FilesystemType fstype);
 const mountpoint* fs_find_mnt(const char* p);
 void fs_create(const char* path, bool mkdir);
-vector<fs_entry> fs_readdir(const char* path);
+Vector<fs_entry> fs_readdir(const char* path);
 u64 fs_write(const char* path, u64 offset, u64 bytes, void* buf);
 u64 fs_read(const char* path, u64 offset, u64 bytes, void* buf);

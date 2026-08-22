@@ -39,5 +39,5 @@ struct ustar_file {
 	void* address;
 };
 
-optional<ustar_file> ustar_lookup(void* archive, u64 archivesize, const char* file);
-vector<ustar_file> ustar_list(void* archive, u64 archivesize);
+Opt<ustar_file> ustar_lookup(void* archive, u64 archivesize, const char* file);
+Vector<ustar_file> ustar_list(void* archive, u64 archivesize);

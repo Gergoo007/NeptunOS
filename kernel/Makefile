@@ -1,3 +1,7 @@
+# ////////////////////////////////////////////////
+# /// MARK: Vars
+# ////////////////////////////////////////////////
+
 # Disable idiotic invisible default variables like CC
 MAKEFLAGS += --no-builtin-variables
 
@@ -13,8 +17,11 @@ CCDEPS += $(patsubst %.cc,out/%.cc.d,$(CCSRCS))
 
 # Ha ezek a fájlok változnak, az egész kernel újra lesz fordítva
 EXTRADEPS := Makefile amd64.mk aarch64.mk
+CXXFLAGS += -mcmodel=kernel -Ilibkernel/src
 
-CXXFLAGS += -mcmodel=kernel
+# ////////////////////////////////////////////////
+# /// MARK: Main Build
+# ////////////////////////////////////////////////
 
 kernel:
 # $(ARCH) fájl létrehozása, ez mutatja,
@@ -32,6 +39,7 @@ endif
 link: $(SOBJS) $(CCOBJS) out/font.o
 	echo "  > $(LD) $@"
 	$(LD) $(LDFLAGS) -T kernel.$(ARCH).ld -static $^ -o out/kernel
+# 	$(STRIP) --strip-all out/kernel
 
 modules:
 	$(MAKE) -C modules
@@ -56,5 +64,22 @@ clean:
 	cp -r out/src/* out/
 	rm -rf out/src
 
-.PHONY: modules
+# ////////////////////////////////////////////////
+# /// MARK: Test
+# ////////////////////////////////////////////////
+
+# TESTCC ?= gcc
+# TESTCFLAGS := -fstack-protector-all -fsanitize=address,undefined \
+# 	-fno-omit-frame-pointer -D_GLIBCXX_ASSERTIONS -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE \
+# 	-Isrc
+
+# test: $(SOBJS) $(CCOBJS) out/font.o
+# 	$(TESTCC) $(TESTCFLAGS) $(shell find test/src -name '*.cc') $^ -o ktest
+# 	./ktest
+
+# ////////////////////////////////////////////////
+# /// MARK: Misc
+# ////////////////////////////////////////////////
+
+.PHONY: modules test
 $(V).SILENT:

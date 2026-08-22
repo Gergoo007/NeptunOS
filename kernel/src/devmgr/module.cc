@@ -5,6 +5,7 @@
 #include <util/string.hh>
 #include <util/ksyms.hh>
 #include <arch/amd64/paging.hh>
+#include <mm/pmm.hh>
 #include <mm/vmm.hh>
 
 #define MODULES_BASE 0xfffffff000000000
@@ -19,10 +20,10 @@ static volatile limine_module_request module_req {
 	.internal_modules = nullptr,
 };
 
-vector<module_t> modules;
+Vector<module_t> modules;
 // 64 modul van max, így mindegyiknek jut 1 GiB
 static bool bm_init = false;
-static bitmap_t bm;
+static Bitmap bm;
 
 u64 modules_link(void* a, u64 size) {
 	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)a;
@@ -124,7 +125,7 @@ void modules_load(module_t& m) {
 
 	// Ehhez a címhez képest lesznek a section-ök elhelyezve
 	u64 modid = bm.find_and_set();
-	u64 modbase = MODULES_BASE + gib2bytes(1) * modid;
+	u64 modbase = MODULES_BASE + gibs2bytes(1) * modid;
 	u64 sectionbase = modbase;
 	
 	Elf64_Ehdr* ehdr = (Elf64_Ehdr*)m.content;
@@ -134,16 +135,16 @@ void modules_load(module_t& m) {
 			// Hogy linkelés közben vissza lehessen olvasni anélkül
 			// hogy eltárolnám valami hash table-ben
 			shdrs[i].sh_addr = sectionbase;
-			
-			for (u32 j = 0; j < shdrs[i].sh_size; j += pmm_pagesize) {
+
+			for (u32 j = 0; j <= align(shdrs[i].sh_size, PMM_PAGESIZE); j += PMM_PAGESIZE) {
 				// Már mappelve van, valszeg az előző section miatt
 				if (paging_lookup(sectionbase + j) != -1ULL)
 					continue;
 
 				map_page(
 					sectionbase + j,
-					(u64)PHYSICAL(pmm_alloc()),
-					MFLAGS::KDATA | MFLAGS::EXE | MFLAGS::s2M
+					(u64)PHYSICAL(pmm_alloc(PMM_PAGESIZE)),
+					MFLAGS::KDATA | MFLAGS::EXE | PMM_PAGESIZE_FLAG
 				);
 			}
 
@@ -169,11 +170,11 @@ void modules_load(module_t& m) {
 	m.loaded = true;
 }
 
-void modules_launch(module_t& m, device_t& devptr) {
+void modules_launch(module_t& m, Device& devptr) {
 	if (!m.loaded) modules_load(m);
 
 	// Futtatás a mod_main() által
-	((void (*)(device_t&))m.entry)(devptr);
+	((void (*)(Device&))m.entry)(devptr);
 }
 
 void modules_launch(module_t& m) {
@@ -213,7 +214,7 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 		module_t mod { .content = a, .size = size, .entry = 0, .metadata = md };
 
 		if (md->triggertype == ModuleTriggerTypes::ANY)
-			modules_launch(mod, *(device_t*)1); // Ezért megköveznek gec
+			modules_launch(mod, *(Device*)1); // Ezért megköveznek gec
 
 		modules.emplace_back(mod);
 	}

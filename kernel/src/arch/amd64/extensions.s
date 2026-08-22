@@ -26,9 +26,9 @@ sse_init:
 
 	# AVX
     push %rcx
-    push %rdx
+	push %rdx
 
-    xor %rcx, %rcx
+	xor %ecx, %ecx
     xgetbv # Load XCR0 register
     orl $0b111, %eax # Set AVX, SSE, X87 bits
     xsetbv # Save back to XCR0

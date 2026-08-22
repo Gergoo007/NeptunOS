@@ -2,14 +2,12 @@
 
 #include <util/bitmap.hh>
 #include <util/async.hh>
-#include <mm/pmm.hh>
-#include <cppcompat.hh>
 
 #define VMM_DEBUG 1
 
 constexpr u64 VMM_MIN_ALLOC = 16;
 
-struct memorymgr {
+struct MemoryMgr {
 	struct link_t {
 		link_t* next;
 		link_t* prev;
@@ -25,8 +23,8 @@ struct memorymgr {
 
 	link_t* links;
 	link_t* first;
-	u8 bitmapStorage[sizeof(bitmap_t)];
-	bitmap_t* bm;
+	u8 bitmapStorage[sizeof(Bitmap)];
+	Bitmap* bm;
 	u64 capacity;
 
 	u64 usedmem = 0;
@@ -34,10 +32,10 @@ struct memorymgr {
 
 	const u64 heap_base;
 
-	mutex m;
+	MutexSimple m;
 
-	memorymgr(u64 heap, u64 size);
-	~memorymgr();
+	MemoryMgr(u64 heap, u64 size);
+	~MemoryMgr();
 
 	u32 count_allocs();
 	void* alloc(u64 size, const char* file, u32 line);

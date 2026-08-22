@@ -5,9 +5,10 @@
 #include <types.hh>
 
 typedef enum MFLAGS {
-	// Saját flagek a 2M és 1G-osok megkülönböztetésére, meg a NX-ra
+	// Saját flagek
 	s1G	=		(1ULL << 31),
 	s2M	=		(1ULL << 30),
+	s4K	=		(1ULL << 29),
 	EXE	=		(1ULL << 32),
 
 	HUGE =		0b10000000,

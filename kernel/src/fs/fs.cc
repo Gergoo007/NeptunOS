@@ -1,10 +1,10 @@
 #include <fs/fs.hh>
 #include <devmgr/devmgr.hh>
 
-vector<mountpoint> mountpts;
+Vector<mountpoint> mountpts;
 
-string path_sanitize(const char* p) {
-	string ret;
+String path_sanitize(const char* p) {
+	String ret;
 	u64 len = strlen(p);
 	ret.reserve(len);
 	ret.size = 0;
@@ -40,8 +40,8 @@ const char* path_basename(char* path) {
 	return basename;
 }
 
-string path_join(const char* path1, const char* path2) {
-	string ret = path1;
+String path_join(const char* path1, const char* path2) {
+	String ret = path1;
 	if (ret[ret.size - 1] != '/')
 		ret += '/';
 	ret += path2;
@@ -49,7 +49,7 @@ string path_join(const char* path1, const char* path2) {
 }
 
 const mountpoint* fs_find_mnt(const char* p) {
-	string san = path_sanitize(p);
+	String san = path_sanitize(p);
 
 	// Legközelebbi mountpoint megkeresése
 	assert(mountpts.size);
@@ -73,8 +73,8 @@ const mountpoint* fs_find_mnt(const char* p) {
 }
 
 // TODO: létezik ez a path (mnt) egyáltalán?
-void fs_mount(partition* p, const char* mnt, FilesystemType fstype) {
-	string path = path_sanitize(mnt);
+void fs_mount(Partition* p, const char* mnt, FilesystemType fstype) {
+	String path = path_sanitize(mnt);
 	mountpoint m { filesystem {
 		.p = nullptr,
 		.calls = {},
@@ -101,7 +101,7 @@ void fs_create(const char* path, bool mkdir) {
 	m->f.calls.create(m->f, path2, mkdir);
 }
 
-optional<fs_entry> fs_readmeta(const char* p) {
+Opt<fs_entry> fs_readmeta(const char* p) {
 	const mountpoint* asd = fs_find_mnt(p);
 	const char* path2 = p + asd->path.size;
 	if (*path2 == 0)
@@ -110,7 +110,7 @@ optional<fs_entry> fs_readmeta(const char* p) {
 	return asd->f.calls.readmeta(asd->f, path2);
 }
 
-vector<fs_entry> fs_readdir(const char* p) {
+Vector<fs_entry> fs_readdir(const char* p) {
 	const mountpoint* asd = fs_find_mnt(p);
 	const char* path2 = p + asd->path.size;
 	if (*path2 == 0)

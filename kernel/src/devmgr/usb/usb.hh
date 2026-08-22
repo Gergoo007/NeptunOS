@@ -107,32 +107,6 @@ pstruct usb_descriptor_device {
 
 static_assert(offsetof(usb_descriptor_device, bMaxPacketSize) == 7);
 
-pstruct usb_descriptor_configuration {
-	usb_descriptor_header hdr;
-	u16 wTotalLength;
-	u8 bNumInterfaces;
-	u8 bConfigurationValue;
-	u8 iConfiguration;
-	pstruct {
-		u8 : 5;
-		u8 remote_wakeup : 1;
-		u8 self_powered : 1;
-		u8 : 1;
-	} bmAttributes;
-	u8 bMaxPower;
-};
-
-pstruct usb_descriptor_interface {
-	usb_descriptor_header hdr;
-	u8 bInterfaceNumber;
-	u8 bAlternateSetting;
-	u8 bNumEndpoints;
-	u8 bInterfaceClass;
-	u8 bInterfaceSubClass;
-	u8 bInterfaceProtocol;
-	u8 iInterface;
-};
-
 pstruct usb_descriptor_endpoint {
 	usb_descriptor_header hdr;
 	punion {
@@ -167,6 +141,34 @@ pstruct usb_descriptor_endpoint {
 	// FS/HS iso, HS int: 2^(bInterval - 1)
 	// Everything else: number of (u)frames
 	u8 bInterval;
+};
+
+pstruct usb_descriptor_interface {
+	usb_descriptor_header hdr;
+	u8 bInterfaceNumber;
+	u8 bAlternateSetting;
+	u8 bNumEndpoints;
+	u8 bInterfaceClass;
+	u8 bInterfaceSubClass;
+	u8 bInterfaceProtocol;
+	u8 iInterface;
+	usb_descriptor_endpoint endp[];
+};
+
+pstruct usb_descriptor_configuration {
+	usb_descriptor_header hdr;
+	u16 wTotalLength;
+	u8 bNumInterfaces;
+	u8 bConfigurationValue;
+	u8 iConfiguration;
+	pstruct {
+		u8 : 5;
+		u8 remote_wakeup : 1;
+		u8 self_powered : 1;
+		u8 : 1;
+	} bmAttributes;
+	u8 bMaxPower;
+	usb_descriptor_interface ints[];
 };
 
 pstruct usb_descriptor_hub {
@@ -213,13 +215,13 @@ pstruct usb_descriptor_string {
 	wchar string[];
 };
 
-struct device_t;
+struct Device;
 struct usb_hci_interface_t {
-	void (*usb_send)(device_t& usbdev, u8 endp, usb_request* request, void* databuf);
-	void (*usb_reset_port)(device_t& usbdev);
-	u8 (*usb_make_address)(device_t& hcidev);
+	void (*usb_send)(Device& usbdev, u8 endp, usb_request* request, void* databuf);
+	void (*usb_reset_port)(Device& usbdev);
+	u8 (*usb_make_address)(Device& hcidev);
 };
 
 void usb_init_all();
-void usb_init(device_t& usbdev);
-device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed);
+void usb_init(Device& usbdev);
+Device& usb_device_add_skeleton(Device& parent, u8 port, UsbSpeed speed);

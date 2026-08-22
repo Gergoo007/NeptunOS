@@ -4,7 +4,7 @@
 #include <util/storage.hh>
 #include <fs/fs.hh>
 
-struct device_t;
+struct Device;
 
 enum struct PartitionType : u32 {
 	OTHER,
@@ -14,12 +14,12 @@ enum struct PartitionType : u32 {
 	LINUX_FILESYSTEM,
 };
 
-struct partition {
+struct Partition {
 	PartitionType type;
 	u64 offset;
 	u64 size;
-	string name;
-	device_t& parent;
+	String name;
+	Device& parent;
 };
 
 pstruct gpt {
@@ -39,7 +39,7 @@ pstruct gpt {
 	u32 partscrc32;
 };
 
-pstruct gpt_entry {
+pstruct GPTEntry {
 	u8 type[16];
 	u8 guid[16];
 	u64 start;
@@ -49,9 +49,9 @@ pstruct gpt_entry {
 };
 
 struct msd_call_table {
-	void (*read)(device_t& msd, u64 lba, u64 sectors, void* buf);
+	void (*read)(Device& msd, u64 lba, u64 sectors, void* buf);
 };
 
-void msd_scout(device_t& drive);
+void msd_scout(Device& drive);
 
-void msd_read(device_t& d, u64 offset, u64 bytes, void* buf);
+void msd_read(Device& d, u64 offset, u64 bytes, void* buf);

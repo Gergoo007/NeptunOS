@@ -3,7 +3,7 @@
 #include <types.hh>
 #include <util/helpers.hh>
 
-struct mutex {
+struct MutexSimple {
 	int lockvar = 0;
 
     void lock() {
@@ -15,7 +15,7 @@ struct mutex {
 				__ATOMIC_ACQUIRE, __ATOMIC_RELAXED
 			)
 		) {
-            expected = 0;  // reset after failed CAS
+            expected = 0;
             asm volatile ("pause" ::: "memory");
         }
     }
@@ -23,19 +23,58 @@ struct mutex {
     void unlock() { __atomic_store_n(&lockvar, 0, __ATOMIC_RELEASE); }
 };
 
+template <typename T>
 struct lockguard {
-	mutex& m;
+	lockguard(T& d, MutexSimple& m): data(d), mut(m) {
+		mut.lock();
+	}
 
-	lockguard(mutex& _m): m(_m) { m.lock(); }
-	lockguard(const lockguard&) = delete("ha");
-	lockguard(lockguard&&) = delete("asd");
-	lockguard& operator=(const lockguard&) = delete("88");
-	~lockguard() { m.unlock(); }
+	T& operator->() {
+		return data;
+	}
+
+	~lockguard() {
+		mut.unlock();
+	}
+
+private:
+	T& data;
+	MutexSimple& mut;
+};
+
+template <typename T>
+struct mutex {
+	T data;
+	MutexSimple m;
+
+	template <typename... Args>
+	mutex(Args&&... args): data(forward<Args>(args)...) {}
+
+	lockguard<T> lock() {
+		return lockguard(data, m);
+	}
+
+	void unlock() {
+		m.unlock();
+	}
+
+	const T& get() const {
+		return data;
+	}
+};
+
+struct LockguardSimple {
+	MutexSimple& m;
+
+	LockguardSimple(MutexSimple& _m): m(_m) { m.lock(); }
+	LockguardSimple(const LockguardSimple&) = delete("ha");
+	LockguardSimple(LockguardSimple&&) = delete("asd");
+	LockguardSimple& operator=(const LockguardSimple&) = delete("88");
+	~LockguardSimple() { m.unlock(); }
 };
 
 template <typename T>
 struct atomic {
-	// using T = int;
 	T data;
 
 	constexpr atomic(T v): data(v) {  }

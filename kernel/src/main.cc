@@ -49,6 +49,14 @@ extern "C" void kmain() {
 
 	con_init(FONTFILE_START);
 
+	// for (u32 i = 0; i < 10240000; i++) {
+	// 	auto a = pmm_alloc(0x200000);
+	// 	report("pmm alloc %p %d kibs", a, bytes2kibs(pmm_usedmem));
+	// 	memset(a, 0, 0x1000);
+	// }
+	// warn("done");
+	// pause();
+
 	report("max leaf: %02x", cpuid_max_leaf());
 	report("intel/amd %d %d", cpuid_is_intel(), cpuid_is_amd());
 
@@ -69,13 +77,11 @@ extern "C" void kmain() {
 
 	usb_init_all();
 
-	printk("Heap @ %p [%lld MiB]\n\r", pmm_heap_base, bytes2mibs(pmm_heap_size));
 	printk(
-		"Framebuffer %p: %dx%dx%d; font %dx%d; %llu MiBs; Heap: at %llu MiB, of size %llu MiB\n",
+		"Framebuffer %p: %dx%dx%d; font %dx%d; %llu MiBs\n",
 		fbs[0].fb_addr, fbs[0].fb_width, fbs[0].fb_height, fbs[0].fb_bpp,
 		con_glyphw, con_glyphh,
-		bytes2mibs(pmm_freemem + pmm_usedmem + pmm_reservedmem),
-		bytes2mibs((u64)pmm_heap_base), bytes2mibs(pmm_heap_size)
+		bytes2mibs(pmm_freemem + pmm_usedmem + pmm_reservedmem)
 	);
 
 	printk("Mem usage:\n");
@@ -87,27 +93,8 @@ extern "C" void kmain() {
 		"PMM: %lld KiB free; %lld KiB used; %lld MiB total\n",
 		bytes2kibs(pmm_freemem), bytes2kibs(pmm_usedmem), bytes2mibs(pmm_freemem + pmm_usedmem)
 	);
-	printk(
-		"PMM4G: %lld KiB free; %lld KiB used; %lld MiB total\n",
-		bytes2kibs(g_pmm4g.freemem), bytes2kibs(g_pmm4g.usedmem), bytes2mibs(g_pmm4g.freemem + g_pmm4g.usedmem)
-	);
 
 	init_syscalls();
-
-	// Dry read; ezzel lehet megszerezni a fájlméretet a legegyszerűbben
-	// vector<fs_entry> root = fs_readdir("/");
-	// report("sysc 3");
-	// for (const auto& f : root) {
-	// 	report("/%s: %s", f.name.c_str(), f.dir ? "folder" : "file");
-	// 	if (f.dir) {
-	// 		string path = path_join("/", f.name.c_str());
-	// 		report("readin %s", path.c_str());
-	// 		vector<fs_entry> dir = fs_readdir(path.c_str());
-	// 		for (const auto& f2 : dir) {
-	// 			report("%s: %s", path_join(path.c_str(), f2.name.c_str()).c_str(), f.dir ? "folder" : "file");
-	// 		}
-	// 	}
-	// }
 
 	khang();
 }

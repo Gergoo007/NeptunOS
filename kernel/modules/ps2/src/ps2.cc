@@ -85,9 +85,10 @@ void handlekb(cpu_state_t* frame) {
 	if (code > 0x5f) goto end;
 	if (released) {
 		released = false;
-		kbd_release((ScanCode)scancode_set2_to_ascii[code]);
+		// kbd_release((ScanCode)scancode_set2_to_ascii[code]);
 	} else {
-		kbd_press((ScanCode)scancode_set2_to_ascii[code]);
+		// kbd_press((ScanCode)scancode_set2_to_ascii[code]);
+		printk("%c", scancode_set2_to_ascii[code]);
 	}
 
 end:
@@ -167,13 +168,14 @@ extern "C" void mod_main() {
 
 		cfg.clock_kb = 0;
 		cfg.irq_kb = 1;
+		cfg.first_port_translation = 0;
 		// cfg.first_port_translation = 0;
 
 		command(i8042Cmds::WRITE_CFG);
 		write(cfg.raw);
 	}
 
-	if (port1) {
+	if (port2) {
 		report("Enabling port #2");
 		command(i8042Cmds::ENABLE_SECOND);
 
@@ -182,7 +184,6 @@ extern "C" void mod_main() {
 
 		cfg.clock_mouse = 0;
 		cfg.irq_mouse = 1;
-
 		command(i8042Cmds::WRITE_CFG);
 		write(cfg.raw);
 	}

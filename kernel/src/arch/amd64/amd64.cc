@@ -19,9 +19,6 @@ void arch_init(bool bsp) {
 }
 
 void arch_late_init(bool bsp) {
-	wm_cursor = (u64)pmm_alloc();
-	wm_free = pmm_pagesize;
-
 	auto* gdt = arch_gdt_init();
 	arch_tss_init(gdt);
 	arch_idt_init();

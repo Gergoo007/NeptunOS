@@ -7,7 +7,7 @@
 #include <mm/pmm4g.hh>
 #include <mm/vmm.hh>
 
-const char* usb_get_string(device_t& usbdev, u8 idx) {
+const char* usb_get_string(Device& usbdev, u8 idx) {
 	if (!idx) return "";
 	auto* hciint = (usb_hci_interface_t*)usbdev.kinds.get<device_t_USB>().hci->extra;
 
@@ -73,7 +73,7 @@ const char* usb_get_string(device_t& usbdev, u8 idx) {
 	return str;
 }
 
-device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed) {
+Device& usb_device_add_skeleton(Device& parent, u8 port, UsbSpeed speed) {
 	u16 mps;
 	switch (speed) {
 		case UsbSpeed::LS:
@@ -88,7 +88,7 @@ device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed) {
 			break;
 	}
 
-	return devmgr_add_device(device_t {
+	return devmgr_add_device(Device {
 		.parent = &parent,
 		.extra = nullptr,
 		.subsys = DevmgrSubsys::USB,
@@ -98,9 +98,9 @@ device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed) {
 			.product = 0,
 			// USB Hub?
 			.hci = (parent.subsys == DevmgrSubsys::USB) ? parent.kinds.get<device_t_USB>().hci : &parent,
-			.manufacturerName = string(),
-			.productName = string(),
-			.serial = string(),
+			.manufacturerName = String(),
+			.productName = String(),
+			.serial = String(),
 			.mps = mps,
 			.langid = (u16)-1,
 			.addr = 0,
@@ -112,7 +112,7 @@ device_t& usb_device_add_skeleton(device_t& parent, u8 port, UsbSpeed speed) {
 	});
 }
 
-void usb_send_reset(device_t& usbdev) {
+void usb_send_reset(Device& usbdev) {
 	auto hciint = ((usb_hci_interface_t*)(usbdev.kinds.get<device_t_USB>().hci->extra));
 	if (usbdev.parent != usbdev.kinds.get<device_t_USB>().hci) {
 		debug("Device to be reset is on a hub...");
@@ -126,13 +126,13 @@ void usb_send_reset(device_t& usbdev) {
 	}
 }
 
-void usb_send(device_t& usbdev, u8 endp, usb_request* req, void* data) {
+void usb_send(Device& usbdev, u8 endp, usb_request* req, void* data) {
 	((usb_hci_interface_t*)(usbdev.kinds.get<device_t_USB>().hci->extra))->usb_send(usbdev, endp, req, data);
 	arch_sleep(2, true);
 }
 
 // Kiegészíti a DEVICE leírót (ha MSP < 8), ad egy címet az eszköznek, és beállít egy konfigot
-void usb_init(device_t& usbdev) {
+void usb_init(Device& usbdev) {
 	usb_request* request = (usb_request*)kmalloc4g(sizeof(usb_request));
 	request->bmRequestType = 0x80;
 	request->bRequest = UsbRequests::GET_DESCRIPTOR;
@@ -185,9 +185,9 @@ void usb_init(device_t& usbdev) {
 	debug("Sending GET_DESCRIPTOR DEVICE request #2...");
 	hciint->usb_send(usbdev, 0, request, devdesc);
 
-	usbdev.kinds.get<device_t_USB>().manufacturerName = string(usb_get_string(usbdev, devdesc->iManufacturer));
-	usbdev.kinds.get<device_t_USB>().productName = string(usb_get_string(usbdev, devdesc->iProduct));
-	usbdev.kinds.get<device_t_USB>().serial = string(usb_get_string(usbdev, devdesc->iSerialNumber));
+	usbdev.kinds.get<device_t_USB>().manufacturerName = String(usb_get_string(usbdev, devdesc->iManufacturer));
+	usbdev.kinds.get<device_t_USB>().productName = String(usb_get_string(usbdev, devdesc->iProduct));
+	usbdev.kinds.get<device_t_USB>().serial = String(usb_get_string(usbdev, devdesc->iSerialNumber));
 
 	if (devdesc->iProduct || devdesc->iManufacturer)
 		debug("USB %d device %04x:%04x read: %s %s %s", (u32)usbdev.kinds.get<device_t_USB>().speed, usbdev.kinds.get<device_t_USB>().vendor, usbdev.kinds.get<device_t_USB>().product, usbdev.kinds.get<device_t_USB>().manufacturerName.c_str(), usbdev.kinds.get<device_t_USB>().productName.c_str(), usbdev.kinds.get<device_t_USB>().serial.c_str());
@@ -214,7 +214,7 @@ void usb_init(device_t& usbdev) {
 		request->wLength = config->wTotalLength;
 		config = (usb_descriptor_configuration*)krealloc4g(config, config->wTotalLength);
 		hciint->usb_send(usbdev, 0, request, config);
-		
+
 		// i16 len = config->wTotalLength;
 		const char* s = "";
 		if (devdesc->idVendor == 0x0a5c && devdesc->idProduct == 0x217f) {
@@ -224,15 +224,37 @@ void usb_init(device_t& usbdev) {
 		}
 		debug("config \"%s\": %d mA; %d interfaces; ", s, config->bMaxPower * 2, config->bNumInterfaces);
 
+		for (u32 j = 0; j < config->bNumInterfaces; j++) {
+			const auto& intf = config->ints[j];
+			debug("interface #%d: class %02x subclass %02x proto %02x", j, intf.bInterfaceClass, intf.bInterfaceSubClass, intf.bInterfaceProtocol);
+			for (u32 k = 0; k < intf.bNumEndpoints; k++) {
+				const auto& endp = intf.endp[k];
+				debug(" -> endpoint #%d: %s; MPS %d", endp.endp_num, endp.endp_dir ? "IN" : "OUT", endp.wMaxPacketSize);
+			}
+			switch (config->ints[j].bInterfaceClass) {
+				case UsbClass::HUB:
+					if (!devdesc->bDeviceSubClass)
+						usb_hub_init(usbdev);
+					break;
+
+				case UsbClass::HID:
+					usb_hid_init(usbdev, 0);
+					break;
+			}
+		}
+
 		preferredConfig = config->bConfigurationValue;
 	}
 	
+	debug("Sending SET_CONFIGURATION...");
 	request->bmRequestType = 0x00;
 	request->bRequest = UsbRequests::SET_CONFIGURATION;
 	request->wValue = preferredConfig;
 	request->wIndex = 0;
 	request->wLength = 0;
 	hciint->usb_send(usbdev, 0, request, nullptr);
+
+	// Config be lett állítva, mostmár csak tudni kell az interface-eket
 
 	switch (devdesc->bDeviceClass) {
 		case UsbClass::HUB:
@@ -241,7 +263,7 @@ void usb_init(device_t& usbdev) {
 			break;
 
 		case UsbClass::HID:
-			usb_hid_init(usbdev);
+			usb_hid_init(usbdev, 0);
 			break;
 
 		default: break;
@@ -253,14 +275,14 @@ void usb_init(device_t& usbdev) {
 }
 
 void usb_init_all() {
-	// I need to store the original size because usb_hub_init appends this vector
-	// Elements are guaranteed to be appended to the back of the vec, which means
-	// origsize only contains elements not appended by usb_init
-	const u32 origsize = devices.size;
-	for (u32 i = 0; i < origsize; i++) {
-		if (devices[i]->subsys != DevmgrSubsys::USB)
-			continue;
+	// // I need to store the original size because usb_hub_init appends this vector
+	// // Elements are guaranteed to be appended to the back of the vec, which means
+	// // origsize only contains elements not appended by usb_init
+	// const u32 origsize = devices.size;
+	// for (u32 i = 0; i < origsize; i++) {
+	// 	if (devices[i]->subsys != DevmgrSubsys::USB)
+	// 		continue;
 
-		usb_init(*devices[i]);
-	}
+	// 	usb_init(*devices[i]);
+	// }
 }

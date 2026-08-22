@@ -1,1 +1,2 @@
 -Ikernel/src
+-Ikernel/libkernel/src

@@ -29,7 +29,7 @@ u64 clusteroff(const filesystem& f, u32 clusterlo, u32 clusterhi) {
 }
 
 // Külön function kell még erre is mert az egész egy legacy kupac szar
-optional<string> fat32_getname(const char* longname, fat_entry* en) {
+Opt<String> fat32_getname(const char* longname, fat_entry* en) {
 	if (longname[0]) {
 		return longname;
 	} else {
@@ -44,11 +44,11 @@ optional<string> fat32_getname(const char* longname, fat_entry* en) {
 
 		if (!len) return {};
 
-		return string((char*)en->simplename, len);
+		return String((char*)en->simplename, len);
 	}
 }
 
-optional<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
+Opt<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
 	fat_fshandle* h = (fat_fshandle*)f.fshandle;
 	unique_ptr<fat_entry> ent = (fat_entry*)kmalloc_aligned(512, 512);
 	unique_ptr<char> longname = (char*)kmalloc(256);
@@ -68,7 +68,7 @@ optional<fat_entry> fat32_lookup(const filesystem& f, const char* path) {
 		u32 seglen = 0;
 		while (path[seglen] != '/' && path[seglen] != 0) seglen++;
 
-		string basename = string(path, seglen);
+		String basename = String(path, seglen);
 
 		bool found = false;
 		for (u64 i = 0; ent[i].attrs && i < 16; i++) {
@@ -170,11 +170,11 @@ u64 fat32_read(const filesystem& f, const char* path, u64 offset, u64 bytes, voi
 	return chainread(f, cluster, offset, bytes, buf, e.size);
 }
 
-vector<fs_entry> fat32_readdir(const filesystem& f, const char* path) {
+Vector<fs_entry> fat32_readdir(const filesystem& f, const char* path) {
 	report("clusters: %d %s: %d", fat32_lookup(f, "/").expect("Folder not found!").cluster_lo16, path, fat32_lookup(f, path).expect("Folder not found!").cluster_lo16);
 
 	fat_entry e = fat32_lookup(f, path).expect("Folder not found!");
-	vector<fs_entry> entries;
+	Vector<fs_entry> entries;
 	u32 cluster = clusterfrom(e.cluster_lo16, e.cluster_hi16);
 	u64 bytes = chainread(f, cluster, 0, -1ull, nullptr, -1u);
 	entries.reserve(bytes / sizeof(fat_entry));
@@ -231,14 +231,14 @@ void fat32_create(const filesystem& f, const char* path, bool mkdir) {
 	fatal("Not implemented!");
 }
 
-optional<fs_entry> fat32_readmeta(const filesystem& f, const char* path) {
-
+Opt<fs_entry> fat32_readmeta(const filesystem& f, const char* path) {
+	fatal("yes");
 }
 
 extern "C" bool mod_main(filesystem& f) {
 	if (f.fshandle) fatal("Filesystem is already scanned!");
 
-	device_t& d = f.p->parent;
+	Device& d = f.p->parent;
 
 	f.fshandle = kmalloc(sizeof(fat_fshandle));
 	fat_fshandle* h = (fat_fshandle*)f.fshandle;

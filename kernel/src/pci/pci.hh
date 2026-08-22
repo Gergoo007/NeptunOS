@@ -175,9 +175,9 @@ struct pci_bar {
 extern mcfg_t* mcfg;
 
 void pci_init();
-struct device_t;
-u32 pci_read(device_t& dev, pci_register_t reg);
-void pci_write(device_t& dev, pci_register_t reg, u32 data);
-void pci_setup_cmd_reg(device_t& dev);
-pci_bar pci_prepare_bar(device_t& dev, u8 barnum);
-void pci_enable_msi(device_t& d, u8 vector);
+struct Device;
+u32 pci_read(Device& dev, pci_register_t reg);
+void pci_write(Device& dev, pci_register_t reg, u32 data);
+void pci_setup_cmd_reg(Device& dev);
+pci_bar pci_prepare_bar(Device& dev, u8 barnum);
+void pci_enable_msi(Device& d, u8 vector);

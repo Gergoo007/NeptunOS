@@ -5,15 +5,25 @@
 #include <arch/limine.hh>
 #include <util/async.hh>
 
+#ifdef __x86_64__
+
+#include <arch/amd64/amd64.hh>
+#include <arch/amd64/paging.hh>
+
+using cpu_state_t = cpu_state_amd64_t;
+
+#else
+
+#error "arch.hh: only x86"
+
+#endif
+
 struct framebuffer_t {
 	u32* fb_addr;
 	u32 fb_width;
 	u32 fb_height;
 	u32 fb_bpp; // bytes per pixel
 };
-
-#include <arch/amd64/amd64.hh>
-using cpu_state_t = cpu_state_amd64_t;
 
 extern struct limine_memmap_response* mmap;
 extern framebuffer_t fbs[2];
@@ -55,8 +65,8 @@ struct timer_task {
 	u64 period;
 	void (*routine)();
 };
-template <typename T> struct vector;
-extern vector<timer_task> timer_tasks;
+template <typename T> struct Vector;
+extern Vector<timer_task> timer_tasks;
 
 const timer_task& arch_timer_add(const timer_task& task);
 void arch_timer_remove(const timer_task& handle);

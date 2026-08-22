@@ -1,10 +1,10 @@
 #include <devmgr/devmgr.hh>
 #include <devmgr/module.hh>
 
-vector<unique_ptr<device_t>> devices;
+Vector<unique_ptr<Device>> devices;
 
-device_t& devmgr_add_device(device_t&& _d) {
-	device_t& d = *devices.emplace_back(move<device_t>(_d));
+Device& devmgr_add_device(Device&& _d) {
+	Device& d = *devices.emplace_back(move<Device>(_d));
 
 	// Van modul erre az eszközre?
 	for (auto& m : modules) {

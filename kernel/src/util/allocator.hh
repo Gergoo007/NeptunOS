@@ -4,7 +4,7 @@
 #include <util/mm.hh>
 
 #ifdef KERNEL
-extern memorymgr& g_vmm;
+extern MemoryMgr& g_vmm;
 
 #define _galloc(sz) g_vmm.alloc(sz, __FILE__, __LINE__)
 #define _grealloc(ptr, sz) g_vmm.realloc(ptr, sz, __FILE__, __LINE__)

@@ -17,7 +17,7 @@ static volatile struct limine_rsdp_request rsdp_req = {
 	.response = nullptr
 };
 
-vector<sdt_t*> tables;
+Vector<sdt_t*> tables;
 u8 ver;
 
 bool validate(sdt_t* table) {
@@ -63,7 +63,8 @@ static void check_table(sdt_t* a) {
 }
 
 bool acpi_i8042_present() {
-
+	// TODO
+	return true;
 }
 
 void acpi_init() {

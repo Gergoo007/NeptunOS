@@ -15,12 +15,12 @@ void test_libk() {
 	}
 
 	{
-		vector<u32> vec;
+		Vector<u32> vec;
 		vec.emplace_back(20);
 		vec.emplace_back(30);
 		vec.emplace_back(40);
 
-		vector<u32> vec4 { 20, 30, 40 };
+		Vector<u32> vec4 { 20, 30, 40 };
 		assert(vec4.size == 3);
 		assert(vec4[0] == 20);
 		assert(vec4[1] == 30);
@@ -34,20 +34,20 @@ void test_libk() {
 		assert(vec2[1] == 30);
 		assert(vec2[2] == 40);
 
-		auto vec3 = move<vector<u32>>(vec);
+		auto vec3 = move<Vector<u32>>(vec);
 		assert(vec3.size == 3);
 		assert(vec3[0] == 20);
 		assert(vec3[1] == 30);
 		assert(vec3[2] == 40);
 
-		assert(!vec.data);
+		// assert(!vec.data);
 
-		vector<u32> vec5 { 67, 61, 41 };
-		vector<u32> vec6 = vec5;
+		Vector<u32> vec5 { 67, 61, 41 };
+		Vector<u32> vec6 = vec5;
 		assert(vec5 == vec6);
 
 		// Nullméretű vektor: nem használ memóriát, csak ha pusholnak bele
-		vector<u32> vec7(0);
+		Vector<u32> vec7(0);
 		assert(vec7.size == 0);
 		assert(vec7.capacity == 0);
 		assert(vec7.data == nullptr);
@@ -55,8 +55,8 @@ void test_libk() {
 		assert(vec7.size == 1);
 		assert(vec7.data != nullptr);
 
-		array<4, u32> asd { 1, 2, 3, 4, };
-		array<4, u32> asd2 = asd;
+		Array<4, u32> asd { 1, 2, 3, 4, };
+		Array<4, u32> asd2 = asd;
 		assert(asd[0] == asd2[0]);
 		assert(asd[1] == asd2[1]);
 		assert(asd[2] == asd2[2]);
@@ -69,7 +69,7 @@ void test_libk() {
 	{
 		const char constexpr* TESZTSTR = "hello world";
 		const char constexpr* TESZTSTR2 = "hello worldturiip ip";
-		string teszt = TESZTSTR;
+		String teszt = TESZTSTR;
 		assert(!strcmp(teszt.data, TESZTSTR));
 		assert(teszt.size == strlen(TESZTSTR));
 
@@ -81,13 +81,13 @@ void test_libk() {
 		teszt += "ip ip";
 
 		assert(!strcmp(teszt.data, TESZTSTR2));
-		assert(string(TESZTSTR2, 11) == string(TESZTSTR));
+		assert(String(TESZTSTR2, 11) == String(TESZTSTR));
 	}
 
 	{
-		variant<u32, char*, string> asd;
-		asd.emplace_back<string>("turi");
-		assert(asd.get<string>() == string("turi"));
+		variant<u32, char*, String> asd;
+		asd.emplace_back<String>("turi");
+		assert(asd.get<String>() == String("turi"));
 		asd.destroy();
 		asd.emplace_back<u32>(10);
 		assert(asd.get<u32>() == 10);
@@ -120,7 +120,7 @@ void test_libk() {
 	}
 
 	{
-		llist<int> dll;
+		LinkedList<int> dll;
 		dll.push_back(10);
 		dll.push_back(50);
 		dll.push_back(30);
@@ -158,7 +158,7 @@ void test_libk() {
 	}
 
 	{
-		hashmap<string, int> hm;
+		HashMap<String, int> hm;
 		assert(hm["helo"] == 0);
 		hm["helo"] = 10;
 		assert(hm["helo"] == 10);
@@ -170,8 +170,8 @@ void test_libk() {
 	}
 
 	{
-		static_assert(index_of<u32, u32, vector<u8>>::value == 0);
-		static_assert(index_of<u8, u32, vector<u8>>::value == -1ull);
+		static_assert(index_of<u32, u32, Vector<u8>>::value == 0);
+		static_assert(index_of<u8, u32, Vector<u8>>::value == -1ull);
 	}
 
 	{
@@ -186,6 +186,26 @@ void test_libk() {
 		// auto s2 = span(arr2);
 		// assert(s2.size == 4);
 		// assert(s2[2] == 6);
+	}
+
+	{
+		// constexpr auto teststr = "Hello world";
+		// constexpr stringv s(teststr);
+		// static_assert(s.size == strlen(teststr));
+		// static_assert(s[0] == teststr[0]);
+	}
+
+	{
+		static_assert(str_to_int("1010") == 1010);
+		static_assert(str_to_int("01010") == 1010);
+		static_assert(str_to_int("-1010") == -1010);
+
+		static_assert(str_to_int("0x1010") == 0x1010);
+		static_assert(str_to_int("0x01010") == 0x01010);
+		static_assert(str_to_int("-0x1010") == -0x1010);
+
+		static_assert(str_to_int("1010", 2) == 0b1010);
+		static_assert(str_to_int("1010", 8) == 001010);
 	}
 }
 

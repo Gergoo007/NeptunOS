@@ -18,10 +18,10 @@ u32 current_fb = 0;
 
 u8 con_inited = false;
 
-u32* con_backbuf = (u32*)0x6161616161616161;
+u32* con_backbuf = (u32*)0x67;
 u64 con_backbuf_size;
 
-constexpr u32 tab_width = 8;
+constexpr u32 TAB_WIDTH = 8;
 
 void con_init(void* psf) {
 	con_inited = true;
@@ -53,9 +53,25 @@ void con_init(void* psf) {
 		fbs[current_fb].fb_height *
 		(fbs[current_fb].fb_bpp / 8);
 	// cache line-ra turi ippelni ajánlott
-	con_backbuf = (u32*)kmalloc_aligned(con_backbuf_size, 64);
+	con_backbuf = (u32*)wm_alloc(con_backbuf_size, 64);
 	memset(con_backbuf, 0, con_backbuf_size);
 	sprintk("Backbuffer @ %p of size %llx\n\r", con_backbuf, con_backbuf_size);
+}
+
+void con_clear_cursor() {
+	for (u32 x = 0; x < con_glyphw; x++) {
+		for (u32 y = con_glyphh - 2; y < con_glyphh; y++) {
+			fb_pixel(con_cx + x, con_cy + y, con_color_bg, 0);
+		}
+	}
+}
+
+void con_put_cursor() {
+	for (u32 x = 0; x < con_glyphw; x++) {
+		for (u32 y = con_glyphh - 2; y < con_glyphh; y++) {
+			fb_pixel(con_cx + x, con_cy + y, con_color_fg, 0);
+		}
+	}
 }
 
 // backbuf-t görgeti, nem swappol
@@ -70,7 +86,7 @@ void con_scroll() {
 
 	memset(fb_base + (fb->fb_width * (fb->fb_height - lineh)), 0, fb->fb_width * lineh * (fb->fb_bpp/8));
 
-	g_vmm.check(con_backbuf);
+	// g_vmm.check(con_backbuf);
 }
 
 void con_swap_buffers() {
@@ -90,8 +106,7 @@ void con_swap_buffers() {
 			);
 		}
 		asm volatile ("sfence");
-		return;
-	}
+	} else
 	#endif
 
 	if (con_backbuf_size & 7)
@@ -108,6 +123,10 @@ void con_cputc(const char c) {
 		pause();
 	}
 
+	con_clear_cursor();
+
+	u8* start = (u8*)(con_glyphs + c * con_glyphsize);
+
 	switch (c) {
 		case '\n': {
 			con_cy += con_glyphh + con_pady;
@@ -116,27 +135,25 @@ void con_cputc(const char c) {
 			if (con_cy >= fbs[current_fb].fb_height - con_glyphh)
 				con_scroll();
 
-			return;
+			goto exit;
 		}
 		case '\t': {
 			u32 cw = con_glyphw + con_padx;
 			con_cx += cw;
-			con_cx = align(con_cx, cw * tab_width);
+			con_cx = align(con_cx, cw * TAB_WIDTH);
 			if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
 				con_cputc('\n');
-			return;
+			goto exit;
 		}
 		case '\r': {
 			con_cx = 0;
-			return;
+			goto exit;
 		}
 		default: break;
 	}
 
 	if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
 		con_cputc('\n');
-
-	u8* start = (u8*)(con_glyphs + c * con_glyphsize);
 
 	for (u32 y = 0; y < con_glyphh; y++) {
 		u16 row = 0;
@@ -157,6 +174,9 @@ void con_cputc(const char c) {
 	}
 
 	con_cx += con_glyphw + con_padx;
+
+exit:
+	con_put_cursor();
 }
 
 void con_cputs(const char* s) {
@@ -185,23 +205,30 @@ void con_clear() {
 
 __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...) {
-	va_list list;
-	va_start(list, fmt);
-	vprintf(fmt, list);
-	va_end(list);
-
-	con_swap_buffers();
-
 	#ifdef SERIALPRINTK
 	va_list list2;
 	va_start(list2, fmt);
 	vprintf2(fmt, list2);
 	va_end(list2);
 	#endif
+
+	va_list list;
+	va_start(list, fmt);
+	vprintf(fmt, list);
+	va_end(list);
+
+	con_swap_buffers();
 }
 
 __attribute__((format(printf, 3, 4)))
-void printkx(u32 lvl, const char* FILENAME, const char* fmt, ...) {
+void printkx(unsigned int lvl, const char* FILENAME, const char* fmt, ...) {
+	#ifdef SERIALPRINTK
+	va_list list2;
+	va_start(list2, fmt);
+	vprintf2(fmt, list2);
+	va_end(list2);
+	#endif
+
 	// Debug?
 	// Ha nincs a fájl a debug files listába, ne is printeljen
 	if (!cfg_willitprint(lvl, FILENAME)) return;
@@ -215,6 +242,11 @@ void printkx(u32 lvl, const char* FILENAME, const char* fmt, ...) {
 
 	con_swap_buffers();
 
+	con_pop_color();
+}
+
+__attribute__((format(printf, 3, 4)))
+void printkxnoret(unsigned int lvl, const char* FILENAME, const char* fmt, ...) {
 	#ifdef SERIALPRINTK
 	va_list list2;
 	va_start(list2, fmt);
@@ -222,11 +254,6 @@ void printkx(u32 lvl, const char* FILENAME, const char* fmt, ...) {
 	va_end(list2);
 	#endif
 
-	con_pop_color();
-}
-
-__attribute__((format(printf, 3, 4)))
-void printkxnoret(u32 lvl, const char* FILENAME, const char* fmt, ...) {
 	if (!cfg_willitprint(lvl, FILENAME)) pause();
 
 	con_push_color(con_colors[lvl]);
@@ -237,13 +264,6 @@ void printkxnoret(u32 lvl, const char* FILENAME, const char* fmt, ...) {
 	va_end(list);
 
 	con_swap_buffers();
-
-	#ifdef SERIALPRINTK
-	va_list list2;
-	va_start(list2, fmt);
-	vprintf2(fmt, list2);
-	va_end(list2);
-	#endif
 
 	if constexpr (STACKTRACE_ON_FATAL)
 		stacktrace();

@@ -254,9 +254,9 @@ pstruct ehci_qh {
 	volatile ehci_qtd overlay;
 };
 
-void ehci_send(device_t& usbdev, u8 endp, usb_request* request, void* databuf);
-void ehci_send_reset(device_t& usbdev);
-u8 ehci_make_address(device_t& hc);
+void ehci_send(Device& usbdev, u8 endp, usb_request* request, void* databuf);
+void ehci_send_reset(Device& usbdev);
+u8 ehci_make_address(Device& hc);
 
 struct ehci_internal {
 	usb_hci_interface_t ehci_module_interface {
@@ -265,8 +265,8 @@ struct ehci_internal {
 		.usb_make_address = ehci_make_address,
 	};
 	u64 mmio;
-	device_t* hc;
-	bitmap_t addresses;
+	Device* hc;
+	Bitmap addresses;
 	u8 caplength;
 
 	ehci_qh* head;

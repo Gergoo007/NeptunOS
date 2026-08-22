@@ -13,26 +13,44 @@
 atomic<u64> tmr_counter = 0;
 
 void (*handler[256])(cpu_state_amd64_t* frame);
-bitmap_t handlers;
+Bitmap handlers;
 
 u32 servicing = 0;
 
 extern "C" void onInterrupt(cpu_state_amd64_t* frame) {
-	if (servicing)
-		fatal("ISR for %02x already in progress!?", servicing);
+	// Ha nem hiba se a régi, se az új, akkor semmi gond
+	if ((servicing < 32 && servicing != 0xe && servicing != 0) && (frame->exc < 32 && frame->exc != 0xe)) {
+		error("ISR for %02x already in progress!? Current: %02llx", servicing, frame->exc);
+		error("frame: %p", frame);
+		error("rip exc err cr2: %016llx %02llx %04llx %016llx", frame->rip, frame->exc, frame->err, frame->cr2);
+		error("rsp rbp %016llx %016llx", frame->rsp, frame->rbp);
+		pause();
+	}
 	servicing = frame->exc;
+	
 	switch (frame->exc) {
 		case 0xe: {
 			if ((frame->cr2 >> 40) == 0xffff90) {
 				// this s2M flag cost me a piece of my soul
-				map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc()), KDATA | s2M);
-				arch_sti();
+				if constexpr (PMM_PAGESIZE == 0x1000) {
+					u64 addr = (u64)pmm_alloc(P4K);
+					assert_neq(addr, -1ull);
+					// report("map 2 %p", addr);
+					map_page(frame->cr2, (u64)PHYSICAL(addr), KDATA);
+				} else if constexpr (PMM_PAGESIZE == 0x200000) {
+					u64 addr = (u64)pmm_alloc(P2M);
+					assert_eq(addr & (P2M-1), 0ull);
+					assert_neq(addr, -1ull);
+					map_page(frame->cr2, (u64)PHYSICAL(pmm_alloc(P2M)), KDATA | s2M);
+				} else {
+					fatal("?????????");
+				}
 				break;
 			}
 		}
 		// fall through
 		default: {
-			arch_ioapic_disable_all();
+			// arch_ioapic_disable_all();
 			error("EXCEPTION %02x [%04llx] @ %02x:%p @ CPU %d THR %d", (u32)frame->exc, frame->err, (u32)frame->cs, (void*)frame->rip, cpuid_xapic_id(), sched_cpus[cpuid_xapic_id()] ? sched_cpus[cpuid_xapic_id()]->data.id : -1);
 			print_reg(frame, rax, rbx);
 			print_reg(frame, rcx, rdx);
@@ -133,7 +151,7 @@ void idt_deallocate_vector(u8 vector) {
 }
 
 #define EXPAND2(n) exc##n
-#define ADD_ENTRY(n) idt_add_entry(idt, n, (u64)EXPAND2(n),  0b1111);
+#define ADD_ENTRY(n) idt_add_entry(idt, n, (u64)EXPAND2(n),  0xe);
 
 void arch_idt_init() {
 	idt_entry_t* idt = (idt_entry_t*)wm_alloc(0x1000);

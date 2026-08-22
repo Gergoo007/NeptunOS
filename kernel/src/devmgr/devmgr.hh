@@ -13,8 +13,8 @@ enum struct DevmgrSubsys : i32 {
 	MSD,
 };
 
-struct device_t;
-extern vector<unique_ptr<device_t>> devices;
+struct Device;
+extern Vector<unique_ptr<Device>> devices;
 struct usb_hci_interface_t;
 
 enum struct UsbSpeed : u32 { LS, FS, HS, SS };
@@ -35,10 +35,10 @@ struct device_t_USB {
 	u16 product;
 	// This is always the host controller; if the device is on a hub then
 	// the parent device points to that, otherwise (parent = hci)
-	device_t* hci;
-	string manufacturerName;
-	string productName;
-	string serial;
+	Device* hci;
+	String manufacturerName;
+	String productName;
+	String serial;
 	u16 mps;
 	u16 langid; // -1 if no STRING descriptors
 	u8 addr;
@@ -55,18 +55,18 @@ struct device_t_USB {
 
 // Mass Storage Device
 struct device_t_MSD {
-	string manufacturerName;
-	string productName;
-	string serial;
+	String manufacturerName;
+	String productName;
+	String serial;
 	u64 size; // in bytes
-	vector<partition> parts;
+	Vector<Partition> parts;
 };
 
 using devunion_t = variant<device_t_PCI, device_t_USB, device_t_MSD>;
 
 // A bus-ok is eszköznek számítanak
-struct device_t {
-	device_t* parent = nullptr;
+struct Device {
+	Device* parent = nullptr;
 	void* extra;
 	DevmgrSubsys subsys;
 	u32 loc;
@@ -74,5 +74,5 @@ struct device_t {
 	devunion_t kinds;
 };
 
-device_t& devmgr_add_device(device_t&& d);
+Device& devmgr_add_device(Device&& d);
 void devmgr_try_mount(filesystem& f);

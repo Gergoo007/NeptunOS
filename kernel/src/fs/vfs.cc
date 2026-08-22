@@ -16,10 +16,10 @@ vfs_entry* vfs_lookup(const filesystem& p, const char* path) {
 		while (path[namelen] != '/' && path[namelen] != 0) namelen++;
 
 		auto& hashmap = e->content.get<vfs_dir>();
-		if (!hashmap.has(string(path, namelen)))
+		if (!hashmap.has(String(path, namelen)))
 			return nullptr;
 
-		e = &hashmap[string(path, namelen)];
+		e = &hashmap[String(path, namelen)];
 
 		path += namelen;
 	}
@@ -32,7 +32,7 @@ u64 vfs_read(const filesystem& p, const char* path, u64 offset, u64 bytes, void*
 		error("Attempted to read a folder!");
 		return -1;
 	} else {
-		auto& content = file->content.get<vector<u8>>();
+		auto& content = file->content.get<Vector<u8>>();
 		if (!buf)
 			return content.size - offset;
 		if (content.data && bytes) {
@@ -47,7 +47,7 @@ u64 vfs_read(const filesystem& p, const char* path, u64 offset, u64 bytes, void*
 			}
 
 			u64 toread = min(bytes, content.size);
-			memcpy(buf, file->content.get<vector<u8>>().data + offset, toread);
+			memcpy(buf, file->content.get<Vector<u8>>().data + offset, toread);
 			return toread;
 		} else {
 			return 0;
@@ -61,7 +61,7 @@ u64 vfs_write(const filesystem& p, const char* path, u64 offset, u64 bytes, void
 		error("Attempted to write to a folder!");
 		return -1;
 	} else {
-		auto& content = file->content.get<vector<u8>>();
+		auto& content = file->content.get<Vector<u8>>();
 		if (buf && bytes) {
 			// Ha nem elég nagy a file, meg kell növelni a méretét
 			if (content.size < offset + bytes)
@@ -77,7 +77,7 @@ u64 vfs_write(const filesystem& p, const char* path, u64 offset, u64 bytes, void
 void vfs_remove(const filesystem& p, const char* path) {
 	const char* basename = path_basename((char*)path);
 
-	vfs_entry* mappa = vfs_lookup(p, string(path, (u64)basename - (u64)path).c_str());
+	vfs_entry* mappa = vfs_lookup(p, String(path, (u64)basename - (u64)path).c_str());
 	auto& m = mappa->content.get<vfs_dir>();
 
 	if (!m.has(basename)) {
@@ -91,11 +91,11 @@ void vfs_remove(const filesystem& p, const char* path) {
 void vfs_create(const filesystem& p, const char* path, bool mkdir) {
 	const char* basename = path_basename((char*)path);
 
-	vfs_entry* mappa = vfs_lookup(p, string(path, (u64)basename - (u64)path).c_str());
+	vfs_entry* mappa = vfs_lookup(p, String(path, (u64)basename - (u64)path).c_str());
 	if (mkdir)
 		mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename, vfs_entry_union(true, vfs_dir()));
 	else
-		mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename, vfs_entry_union(true, vector<u8>()));
+		mappa->content.get<vfs_dir>()[basename] = vfs_entry(basename, vfs_entry_union(true, Vector<u8>()));
 }
 
 void vfs_mount(filesystem &f) {
@@ -108,18 +108,18 @@ void vfs_mount(filesystem &f) {
 	f.calls = vfs_calls;
 }
 
-vector<fs_entry> vfs_readdir(const filesystem& f, const char* path) {
+Vector<fs_entry> vfs_readdir(const filesystem& f, const char* path) {
 	auto* e = vfs_lookup(f, path);
-	vector<fs_entry> ret;
+	Vector<fs_entry> ret;
 	for (const auto& file : e->content.get<vfs_dir>())
 		ret.push_back(fs_entry { file.value.name, (bool)file.value.content.active });
 	return ret;
 }
 
-optional<fs_entry> vfs_readmeta(const filesystem& f, const char* path) {
+Opt<fs_entry> vfs_readmeta(const filesystem& f, const char* path) {
 	auto* e = vfs_lookup(f, path);
 	if (e)
-		return optional(fs_entry { .name = e->name, .dir = (bool)e->content.active });
+		return Opt(fs_entry { .name = e->name, .dir = (bool)e->content.active });
 	else
-		return optional<fs_entry>();
+		return Opt<fs_entry>();
 }

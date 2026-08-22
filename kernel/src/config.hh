@@ -19,10 +19,14 @@ static_assert(HASHMAP_DEFAULT_SIZE);
 constexpr unsigned int SCHED_MAX_PROCESSES = 1024;
 constexpr unsigned int SCHED_QUANTUM = 100;
 
+constexpr unsigned int INTR_STACK_SIZE = 0x200000;
+constexpr unsigned int SYSCALL_STACK_SIZE = 0x200000;
+constexpr unsigned int USER_STACK_SIZE = 0x200000;
+
 static constexpr const char* debug_files[] = {
-	// "ehci.cc",
-	// "usb.cc",
-	// "hub.cc",
+	"ehci.cc",
+	"usb.cc",
+	"hub.cc",
 
 	"fat.cc",
 	

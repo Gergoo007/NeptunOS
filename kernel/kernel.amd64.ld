@@ -8,7 +8,7 @@ PHDRS {
 }
 
 SECTIONS {
-	. = 0xffffffffce000000;
+	. = 0xffffffff80000000;
 
 	IMAGE_START = .;
 	.limine_requests : {
@@ -49,6 +49,7 @@ SECTIONS {
 		*(.bss .bss.*)
 		*(COMMON)
 	} :data
+	IMAGE_END = .;
 
 	/DISCARD/ : {
 		*(.eh_frame*)

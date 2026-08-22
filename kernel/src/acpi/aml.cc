@@ -75,8 +75,8 @@ struct scopeelem {
 	}
 };
 
-string scopetext(AmlOpCode*& code) {
-	string ret;
+String scopetext(AmlOpCode*& code) {
+	String ret;
 	switch (*code) {
 		case AmlOpCode::ParentPrefixChar:
 		case AmlOpCode::RootChar:
@@ -100,7 +100,7 @@ void acpi_parse_aml(sdt_t* table) {
 
 	AmlOpCode* op = (AmlOpCode*)(table + 1);
 	AmlOpCode* end = (AmlOpCode*)table + table->length;
-	vector<string> scope;
+	Vector<String> scope;
 
 	while (op < end) {
 		switch (*op) {

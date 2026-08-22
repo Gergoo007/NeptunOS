@@ -7,10 +7,10 @@
 
 extern "C" { void x86_64_ap_trampoline(); void x86_64_ap_trampoline_end(); }
 
-vector<ioapic_t> ioapics;
+Vector<ioapic_t> ioapics;
 u64 lapic_base = 0xfee00000ull;
 
-vector<lapic_t> cpus;
+Vector<lapic_t> cpus;
 
 // Mind a 16 IRQ-hoz tartozhat egy
 struct ioapic_redir {
@@ -19,7 +19,7 @@ struct ioapic_redir {
 	bool lvltrig;
 };
 
-static array<16, ioapic_redir> redirection_table = {
+static Array<16, ioapic_redir> redirection_table = {
 	{ 0,  false, false },
 	{ 1,  false, false },
 	{ 2,  false, false },

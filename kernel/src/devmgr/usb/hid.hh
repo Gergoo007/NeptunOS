@@ -2,4 +2,4 @@
 
 #include <devmgr/usb/usb.hh>
 
-void usb_hid_init(device_t& usbdev);
+void usb_hid_init(Device& usbdev, u8 firstendp);

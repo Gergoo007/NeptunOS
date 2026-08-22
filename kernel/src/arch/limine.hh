@@ -477,19 +477,6 @@ typedef enum MMAP_TYPES {
 	LIMINE_MEMMAP_FRAMEBUFFER				= 7,
 } MMAP_TYPES;
 
-// #define LIMINE_MEMMAP_USABLE                 0
-// #define LIMINE_MEMMAP_RESERVED               1
-// #define LIMINE_MEMMAP_ACPI_RECLAIMABLE       2
-// #define LIMINE_MEMMAP_ACPI_NVS               3
-// #define LIMINE_MEMMAP_BAD_MEMORY             4
-// #define LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE 5
-// #if LIMINE_API_REVISION >= 2
-// #  define LIMINE_MEMMAP_EXECUTABLE_AND_MODULES 6
-// #else
-// #  define LIMINE_MEMMAP_KERNEL_AND_MODULES 6
-// #endif
-// #define LIMINE_MEMMAP_FRAMEBUFFER            7
-
 struct limine_memmap_entry {
     uint64_t base;
     uint64_t length;

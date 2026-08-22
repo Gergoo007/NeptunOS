@@ -85,8 +85,8 @@ namespace guid_parse {
 	}
 }
 
-static inline string guid2string(u8* guid) {
-	string ret;
+static inline String guid2string(u8* guid) {
+	String ret;
 	ret.resize(46);
 	sprintf(ret.data, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
 		*(u32*)guid, *(u16*)(guid + 4), *(u16*)(guid + 6), *(u8*)(guid + 8), *(u8*)(guid + 9),

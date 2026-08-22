@@ -2,7 +2,7 @@
 #include <arch/amd64/amd64.hh>
 #include <mm/pmm4g.hh>
 
-UsbSpeed usb_hub_send_reset(device_t& hub, u8 port) {
+UsbSpeed usb_hub_send_reset(Device& hub, u8 port) {
 	usb_request* getsts = (usb_request*)kmalloc4g(sizeof(usb_request));
 	getsts->bmRequestType = 0b10100011;
 	getsts->bRequest = UsbRequests::GET_STATUS;
@@ -53,7 +53,7 @@ UsbSpeed usb_hub_send_reset(device_t& hub, u8 port) {
 	return speed;
 }
 
-void usb_hub_init(device_t &usbdev) {
+void usb_hub_init(Device &usbdev) {
 	debug("Initializing USB Hub with progif %02x...", usbdev.kinds.get<device_t_USB>().progif);
 
 	auto hciint = ((usb_hci_interface_t*)(usbdev.kinds.get<device_t_USB>().hci->extra));
@@ -88,19 +88,19 @@ void usb_hub_init(device_t &usbdev) {
 
 	arch_sleep(hub->bPowerOnGood*2, true);
 
-	usb_request* getsts = (usb_request*)kmalloc4g(sizeof(usb_request));
-	getsts->bmRequestType = 0b10100011;
-	getsts->bRequest = UsbRequests::GET_STATUS;
-	getsts->wIndex = 0;
-	getsts->wValue = 0;
-	getsts->wLength = 4;
-
 	// usb_request* setfeat = (usb_request*)((u64)r + 192);
 	// setfeat->bmRequestType = 0b00100011;
 	// setfeat->bRequest = UsbRequests::SET_FEATURE;
 	// setfeat->wIndex = 0;
 	// setfeat->wValue = 4; // PORT_RESET
 	// setfeat->wLength = 0;
+
+	usb_request* getsts = (usb_request*)kmalloc4g(sizeof(usb_request));
+	getsts->bmRequestType = 0xa3;
+	getsts->bRequest = UsbRequests::GET_STATUS;
+	getsts->wIndex = 0;
+	getsts->wValue = 0;
+	getsts->wLength = 4;
 
 	for (u32 i = 1; i <= hub->bNbrPorts; i++) {
 		getsts->wIndex = i; // port

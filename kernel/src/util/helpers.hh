@@ -1,11 +1,17 @@
 #pragma once
 
-#include <types.hh>
+using u64 = unsigned long long;
+using size_t = __SIZE_TYPE__;
 
 template <typename T>
 struct remove_const			{ using type = T; };
 template <typename T>
 struct remove_const<const T>{ using type = T; };
+
+template <typename T>
+struct remove_volatile			{ using type = T; };
+template <typename T>
+struct remove_volatile<volatile T>{ using type = T; };
 
 template <typename T>
 struct remove_reference		{ using type = T; };
@@ -140,3 +146,13 @@ namespace std {
 
 template <u64 N, typename T>
 constexpr auto countof(const T (&arr)[N]) noexcept { return N; }
+
+template <typename T, T v>
+struct integral_const {
+	static constexpr T value = v;
+};
+
+template <typename T>
+struct is_enum {
+	static constexpr bool value = integral_const<bool, __is_enum(T)>::value;
+};

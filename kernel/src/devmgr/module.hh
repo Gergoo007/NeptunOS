@@ -101,12 +101,12 @@ struct module_t {
 	bool loaded = false;
 };
 
-extern vector<module_t> modules;
+extern Vector<module_t> modules;
 
-struct device_t;
-struct partition;
+struct Device;
+struct Partition;
 void modules_register_all();
 struct filesystem;
 bool modules_launch_fs(module_t& m, filesystem& f);
-void modules_launch(module_t& m, device_t& dev);
+void modules_launch(module_t& m, Device& dev);
 void modules_launch(module_t& m);
