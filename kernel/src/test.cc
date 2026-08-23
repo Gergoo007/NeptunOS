@@ -2,6 +2,7 @@
 #include <util/smartptrs.hh>
 #include <util/async.hh>
 #include <util/variant.hh>
+#include <util/arena.hh>
 #include <mm/pmm4g.hh>
 #include <arch/amd64/paging.hh>
 #include <mm/vmm.hh>
@@ -55,8 +56,8 @@ void test_libk() {
 		assert(vec7.size == 1);
 		assert(vec7.data != nullptr);
 
-		Array<4, u32> asd { 1, 2, 3, 4, };
-		Array<4, u32> asd2 = asd;
+		Array<u32, 4> asd {{ 1, 2, 3, 4, }};
+		Array<u32, 4> asd2 = asd;
 		assert(asd[0] == asd2[0]);
 		assert(asd[1] == asd2[1]);
 		assert(asd[2] == asd2[2]);
@@ -206,6 +207,19 @@ void test_libk() {
 
 		static_assert(str_to_int("1010", 2) == 0b1010);
 		static_assert(str_to_int("1010", 8) == 001010);
+	}
+
+	{
+		Arena<u64> arena;
+		auto handle1 = arena.push_back(10);
+		auto handle2 = arena.push_back(20);
+		auto handle3 = arena.push_back(30);
+		arena.remove(handle2);
+		auto handle4 = arena.push_back(40);
+
+		assert_eq(arena[handle1], 10ull);
+		assert_eq(arena[handle3], 30ull);
+		assert_eq(arena[handle4], 40ull);
 	}
 }
 

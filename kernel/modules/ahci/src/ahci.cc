@@ -30,7 +30,7 @@ constexpr u32 PRDTL = 4080;
 constexpr u32 CMD_TBL_SIZE = PRDTL * 16 + 128;
 
 __attribute__((section(".modinfo"), used))
-volatile constexpr module_metadata_t _modinfo {
+volatile constexpr ModuleMetadata _modinfo {
 	.name = "ahci",
 	.triggertype = ModuleTriggerTypes::PCI_CLASS_SUBCLASS,
 	.trigger = { .PCI_CLASS_SUBCLASS { 0x01, 0x06 } }

@@ -5,7 +5,7 @@
 #include <util/mem.hh>
 #include <config.hh>
 
-struct Bitmap {
+struct BitmapSkeleton {
 	u64* buffer = nullptr;
 	u64 sz;
 
@@ -86,3 +86,5 @@ private:
 		return -1ull;
 	}
 };
+
+struct Bitmap : BitmapSkeleton {  };

@@ -13,7 +13,7 @@
 #include "ehci.hh"
 
 __attribute__((section(".modinfo"), used))
-volatile constexpr module_metadata_t _modinfo {
+volatile constexpr ModuleMetadata _modinfo {
 	.name = "ehci",
 	.triggertype = ModuleTriggerTypes::PCI_CLASS_SUBCLASS_PROGIF,
 	.trigger = { .PCI_CLASS_SUBCLASS_PROGIF { 0xc, 0x3, 0x20 } }

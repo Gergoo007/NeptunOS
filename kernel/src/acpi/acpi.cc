@@ -139,7 +139,7 @@ void acpi_init() {
 				if (fadt->x86_legacy.nomsi) fatal("MSI support required");
 				if (fadt->x86_legacy.i8042) { // TODO: Bochs-on szar
 					for (auto& m : modules) {
-						const module_metadata_t& md = *m.metadata;
+						const ModuleMetadata& md = *m.metadata;
 						if (md.triggertype == ModuleTriggerTypes::FADT_LEGACY_I8042)
 							modules_launch(m);
 					}

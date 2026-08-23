@@ -16,7 +16,7 @@ __attribute__((format(printf, 1, 2)))
 void printk(const char* fmt, ...);
 
 __attribute__((format(printf, 1, 2)))
-void printk(const char* fmt, ...);
+void printlnk(const char* fmt, ...);
 
 __attribute__((format(printf, 1, 2)))
 void sprintk(const char* fmt, ...);
@@ -27,8 +27,8 @@ __attribute__((format(printf, 3, 4))) [[noreturn]]
 void printkxnoret(unsigned int lvl, const char* FILENAME, const char* fmt, ...);
 
 #ifdef IS_MODULE
-struct module_metadata_t;
-extern const volatile module_metadata_t _modinfo;
+struct ModuleMetadata;
+extern const volatile ModuleMetadata _modinfo;
 #define debug(fmt, ...) printkx(0, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #define report(fmt, ...) printkx(1, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)
 #define warn(fmt, ...) printkx(2, __FILE_NAME__, "[%s %s:%d]: " fmt "\n", (const char*)&_modinfo, __FILE_NAME__, __LINE__, ##__VA_ARGS__)

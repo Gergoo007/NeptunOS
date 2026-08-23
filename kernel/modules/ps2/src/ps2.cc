@@ -7,7 +7,7 @@
 #include "ps2.hh"
 
 __attribute__((section(".modinfo"), used))
-volatile constexpr module_metadata_t _modinfo {
+volatile constexpr ModuleMetadata _modinfo {
 	.name = "ps2",
 	.triggertype = ModuleTriggerTypes::FADT_LEGACY_I8042,
 	.trigger = {  }
@@ -82,13 +82,13 @@ void handlekb(cpu_state_t* frame) {
 		released = true;
 		goto end;
 	}
-	if (code > 0x5f) goto end;
+	if (code > 0x6f) goto end;
 	if (released) {
 		released = false;
-		// kbd_release((ScanCode)scancode_set2_to_ascii[code]);
+		kbd_release((ScanCode)scancode_set2_to_ascii[code]);
 	} else {
-		// kbd_press((ScanCode)scancode_set2_to_ascii[code]);
-		printk("%c", scancode_set2_to_ascii[code]);
+		kbd_press((ScanCode)scancode_set2_to_ascii[code]);
+		// printk("%c", scancode_set2_to_ascii[code]);
 	}
 
 end:

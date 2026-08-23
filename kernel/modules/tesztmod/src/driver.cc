@@ -2,7 +2,7 @@
 #include <devmgr/module.hh>
 
 __attribute__((section(".modinfo"), used))
-volatile constexpr module_metadata_t _modinfo {
+volatile constexpr ModuleMetadata _modinfo {
 	.name = "tesztmod",
 	.triggertype = ModuleTriggerTypes::ANY,
 	.trigger = {  }

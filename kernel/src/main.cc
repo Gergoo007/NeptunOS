@@ -22,6 +22,7 @@
 #include <loader/loader.hh>
 #include <arch/amd64/syscalls/syscalls.hh>
 #include <arch/amd64/apic.hh>
+#include <cmdline/cmdline.hh>
 
 extern "C" attr_noret void khang();
 void test();
@@ -62,9 +63,9 @@ extern "C" void kmain() {
 
 	if (!cpuid_x2apic_supported()) warn("TODO: x2APIC needed to function!");
 
-	test();
-
 	ksyms_read();
+
+	test();
 
 	sched_start();
 
@@ -95,6 +96,8 @@ extern "C" void kmain() {
 	);
 
 	init_syscalls();
+
+	cmdline_activate();
 
 	khang();
 }

@@ -28,9 +28,8 @@ u8 strcmp(const char* s1, const char* s2);
 void strcat(char* dest, char* src);
 
 [[nodiscard]]
-constexpr i64 str_to_int(const char*& str, u32 base = 10, bool advance = true) {
+constexpr i64 str_to_int(const char* str, u32 base = 10) {
 	i64 ret = 0;
-	const char* orig = str;
 	bool neg = false;
 
 	if (*str == '-') {
@@ -54,10 +53,41 @@ constexpr i64 str_to_int(const char*& str, u32 base = 10, bool advance = true) {
 		}
 	}
 
-	if (!advance) str = orig;
 	if (neg) ret *= -1;
 	return ret;
 }
 
 [[nodiscard]]
-constexpr i64 str_to_int(const char* str, u32 base = 10) { return str_to_int(str, base, false); }
+constexpr u64 str_to_uint(const char* str, u32 base = 10) {
+	u64 ret = 0;
+
+	if (*str == '-') {
+		fatal("str_to_uint on a negative");
+	}
+
+	if (*str == '0') {
+		if (*(str + 1) == 'x') {
+			base = 16;
+			str += 2;
+		} else if (*(str + 1) == '0') {
+			base = 8;
+			str += 2;
+		} else if (*(str + 1) == 'b') {
+			base = 2;
+			str += 2;
+		}
+	}
+
+	while ((base <= 10 && ISDIGIT(*str)) || (base > 10 && (ISLETTER(*str) || ISDIGIT(*str)))) {
+		ret *= base;
+		if (ISUPPERCASE(*str)) {
+			ret += *(str++) - 'A' + 10;
+		} else if (ISLOWERCASE(*str)) {
+			ret += *(str++) - 'a' + 10;
+		} else {
+			ret += *(str++) - '0';
+		}
+	}
+
+	return ret;
+}

@@ -16,33 +16,33 @@ static constexpr u64 growfun(u64 cap) {
 template <typename T>
 struct _generic_iter {
 	T* data = nullptr;
-	_generic_iter(T* _data): data(_data) {  }
-	_generic_iter(_generic_iter& o): data(o.data) {  }
+	constexpr _generic_iter(T* _data): data(_data) {  }
+	constexpr _generic_iter(_generic_iter& o): data(o.data) {  }
 	
-	_generic_iter& operator++()		{ data++; return *this; }
-	_generic_iter  operator++(int)	{ auto old = *this; data++; return old; }
+	constexpr _generic_iter& operator++()		{ data++; return *this; }
+	constexpr _generic_iter  operator++(int)	{ auto old = *this; data++; return old; }
 	
-	_generic_iter& operator--()		{ data--; return *this; }
-	_generic_iter  operator--(int)	{ auto old = *this; data--; return old; }
+	constexpr _generic_iter& operator--()		{ data--; return *this; }
+	constexpr _generic_iter  operator--(int)	{ auto old = *this; data--; return old; }
 
-	_generic_iter  operator+ (u64 a)	{ return _generic_iter(data + a); }
-	_generic_iter  operator- (u64 a)	{ return _generic_iter(data + a); }
+	constexpr _generic_iter  operator+ (u64 a)	{ return _generic_iter(data + a); }
+	constexpr _generic_iter  operator- (u64 a)	{ return _generic_iter(data + a); }
 
-	_generic_iter& operator+=(u64 a)	{ data += a; return *this; }
-	_generic_iter& operator-=(u64 a)	{ data -= a; return *this; }
+	constexpr _generic_iter& operator+=(u64 a)	{ data += a; return *this; }
+	constexpr _generic_iter& operator-=(u64 a)	{ data -= a; return *this; }
 
-	T* operator-(const _generic_iter& o) { return data - o.data; }
-	T& operator[](const u64 idx) { return data[idx]; }
+	constexpr T* operator-(const _generic_iter& o) { return data - o.data; }
+	constexpr T& operator[](const u64 idx) { return data[idx]; }
 
-	T* operator->()	{ return data; }
-	T& operator*()	{ return *data; }
+	constexpr T* operator->()	{ return data; }
+	constexpr T& operator*()	{ return *data; }
 
-	bool operator==(const _generic_iter& o) const { return data == o.data; }
-	bool operator!=(const _generic_iter& o) const { return data != o.data; }
-	bool operator< (const _generic_iter& o) const { return data  < o.data; }
-	bool operator<=(const _generic_iter& o) const { return data <= o.data; }
-	bool operator> (const _generic_iter& o) const { return data  > o.data; }
-	bool operator>=(const _generic_iter& o) const { return data >= o.data; }
+	constexpr bool operator==(const _generic_iter& o) const { return data == o.data; }
+	constexpr bool operator!=(const _generic_iter& o) const { return data != o.data; }
+	constexpr bool operator< (const _generic_iter& o) const { return data  < o.data; }
+	constexpr bool operator<=(const _generic_iter& o) const { return data <= o.data; }
+	constexpr bool operator> (const _generic_iter& o) const { return data  > o.data; }
+	constexpr bool operator>=(const _generic_iter& o) const { return data >= o.data; }
 };
 
 template <typename T>
@@ -152,7 +152,7 @@ struct Vector {
 		capacity = cap;
 	}
 
-	T& operator[](const u64 idx) const {
+	T& operator[](const u64 idx) {
 		if constexpr (DBG) {
 			if (idx > size)
 				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
@@ -162,15 +162,15 @@ struct Vector {
 		return data[idx];
 	}
 
-	// const T& operator[](const u64 idx) const {
-	// 	if constexpr (DBG) {
-	// 		if (idx > size)
-	// 			fatal("vector access out of bounds! idx %lld size %lld", idx, size);
-	// 		if (!data)
-	// 			fatal("vector data null (uninitialized)!");
-	// 	}
-	// 	return data[idx];
-	// }
+	const T& operator[](const u64 idx) const {
+		if constexpr (DBG) {
+			if (idx > size)
+				fatal("vector access out of bounds! idx %lld size %lld", idx, size);
+			if (!data)
+				fatal("vector data null (uninitialized)!");
+		}
+		return data[idx];
+	}
 
 	T& last() {
 		return data[size - 1];
@@ -230,9 +230,139 @@ struct Vector {
 		return data[--size];
 	}
 
+	void swap_remove(u64 idx) {
+		if constexpr (DBG) {
+			if (idx >= size) {
+				fatal("swap_remove: idx out of bounds!");
+			}
+		}
+		data[idx] = data[size--];
+	}
+
 	Iter begin() const { return Iter(data); }
 	Iter end() const { return Iter(data + size); }
 };
+
+struct String;
+struct StringView {
+	const char* str;
+	u64 size;
+
+	constexpr StringView(String& s);
+	constexpr StringView(const char* s, u64 sz): str(s), size(sz) {  }
+
+	template <u64 N>
+	constexpr StringView(const char (&turi)[N]): str(turi), size(N - 1) {}
+
+	constexpr bool operator==(const char* rhs) const {
+		for (u64 i = 0; i < size; i++) {
+			if (rhs[i] != str[i]) {
+				return false;
+			}
+		}
+
+		if (rhs[size] != '\0') {
+			return false;
+		}
+
+		return true;
+	}
+
+	constexpr bool operator!=(const char* rhs) const {
+		return !operator==(rhs);
+	}
+
+	constexpr bool starts_with(const char* s) const {
+		u64 i = 0;
+		for (i = 0; i < size && s[i]; i++) {
+			if (s[i] != str[i]) {
+				return false;
+			}
+		}
+		return s[i] == 0;
+	}
+
+	constexpr u64 ends_with(const char* s) const {
+		const u64 s_size = strlen(s);
+
+		if (s_size > size) {
+			return false;
+		}
+
+		for (u64 i = 0; i < s_size; i++) {
+			if (str[size - s_size + i] != s[i]) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	i64 to_int(u32 base = 10) const {
+		return str_to_int(str, base);
+	}
+
+	u64 to_uint(u32 base = 10) const {
+		return str_to_int(str, base);
+	}
+
+	String materialize() const;
+};
+
+struct StringSplitIterator {
+	const char* str;
+	char delimiter;
+
+	StringView operator*() {
+		u64 i = 0;
+		while (str[i] != 0 && str[i] != delimiter) {
+			i++;
+		}
+		return StringView(str, i);
+	}
+
+	StringSplitIterator& operator++() {
+		while (*str != 0 && *str != delimiter) {
+			str++;
+		}
+		str++;
+		return *this;
+	}
+
+	// Mégegy ilyen putri nyelv nincs ezen a Földön...
+	StringSplitIterator operator++(int) {
+		StringSplitIterator it = *this;
+		++(*this);
+		return it;
+	}
+
+	StringSplitIterator& operator+=(u64 times) {
+		while (times--) {
+			++(*this);
+		}
+		return *this;
+	}
+
+	StringSplitIterator operator+(u64 times) {
+		StringSplitIterator it = *this;
+		it += times;
+		return it;
+	}
+
+	bool operator!=(StringSplitIterator& rhs) {
+		return !(*rhs.str == 0 && *str == 0);
+	}
+
+	// So very genius
+	StringSplitIterator& begin() {
+		return *this;
+	}
+
+	StringSplitIterator end() {
+		return StringSplitIterator("\0", ' ');
+	}
+};
+
 
 // a size-ba NINCS bele számítva a null terminator
 struct String : Vector<char> {
@@ -325,19 +455,29 @@ struct String : Vector<char> {
 		return *this;
 	}
 
+	StringSplitIterator split(char c) {
+		return StringSplitIterator(this->data, c);
+	}
+
 	char* c_str() const { if (!data) return (char*)""; else return (char*)data; }
 };
 
-template <u64 S, typename T>
+constexpr StringView::StringView(String& s): str(s.data), size(s.size) {  }
+
+inline String StringView::materialize() const {
+	return String(this->str, size);
+}
+
+template <typename T, u64 S>
 struct Array {
 	using Iter = _generic_iter<T>;
 	static constexpr u64 size = S;
 
 	T data[S] = {};
 
-	Array();
+	constexpr Array();
 
-	Array(std::initializer_list<T> items) {
+	constexpr Array(std::initializer_list<T> items) {
 		assert(items.__size_ <= size);
 
 		u64 idx = 0;
@@ -345,7 +485,13 @@ struct Array {
 			data[idx++] = e;
 	}
 
-	Array(const Array& o) {
+	constexpr Array(const T (&items)[S]) {
+		for (u64 i = 0; i < S; i++) {
+			data[i] = items[i];
+		}
+	}
+
+	constexpr Array(const Array& o) {
 		static_assert(size == o.size);
 
 		for (u64 i = 0; i < o.size; i++)
@@ -370,7 +516,7 @@ struct Array {
 		return *this;
 	}
 
-	~Array() {
+	constexpr ~Array() {
 		for (auto& e : *this)
 			e.~T();
 	}
@@ -400,21 +546,21 @@ struct Array {
 		return true;
 	}
 
-	Iter begin() { return Iter(data); }
-	Iter end() { return Iter(data + size); }
+	constexpr Iter begin() { return Iter(data); }
+	constexpr Iter end() { return Iter(data + size); }
 };
 
 template <typename T>
 struct Opt {
-	union storage {
+	union Storage {
 		T data;
 		bool dummy;
 
-		constexpr storage(): dummy(false) {}
-		constexpr storage(const T& d): data(d) {}
-		constexpr storage(T&& d): data(d) {}
+		constexpr Storage(): dummy(false) {}
+		constexpr Storage(const T& d): data(d) {}
+		constexpr Storage(T&& d): data(d) {}
 
-		constexpr ~storage() {}
+		constexpr ~Storage() {}
 	} storage;
 	bool present = false;
 
@@ -783,7 +929,7 @@ struct Span {
 	constexpr Span(T (arr)[N]): first(arr), size(N) {  }
 
 	template <u64 N>
-	constexpr Span(const Array<N, T>& arr): first((T*)arr.data), size(N) {  }
+	constexpr Span(const Array<T, N>& arr): first((T*)arr.data), size(N) {  }
 
 	constexpr Span(const Vector<T>& vec): first((T*)vec.data), size(vec.size) {  }
 
@@ -810,3 +956,57 @@ struct Pair {
 	Pair(): first(), second() {  }
 	Pair(T f, U s): first(f), second(s) {  }
 };
+
+// template <typename T>
+// struct StableIndexVector {
+// 	Vector<T> data;
+// 	Vector<u64> lookup;		// user_idx -> data_idx
+// 	Vector<u64> rev_lookup;	// data_idx -> user_idx
+
+// 	StableIndexVector() = default;
+// 	StableIndexVector(std::initializer_list<T> init) {
+// 		data.reserve(init.size());
+// 		lookup.reserve(init.size());
+// 		rev_lookup.reserve(init.size());
+
+// 		for (const auto& item : init) {
+// 			data.push_back(item);
+// 			lookup.push_back(lookup.size);
+// 			rev_lookup.push_back(rev_lookup.size);
+// 		}
+// 	}
+
+// 	u64 push_back(const T& item) {
+// 		if (data.size < lookup.size) {
+// 			assert(data.size < rev_lookup.size);
+
+// 			rev_lookup[data.size] = ;
+// 		} else {
+// 			assert_eq(data.size, lookup.size);
+// 			assert_eq(data.size, rev_lookup.size);
+
+// 			lookup.push_back(data.size);
+// 			rev_lookup.push_back(data.size);
+// 		}
+
+// 		data.push_back(item);
+// 	}
+
+// 	void remove(u64 idx) {
+// 		data.swap_remove(lookup[idx]);
+// 		lookup[lookup.size - 1] = lookup[idx];
+// 		lookup[idx] = -1ull;
+// 	}
+
+// 	T& operator[](u64 idx) {
+// 		return data[lookup[idx]];
+// 	}
+
+// 	auto begin() {
+// 		return data.begin();
+// 	}
+
+// 	auto end() {
+// 		return data.end();
+// 	}
+// };

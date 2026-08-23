@@ -19,7 +19,7 @@ struct ioapic_redir {
 	bool lvltrig;
 };
 
-static Array<16, ioapic_redir> redirection_table = {
+static Array<ioapic_redir, 16> redirection_table = {
 	{ 0,  false, false },
 	{ 1,  false, false },
 	{ 2,  false, false },

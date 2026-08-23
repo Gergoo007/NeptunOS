@@ -2,6 +2,7 @@
 #include <util/storage.hh>
 #include <mm/vmm.hh>
 #include <arch/arch.hh>
+#include <cmdline/cmdline.hh>
 
 // Nem használok rendes 'string'-et, mert ez nem UTF-8 kompatibilis és
 // nem lehet krolátozni a méretét
@@ -33,8 +34,23 @@ static void append_char(ScanCode sc) {
 			// warn("UTF-8 scan codes are not supported yet!");
 			return;
 		}
-		input_buffer[input_buffer_size++] = c;
-		printk("%c", c);
+
+		if ((input_buffer_size && c == '\b') || c != '\b') {
+			printk("%c", c);
+		}
+
+		if (c == '\n') {
+			input_buffer[input_buffer_size] = 0;
+			cmdline_evaluate_buffer(input_buffer, input_buffer_size);
+			input_buffer_size = 0;
+			input_buffer[0] = 0;
+		} else if (c == '\b') {
+			if (input_buffer_size > 0) {
+				input_buffer[--input_buffer_size] = 0;
+			}
+		} else {
+			input_buffer[input_buffer_size++] = c;
+		}
 	}
 }
 
@@ -66,12 +82,17 @@ char_t kbd_translate_hu(ScanCode c) {
 		case ScanCode::LeftBracket: return u'ú';
 
 		case ScanCode::Semicolon: return u'é';
-		case ScanCode::Quote: return u'á';
+		case ScanCode::Apostrophe: return u'á';
 		case ScanCode::Backslash: return u'ű';
 
 		case ScanCode::Comma: return u',';
 		case ScanCode::Period: return u'.';
 		case ScanCode::Slash: return u'-';
+
+		case ScanCode::Grave: return u'0';
+		case ScanCode::N0: return u'ö';
+		case ScanCode::Minus: return u'ü';
+		case ScanCode::Equal : return u'ó';
 
 		default: return (char_t)c;
 	}

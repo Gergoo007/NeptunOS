@@ -117,7 +117,7 @@ void con_swap_buffers() {
 			((u64*)(fbs[current_fb].fb_addr))[i] = ((u64*)con_backbuf)[i];
 }
 
-void con_cputc(const char c) {
+void con_putc(const char c) {
 	if (!con_inited) {
 		sprintk("yo no console::init yet");
 		pause();
@@ -142,7 +142,16 @@ void con_cputc(const char c) {
 			con_cx += cw;
 			con_cx = align(con_cx, cw * TAB_WIDTH);
 			if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
-				con_cputc('\n');
+				con_putc('\n');
+			goto exit;
+		}
+		case '\b': {
+			// con_cx += con_glyphw + con_padx;
+			con_clear_cursor();
+			con_cx -= (con_glyphw + con_padx);
+			con_putc(' ');
+			con_clear_cursor();
+			con_cx -= con_glyphw + con_padx;
 			goto exit;
 		}
 		case '\r': {
@@ -153,7 +162,7 @@ void con_cputc(const char c) {
 	}
 
 	if (con_cx + con_glyphw + con_padx > fbs[current_fb].fb_width)
-		con_cputc('\n');
+		con_putc('\n');
 
 	for (u32 y = 0; y < con_glyphh; y++) {
 		u16 row = 0;
@@ -179,9 +188,9 @@ exit:
 	con_put_cursor();
 }
 
-void con_cputs(const char* s) {
+void con_puts(const char* s) {
 	while (*s) {
-		con_cputc(*(s++));
+		con_putc(*(s++));
 	}
 	con_swap_buffers();
 }
@@ -216,6 +225,26 @@ void printk(const char* fmt, ...) {
 	va_start(list, fmt);
 	vprintf(fmt, list);
 	va_end(list);
+
+	con_swap_buffers();
+}
+
+__attribute__((format(printf, 1, 2)))
+void printlnk(const char* fmt, ...) {
+	#ifdef SERIALPRINTK
+	va_list list2;
+	va_start(list2, fmt);
+	vprintf2(fmt, list2);
+	va_end(list2);
+	sputc('\r');
+	sputc('\n');
+	#endif
+
+	va_list list;
+	va_start(list, fmt);
+	vprintf(fmt, list);
+	va_end(list);
+	con_putc('\n');
 
 	con_swap_buffers();
 }

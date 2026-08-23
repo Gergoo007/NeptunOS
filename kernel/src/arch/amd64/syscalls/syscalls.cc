@@ -19,7 +19,7 @@ extern "C" void handle_syscall(cpu_state_t* frame) {
 			break;
 		}
 		case 1: {
-			con_cputs((const char*)frame->rdi);
+			con_puts((const char*)frame->rdi);
 			break;
 		}
 	}

@@ -43,8 +43,8 @@ extern u32 con_color_fg, con_color_bg;
 extern u8 con_inited;
 
 void con_init(void* psf);
-void con_cputc(const char c);
-void con_cputs(const char* s);
+void con_putc(const char c);
+void con_puts(const char* s);
 void con_push_color(u32 color);
 void con_pop_color();
 void con_clear();

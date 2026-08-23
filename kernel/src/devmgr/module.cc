@@ -20,7 +20,7 @@ static volatile limine_module_request module_req {
 	.internal_modules = nullptr,
 };
 
-Vector<module_t> modules;
+Vector<Module> modules;
 // 64 modul van max, így mindegyiknek jut 1 GiB
 static bool bm_init = false;
 static Bitmap bm;
@@ -117,7 +117,7 @@ u64 modules_link(void* a, u64 size) {
 	return entry;
 }
 
-void modules_load(module_t& m) {
+void modules_load(Module& m) {
 	if (!bm_init) {
 		bm.init(kmalloc(8), 64);
 		bm_init = true;
@@ -170,21 +170,21 @@ void modules_load(module_t& m) {
 	m.loaded = true;
 }
 
-void modules_launch(module_t& m, Device& devptr) {
+void modules_launch(Module& m, Device& devptr) {
 	if (!m.loaded) modules_load(m);
 
 	// Futtatás a mod_main() által
 	((void (*)(Device&))m.entry)(devptr);
 }
 
-void modules_launch(module_t& m) {
+void modules_launch(Module& m) {
 	if (!m.loaded) modules_load(m);
 
 	// Futtatás a mod_main() által
 	((void (*)())m.entry)();
 }
 
-bool modules_launch_fs(module_t& m, filesystem& p) {
+bool modules_launch_fs(Module& m, filesystem& p) {
 	if (!m.loaded) modules_load(m);
 
 	// Futtatás a mod_main() által
@@ -197,12 +197,12 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 	// Ennek \127-nek kéne lennie, 2002 óta nem lett kijavítva ez az elf.h-ban
 	assert(!strncmp("\177ELF", (char*)e->e_ident, 4));
 
-	module_metadata_t* md = nullptr;
+	ModuleMetadata* md = nullptr;
 	Elf64_Shdr* shdrs = (Elf64_Shdr*) ((u64)a + e->e_shoff);
 	const char* shstrtab = (char*) ((u64)a + shdrs[e->e_shstrndx].sh_offset);
 	for (u32 i = 0; i < e->e_shnum; i++) {
 		if (!strcmp(".modinfo", shstrtab + shdrs[i].sh_name)) {
-			md = (module_metadata_t*) ((u64)a + shdrs[i].sh_offset);
+			md = (ModuleMetadata*) ((u64)a + shdrs[i].sh_offset);
 			break;
 		}
 	}
@@ -211,7 +211,7 @@ void modules_register(void* a, u64 size, const char* modfilename) {
 		error("Invalid module (no .modinfo section found): %s", modfilename);
 		teszt = a;
 	} else {
-		module_t mod { .content = a, .size = size, .entry = 0, .metadata = md };
+		Module mod { .content = a, .size = size, .entry = 0, .metadata = md };
 
 		if (md->triggertype == ModuleTriggerTypes::ANY)
 			modules_launch(mod, *(Device*)1); // Ezért megköveznek gec

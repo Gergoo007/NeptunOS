@@ -8,7 +8,7 @@ Device& devmgr_add_device(Device&& _d) {
 
 	// Van modul erre az eszközre?
 	for (auto& m : modules) {
-		const module_metadata_t& md = *m.metadata;
+		const ModuleMetadata& md = *m.metadata;
 		switch (d.subsys) {
 			case DevmgrSubsys::PCI: {
 				if (((u32)m.metadata->triggertype & (u32)ModuleTriggerTypes::PCIMASK) == 0) continue;

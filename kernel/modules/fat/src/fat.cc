@@ -9,7 +9,7 @@
 #include "fat.hh"
 
 __attribute__((section(".modinfo"), used))
-volatile constexpr module_metadata_t _modinfo {
+volatile constexpr ModuleMetadata _modinfo {
 	.name = "fat",
 	.triggertype = ModuleTriggerTypes::FILESYSTEM,
 	.trigger = { .FILESYSTEM {  } }

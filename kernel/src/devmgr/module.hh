@@ -87,26 +87,26 @@ union ModuleTrigger {
 	struct {  }								FILESYSTEM;
 };
 
-struct module_metadata_t {
+struct ModuleMetadata {
 	char name[32];
 	ModuleTriggerTypes triggertype;
 	ModuleTrigger trigger;
 };
 
-struct module_t {
+struct Module {
 	void* content;
 	u64 size;
 	u64 entry;
-	module_metadata_t* metadata;
+	ModuleMetadata* metadata;
 	bool loaded = false;
 };
 
-extern Vector<module_t> modules;
+extern Vector<Module> modules;
 
 struct Device;
 struct Partition;
 void modules_register_all();
 struct filesystem;
-bool modules_launch_fs(module_t& m, filesystem& f);
-void modules_launch(module_t& m, Device& dev);
-void modules_launch(module_t& m);
+bool modules_launch_fs(Module& m, filesystem& f);
+void modules_launch(Module& m, Device& dev);
+void modules_launch(Module& m);
